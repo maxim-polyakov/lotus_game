@@ -1,0 +1,70 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; margin: 0; background: #1a1a2e; color: #eee; }
+
+.auth-page, .home-page, .play-page, .decks-page {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+.auth-page form, .play-page > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.auth-page input, .play-page select {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+.auth-page button, .play-page button, .btn-primary {
+  padding: 0.6rem 1rem;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.auth-page button:disabled, .play-page button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.error { color: #f66; }
+.auth-page a, .home-page a { color: #6af; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #333; }
+header a, header button { margin-left: 1rem; }
+.welcome { text-align: center; margin-top: 2rem; }
+.welcome .btn-primary { display: inline-block; margin-top: 1rem; text-decoration: none; }
+
+.game-board {
+  padding: 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.game-board header { border: none; }
+.enemy-area, .my-area {
+  border: 1px solid #444;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+}
+.board { display: flex; gap: 0.5rem; flex-wrap: wrap; min-height: 80px; }
+.minion {
+  width: 60px;
+  height: 80px;
+  border: 2px solid #666;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.my-minion { border-color: #4a90d9; }
+.hand { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+.card-in-hand {
+  width: 50px;
+  height: 70px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 10px;
+}

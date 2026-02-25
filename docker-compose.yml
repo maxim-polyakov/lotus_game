@@ -1,0 +1,35 @@
+services:
+  server:
+    build: ./server
+    container_name: lotus-server
+    restart: unless-stopped
+    ports:
+      - "5497:8080"
+    networks:
+      - lotus_net
+
+  smtp-service:
+    image: maildev/maildev
+    container_name: smtp-service
+    restart: unless-stopped
+    environment:
+      - NODE_OPTIONS=--no-warnings=DeprecationWarning
+      - DEBUG=maildev*
+    env_file:
+      - ./server/.env
+    command:
+      --outgoing-host smtp.gmail.com
+      --outgoing-port 465
+      --outgoing-secure
+      --outgoing-user mailer7012@gmail.com
+      --outgoing-pass "ldxm ypzz ewvf mnwq"
+      --auto-relay
+      --verbose
+    ports:
+      - "8185:1080"
+    networks:
+      - lotus_net
+
+networks:
+  lotus_net:
+    driver: bridge
