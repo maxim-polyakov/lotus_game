@@ -131,18 +131,38 @@ export default function GameBoard({ matchId, onExit }) {
         <div className="board">
           {me.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
+            const canAttackHero = isMyTurn && m.canAttack && (!enemy.board?.length);
+            const canAttackMinions = isMyTurn && m.canAttack && (enemy.board?.length > 0);
             return card ? (
               <div key={m.instanceId} className="minion my-minion">
                 <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
-                {isMyTurn && m.canAttack && (
+                {canAttackHero && (
                   <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
+                )}
+                {canAttackMinions && (
+                  <div className="minion-attack-targets">
+                    {enemy.board?.map((target) => (
+                      <button key={target.instanceId} onClick={() => attack(m.instanceId, target.instanceId)} className="btn btn-primary btn-sm">
+                        Атаковать {target.attack}/{target.currentHealth}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             ) : (
               <div key={m.instanceId} className="minion my-minion">
                 {m.attack}/{m.currentHealth}
-                {isMyTurn && m.canAttack && (
+                {canAttackHero && (
                   <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
+                )}
+                {canAttackMinions && (
+                  <div className="minion-attack-targets">
+                    {enemy.board?.map((target) => (
+                      <button key={target.instanceId} onClick={() => attack(m.instanceId, target.instanceId)} className="btn btn-primary btn-sm">
+                        Атаковать {target.attack}/{target.currentHealth}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             );

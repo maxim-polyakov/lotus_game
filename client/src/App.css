@@ -428,6 +428,14 @@ header .header-username {
 }
 .minion .card-display { border: none; box-shadow: none; }
 .my-minion { border-color: #4a90d9; }
+.minion-attack-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  justify-content: center;
+}
+.minion-attack-targets .btn-sm { font-size: 10px; padding: 0.2rem 0.4rem; }
 .hand { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; align-items: flex-start; }
 .card-in-hand {
   display: flex;

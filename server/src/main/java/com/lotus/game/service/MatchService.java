@@ -172,6 +172,9 @@ public class MatchService {
         }
 
         if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
+            if (!enemy.getBoard().isEmpty()) {
+                throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
+            }
             enemy.setHealth(enemy.getHealth() - attacker.getAttack());
             attacker.setCanAttack(false);
             attacker.setExhausted(true);
