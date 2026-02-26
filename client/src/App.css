@@ -207,9 +207,18 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0;
 
 .home-page {
   max-width: 720px;
-  margin: 2rem auto;
+  margin: 0 auto;
   padding: 1.5rem;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.home-page main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .play-page, .decks-page {
   width: 100%;
@@ -357,10 +366,10 @@ header .header-username {
 }
 .welcome {
   text-align: center;
-  margin-top: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
 }
 .welcome .btn {
@@ -369,6 +378,36 @@ header .header-username {
 .welcome .btn-primary {
   padding: 1rem 2rem;
   font-size: 1.1rem;
+}
+.welcome-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem 3rem;
+  min-width: 320px;
+}
+.welcome-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+.welcome-logo img {
+  height: 48px;
+  width: auto;
+  border-radius: 8px;
+}
+.welcome-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-lg {
+  padding: 1rem 2.5rem !important;
+  font-size: 1.15rem !important;
 }
 
 .game-board {

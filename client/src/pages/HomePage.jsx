@@ -7,12 +7,12 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <header>
-        <h1 className="header-logo">
-          <img src="/lotus.jpg" alt="Lotus Game" />
-          Lotus Game
-        </h1>
-        {user ? (
+      {user && (
+        <header>
+          <h1 className="header-logo">
+            <img src="/lotus.jpg" alt="Lotus Game" />
+            Lotus Game
+          </h1>
           <div className="header-actions">
             <span className="header-username">{user.username}</span>
             <Link to="/decks" className="btn btn-primary">Колоды</Link>
@@ -22,22 +22,25 @@ export default function HomePage() {
             )}
             <button onClick={logout} className="btn btn-secondary">Выйти</button>
           </div>
-        ) : (
-          <div className="header-actions">
-            <Link to="/login" className="btn btn-primary">Вход</Link>
-            <Link to="/register" className="btn btn-outline">Регистрация</Link>
-          </div>
-        )}
-      </header>
+        </header>
+      )}
       <main>
         {user ? (
-          <div className="welcome">
+          <div className="welcome welcome-box">
             <h2>Добро пожаловать, {user.username}!</h2>
-            <Link to="/play" className="btn btn-primary">Найти матч</Link>
+            <Link to="/play" className="btn btn-primary btn-lg">Найти матч</Link>
           </div>
         ) : (
-          <div className="welcome">
+          <div className="welcome welcome-box">
+            <h1 className="welcome-logo">
+              <img src="/lotus.jpg" alt="Lotus Game" />
+              Lotus Game
+            </h1>
             <p>Войдите или зарегистрируйтесь, чтобы играть.</p>
+            <div className="welcome-buttons">
+              <Link to="/login" className="btn btn-primary btn-lg">Вход</Link>
+              <Link to="/register" className="btn btn-outline btn-lg">Регистрация</Link>
+            </div>
           </div>
         )}
       </main>
