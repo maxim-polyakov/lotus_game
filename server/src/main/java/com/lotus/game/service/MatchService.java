@@ -229,7 +229,9 @@ public class MatchService {
         int cardsToDraw = ThreadLocalRandom.current().nextInt(1, 4);
         drawCards(nextState, cardsToDraw);
 
-        if (state.getPlayer1().getDeck().isEmpty() && state.getPlayer2().getDeck().isEmpty()) {
+        boolean bothDecksEmpty = state.getPlayer1().getDeck().isEmpty() && state.getPlayer2().getDeck().isEmpty();
+        boolean bothBoardsEmpty = state.getPlayer1().getBoard().isEmpty() && state.getPlayer2().getBoard().isEmpty();
+        if (bothDecksEmpty && bothBoardsEmpty) {
             match.setStatus(Match.MatchStatus.FINISHED);
             match.setWinnerId(null);
         } else {
