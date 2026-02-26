@@ -28,6 +28,9 @@ public class User {
     @Column(unique = true, nullable = false, length = 50)
     private String username;
 
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
     @NotBlank
     @Email
     @Column(unique = true, nullable = false)

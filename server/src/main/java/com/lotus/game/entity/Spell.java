@@ -33,4 +33,7 @@ public class Spell {
 
     @Column(length = 255)
     private String imageUrl;
+
+    @Column(name = "sound_url", length = 512)
+    private String soundUrl;
 }

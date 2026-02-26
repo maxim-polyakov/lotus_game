@@ -21,7 +21,7 @@ export default function LoginPage() {
       if (data.requiresEmailVerification) {
         navigate('/verify-email', { state: { email: data.email, rememberMe } });
       } else {
-        login(data, rememberMe);
+        await login(data, rememberMe);
         navigate('/');
       }
     } catch (err) {

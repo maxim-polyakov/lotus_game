@@ -44,6 +44,7 @@ export default function DecksPage() {
         <h1>Мои колоды</h1>
         <div className="decks-page-actions">
           <Link to="/" className="btn btn-secondary">Назад</Link>
+          <Link to="/profile" className="btn btn-outline">Профиль</Link>
           <Link to="/decks/new" className="btn btn-primary">Создать колоду</Link>
         </div>
       </div>

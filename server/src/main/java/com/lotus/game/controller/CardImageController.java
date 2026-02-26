@@ -114,4 +114,92 @@ public class CardImageController {
         }
         return ResponseEntity.ok(Map.of("imageUrl", ""));
     }
+
+    @PostMapping(value = "/minions/{id}/sound", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadMinionSound(
+            @PathVariable Long id,
+            @RequestParam("sound") MultipartFile file,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Файл не прикреплён"));
+        }
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "audio/mpeg";
+            String url = storageService.uploadCardSound(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "sound.mp3");
+            minion.setSoundUrl(url);
+            minionRepository.save(minion);
+            return ResponseEntity.ok(Map.of("soundUrl", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/minions/{id}/sound")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteMinionSound(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        String oldUrl = minion.getSoundUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем
+            }
+            minion.setSoundUrl(null);
+            minionRepository.save(minion);
+        }
+        return ResponseEntity.ok(Map.of("soundUrl", ""));
+    }
+
+    @PostMapping(value = "/spells/{id}/sound", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadSpellSound(
+            @PathVariable Long id,
+            @RequestParam("sound") MultipartFile file,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Файл не прикреплён"));
+        }
+        Spell spell = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "audio/mpeg";
+            String url = storageService.uploadCardSound(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "sound.mp3");
+            spell.setSoundUrl(url);
+            spellRepository.save(spell);
+            return ResponseEntity.ok(Map.of("soundUrl", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/spells/{id}/sound")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteSpellSound(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Spell spell = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        String oldUrl = spell.getSoundUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем
+            }
+            spell.setSoundUrl(null);
+            spellRepository.save(spell);
+        }
+        return ResponseEntity.ok(Map.of("soundUrl", ""));
+    }
 }

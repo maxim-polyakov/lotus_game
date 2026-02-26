@@ -21,6 +21,7 @@ import java.util.UUID;
 public class StorageService {
 
     private static final String CARDS_PREFIX = "cards/";
+    private static final String SOUNDS_PREFIX = "sounds/";
 
     private final S3Client s3Client;
     private final YandexStorageProperties props;
@@ -49,6 +50,27 @@ public class StorageService {
 
     public String uploadCardImage(byte[] bytes, String contentType, String originalFilename) {
         return uploadCardImage(new ByteArrayInputStream(bytes), bytes.length, contentType, originalFilename);
+    }
+
+    /**
+     * Загружает звуковой файл карты (mp3, wav, ogg) и возвращает публичный URL.
+     */
+    public String uploadCardSound(byte[] bytes, String contentType, String originalFilename) {
+        String ext = getExtension(originalFilename);
+        String lower = ext.toLowerCase();
+        if (!lower.equals(".mp3") && !lower.equals(".wav") && !lower.equals(".ogg") && !lower.equals(".m4a") && !lower.equals(".webm")) {
+            ext = ".mp3";
+        }
+        String key = SOUNDS_PREFIX + UUID.randomUUID() + ext;
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(props.getBucketName())
+                .key(key)
+                .contentType(contentType != null ? contentType : "audio/mpeg")
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        String url = buildPublicUrl(key);
+        log.info("Uploaded card sound: {}", url);
+        return url;
     }
 
     public void deleteByUrl(String url) {

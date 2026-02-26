@@ -5,13 +5,20 @@ import api from '../api/client';
 import { API_BASE } from '../api/client';
 import { getAccessToken } from '../utils/tokenStorage';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../context/SettingsContext';
+import { playSound, playSoundFromUrl } from '../utils/sound';
 import CardDisplay from './CardDisplay';
 
 export default function GameBoard({ matchId, onExit }) {
   const [match, setMatch] = useState(null);
   const [allCards, setAllCards] = useState([]);
   const [selectedAttacker, setSelectedAttacker] = useState(null);
+  const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
+  const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
   const { user } = useAuth();
+  const { soundEnabled, toggleSound } = useSettings();
+  const { theme, toggleTheme } = useTheme();
 
   const getCard = useCallback((cardType, cardId) => {
     return allCards.find((c) => c.cardType === cardType && c.id === cardId);
@@ -45,6 +52,14 @@ export default function GameBoard({ matchId, onExit }) {
   }, [matchId]);
 
   useEffect(() => {
+    if (match?.status === 'FINISHED' && soundEnabled) {
+      if (match.winnerId === user?.id) playSound('victory');
+      else if (match.winnerId === null) playSound('draw');
+      else playSound('defeat');
+    }
+  }, [match?.status, match?.winnerId, user?.id, soundEnabled]);
+
+  useEffect(() => {
     if (match?.status === 'FINISHED' && onExit) {
       const t = setTimeout(() => onExit(), 2500);
       return () => clearTimeout(t);
@@ -59,9 +74,17 @@ export default function GameBoard({ matchId, onExit }) {
 
   const playCard = async (instanceId, targetPosition) => {
     try {
+      const cardInHand = me.hand?.find((c) => c.instanceId === instanceId);
+      const card = cardInHand ? getCard(cardInHand.cardType, cardInHand.cardId) : null;
       await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition });
       const { data } = await api.get(`/api/matches/${matchId}`);
       setMatch(data);
+      setLastPlayedBoardIndex(targetPosition);
+      setTimeout(() => setLastPlayedBoardIndex(null), 450);
+      if (soundEnabled) {
+        if (card?.soundUrl) playSoundFromUrl(card.soundUrl);
+        else playSound('cardPlay');
+      }
     } catch (e) {
       alert(e.response?.data?.message || 'Ошибка');
     }
@@ -76,6 +99,9 @@ export default function GameBoard({ matchId, onExit }) {
       const { data } = await api.get(`/api/matches/${matchId}`);
       setMatch(data);
       setSelectedAttacker(null);
+      setLastAttackedTargetId(targetId);
+      setTimeout(() => setLastAttackedTargetId(null), 400);
+      if (soundEnabled) playSound('attack');
     } catch (e) {
       alert(e.response?.data?.message || 'Ошибка');
     }
@@ -115,7 +141,15 @@ export default function GameBoard({ matchId, onExit }) {
     <div className="game-board">
       <header>
         <h2>Матч #{match.id}</h2>
-        <button onClick={onExit} className="btn btn-secondary">Выход</button>
+        <div className="header-actions">
+          <button onClick={toggleTheme} className="btn btn-outline btn-sm" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">
+            {theme === 'dark' ? '☀' : '🌙'}
+          </button>
+          <button onClick={toggleSound} className="btn btn-outline btn-sm" title={soundEnabled ? 'Выключить звук' : 'Включить звук'} aria-label="Звук">
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
+          <button onClick={onExit} className="btn btn-secondary">Выход</button>
+        </div>
       </header>
       {match.status === 'FINISHED' && (
         <div className="game-overlay">
@@ -138,7 +172,7 @@ export default function GameBoard({ matchId, onExit }) {
       <div className="enemy-area">
         <div className="enemy-header">
           <div
-            className={`enemy-hero ${selectedAttacker && !enemy.board?.length ? 'attack-target' : ''}`}
+            className={`enemy-hero ${selectedAttacker && !enemy.board?.length ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
             onClick={() => selectedAttacker && !enemy.board?.length && handleTargetClick('hero')}
             title={selectedAttacker && !enemy.board?.length ? 'Нажмите, чтобы атаковать героя' : ''}
           >
@@ -149,10 +183,11 @@ export default function GameBoard({ matchId, onExit }) {
           {enemy.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
             const isTarget = !!selectedAttacker;
+            const justHit = lastAttackedTargetId === m.instanceId;
             return card ? (
               <div
                 key={m.instanceId}
-                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''}`}
+                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''}`}
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
                 title={isTarget ? `Атаковать (${m.attack}/${m.currentHealth})` : ''}
               >
@@ -161,7 +196,7 @@ export default function GameBoard({ matchId, onExit }) {
             ) : (
               <div
                 key={m.instanceId}
-                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''}`}
+                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''}`}
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
                 title={isTarget ? `Атаковать (${m.attack}/${m.currentHealth})` : ''}
               >
@@ -173,14 +208,15 @@ export default function GameBoard({ matchId, onExit }) {
       </div>
       <div className="my-area">
         <div className="board">
-          {me.board?.map((m) => {
+          {me.board?.map((m, idx) => {
             const card = getCard('MINION', m.cardId);
             const canAttack = isMyTurn && m.canAttack;
             const isSelected = selectedAttacker === m.instanceId;
+            const justPlayed = lastPlayedBoardIndex === idx;
             return card ? (
               <div
                 key={m.instanceId}
-                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''}`}
+                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''} ${justPlayed ? 'card-just-played' : ''}`}
                 onClick={() => handleAttackerClick(m.instanceId, canAttack)}
                 title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
               >
@@ -192,7 +228,7 @@ export default function GameBoard({ matchId, onExit }) {
             ) : (
               <div
                 key={m.instanceId}
-                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''}`}
+                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''} ${justPlayed ? 'card-just-played' : ''}`}
                 onClick={() => handleAttackerClick(m.instanceId, canAttack)}
                 title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
               >

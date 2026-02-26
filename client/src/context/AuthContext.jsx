@@ -36,9 +36,14 @@ export function AuthProvider({ children }) {
     initAuth();
   }, []);
 
-  const login = (data, rememberMe = false) => {
+  const login = async (data, rememberMe = false) => {
     setTokens(data.accessToken, data.refreshToken, rememberMe);
-    setUser({ id: data.userId, username: data.username, roles: data.roles });
+    try {
+      const { data: me } = await api.get('/api/me');
+      setUser(me);
+    } catch {
+      setUser({ id: data.userId, username: data.username, roles: data.roles });
+    }
   };
 
   const logout = () => {
@@ -46,8 +51,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (data) => setUser((prev) => (prev ? { ...prev, ...data } : data));
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

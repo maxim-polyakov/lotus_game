@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
-import { useAuth } from '../context/AuthContext';
 import GameBoard from '../components/GameBoard';
 import WaitingMatch from '../components/WaitingMatch';
 import CardDisplay from '../components/CardDisplay';

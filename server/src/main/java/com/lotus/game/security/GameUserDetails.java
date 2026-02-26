@@ -15,6 +15,7 @@ public class GameUserDetails implements UserDetails {
     private final Long id;
     private final String username;
     private final String email;
+    private final String avatarUrl;
     private final String password;
     private final Collection<? extends GrantedAuthority> authorities;
 
@@ -22,6 +23,7 @@ public class GameUserDetails implements UserDetails {
         this.id = user.getId();
         this.username = user.getUsername();
         this.email = user.getEmail();
+        this.avatarUrl = user.getAvatarUrl();
         this.password = user.getPasswordHash();
         this.authorities = user.getRoles().stream()
                 .map(SimpleGrantedAuthority::new)

@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { SettingsProvider } from './context/SettingsContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -11,6 +13,7 @@ import DeckCreatePage from './pages/DeckCreatePage';
 import DeckDetailPage from './pages/DeckDetailPage';
 import PlayPage from './pages/PlayPage';
 import AdminCabinetPage from './pages/AdminCabinetPage';
+import ProfilePage from './pages/ProfilePage';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -28,8 +31,10 @@ function AdminRoute({ children }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ThemeProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -41,8 +46,11 @@ export default function App() {
           <Route path="/decks/:id" element={<PrivateRoute><DeckDetailPage /></PrivateRoute>} />
           <Route path="/play" element={<PrivateRoute><PlayPage /></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
+          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+        </AuthProvider>
+      </SettingsProvider>
+    </ThemeProvider>
   );
 }
