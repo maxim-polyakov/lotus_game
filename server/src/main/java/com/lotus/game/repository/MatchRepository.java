@@ -14,6 +14,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     Optional<Match> findFirstByStatusOrderByCreatedAtAsc(Match.MatchStatus status);
 
+    List<Match> findByStatus(Match.MatchStatus status);
+
     List<Match> findByPlayer1IdOrPlayer2IdOrderByCreatedAtDesc(Long player1Id, Long player2Id);
 
     @Query("SELECT COUNT(m) FROM Match m WHERE (m.player1Id = :userId OR m.player2Id = :userId) " +

@@ -40,9 +40,11 @@ public class MatchService {
             throw new IllegalArgumentException("Access denied to deck");
         }
 
-        Optional<Match> waiting = matchRepository.findFirstByStatusOrderByCreatedAtAsc(Match.MatchStatus.WAITING);
-        if (waiting.isPresent() && !waiting.get().getPlayer1Id().equals(userId)) {
-            Match match = waiting.get();
+        List<Match> waitingList = matchRepository.findByStatus(Match.MatchStatus.WAITING).stream()
+                .filter(m -> !m.getPlayer1Id().equals(userId))
+                .toList();
+        if (!waitingList.isEmpty()) {
+            Match match = waitingList.get(ThreadLocalRandom.current().nextInt(waitingList.size()));
             match.setPlayer2Id(userId);
             match.setDeck2Id(deckId);
             match.setStatus(Match.MatchStatus.IN_PROGRESS);
