@@ -10,6 +10,7 @@ import CardDisplay from './CardDisplay';
 export default function GameBoard({ matchId, onExit }) {
   const [match, setMatch] = useState(null);
   const [allCards, setAllCards] = useState([]);
+  const [selectedAttacker, setSelectedAttacker] = useState(null);
   const { user } = useAuth();
 
   const getCard = useCallback((cardType, cardId) => {
@@ -50,6 +51,12 @@ export default function GameBoard({ matchId, onExit }) {
     }
   }, [match?.status, onExit]);
 
+  useEffect(() => {
+    if (match?.gameState && match.currentTurnPlayerId !== user?.id) {
+      setSelectedAttacker(null);
+    }
+  }, [match?.gameState, match?.currentTurnPlayerId, user?.id]);
+
   const playCard = async (instanceId, targetPosition) => {
     try {
       await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition });
@@ -68,9 +75,20 @@ export default function GameBoard({ matchId, onExit }) {
       });
       const { data } = await api.get(`/api/matches/${matchId}`);
       setMatch(data);
+      setSelectedAttacker(null);
     } catch (e) {
       alert(e.response?.data?.message || 'Ошибка');
     }
+  };
+
+  const handleAttackerClick = (instanceId, canAttack) => {
+    if (!isMyTurn || !canAttack) return;
+    setSelectedAttacker((prev) => (prev === instanceId ? null : instanceId));
+  };
+
+  const handleTargetClick = (targetId) => {
+    if (!selectedAttacker) return;
+    attack(selectedAttacker, targetId);
   };
 
   const endTurn = async () => {
@@ -109,20 +127,46 @@ export default function GameBoard({ matchId, onExit }) {
       )}
       <div className="game-status">
         {match.status === 'IN_PROGRESS' && (
-          <p>{isMyTurn ? 'Ваш ход' : 'Ход соперника'}</p>
+          <>
+            <p>{isMyTurn ? 'Ваш ход' : 'Ход соперника'}</p>
+            {selectedAttacker && (
+              <p className="attack-hint">Выберите цель для атаки (миньон или герой соперника)</p>
+            )}
+          </>
         )}
       </div>
       <div className="enemy-area">
-        <div>Соперник: HP {enemy.health}</div>
+        <div className="enemy-header">
+          <div
+            className={`enemy-hero ${selectedAttacker && !enemy.board?.length ? 'attack-target' : ''}`}
+            onClick={() => selectedAttacker && !enemy.board?.length && handleTargetClick('hero')}
+            title={selectedAttacker && !enemy.board?.length ? 'Нажмите, чтобы атаковать героя' : ''}
+          >
+            Соперник: HP {enemy.health}
+          </div>
+        </div>
         <div className="board">
           {enemy.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
+            const isTarget = !!selectedAttacker;
             return card ? (
-              <div key={m.instanceId} className="minion enemy-minion">
+              <div
+                key={m.instanceId}
+                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''}`}
+                onClick={() => isTarget && handleTargetClick(m.instanceId)}
+                title={isTarget ? `Атаковать (${m.attack}/${m.currentHealth})` : ''}
+              >
                 <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
               </div>
             ) : (
-              <div key={m.instanceId} className="minion enemy-minion">{m.attack}/{m.currentHealth}</div>
+              <div
+                key={m.instanceId}
+                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''}`}
+                onClick={() => isTarget && handleTargetClick(m.instanceId)}
+                title={isTarget ? `Атаковать (${m.attack}/${m.currentHealth})` : ''}
+              >
+                {m.attack}/{m.currentHealth}
+              </div>
             );
           })}
         </div>
@@ -131,38 +175,30 @@ export default function GameBoard({ matchId, onExit }) {
         <div className="board">
           {me.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
-            const canAttackHero = isMyTurn && m.canAttack && (!enemy.board?.length);
-            const canAttackMinions = isMyTurn && m.canAttack && (enemy.board?.length > 0);
+            const canAttack = isMyTurn && m.canAttack;
+            const isSelected = selectedAttacker === m.instanceId;
             return card ? (
-              <div key={m.instanceId} className="minion my-minion">
+              <div
+                key={m.instanceId}
+                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''}`}
+                onClick={() => handleAttackerClick(m.instanceId, canAttack)}
+                title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
+              >
                 <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
-                {canAttackHero && (
-                  <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
-                )}
-                {canAttackMinions && (
-                  <div className="minion-attack-targets">
-                    {enemy.board?.map((target) => (
-                      <button key={target.instanceId} onClick={() => attack(m.instanceId, target.instanceId)} className="btn btn-primary btn-sm">
-                        Атаковать {target.attack}/{target.currentHealth}
-                      </button>
-                    ))}
-                  </div>
+                {canAttack && (
+                  <span className="minion-attack-badge">Может атаковать</span>
                 )}
               </div>
             ) : (
-              <div key={m.instanceId} className="minion my-minion">
+              <div
+                key={m.instanceId}
+                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''}`}
+                onClick={() => handleAttackerClick(m.instanceId, canAttack)}
+                title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
+              >
                 {m.attack}/{m.currentHealth}
-                {canAttackHero && (
-                  <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
-                )}
-                {canAttackMinions && (
-                  <div className="minion-attack-targets">
-                    {enemy.board?.map((target) => (
-                      <button key={target.instanceId} onClick={() => attack(m.instanceId, target.instanceId)} className="btn btn-primary btn-sm">
-                        Атаковать {target.attack}/{target.currentHealth}
-                      </button>
-                    ))}
-                  </div>
+                {canAttack && (
+                  <span className="minion-attack-badge">Может атаковать</span>
                 )}
               </div>
             );

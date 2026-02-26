@@ -427,15 +427,45 @@ header .header-username {
   font-size: 12px;
 }
 .minion .card-display { border: none; box-shadow: none; }
-.my-minion { border-color: #4a90d9; }
-.minion-attack-targets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-  justify-content: center;
+.my-minion { border-color: #4a90d9; cursor: default; }
+.my-minion.can-attack { cursor: pointer; }
+.my-minion.can-attack:hover { box-shadow: 0 0 0 2px #4a90d9; }
+.my-minion.attacker-selected {
+  box-shadow: 0 0 0 3px #f39c12;
+  border-color: #f39c12;
 }
-.minion-attack-targets .btn-sm { font-size: 10px; padding: 0.2rem 0.4rem; }
+.enemy-minion.attack-target {
+  cursor: pointer;
+  box-shadow: 0 0 0 2px #e74c3c;
+}
+.enemy-minion.attack-target:hover {
+  box-shadow: 0 0 0 4px #e74c3c;
+  transform: scale(1.02);
+}
+.enemy-hero {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.enemy-hero.attack-target {
+  cursor: pointer;
+  background: rgba(231, 76, 60, 0.2);
+  border: 2px solid #e74c3c;
+}
+.enemy-hero.attack-target:hover {
+  background: rgba(231, 76, 60, 0.35);
+}
+.attack-hint {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #f39c12;
+}
+.minion-attack-badge {
+  font-size: 9px;
+  color: #27ae60;
+  margin-top: 0.2rem;
+}
 .hand { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; align-items: flex-start; }
 .card-in-hand {
   display: flex;
