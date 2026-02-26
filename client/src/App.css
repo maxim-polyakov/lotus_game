@@ -405,6 +405,11 @@ header .header-username {
   color: #fff;
   box-shadow: 0 8px 32px rgba(192, 57, 43, 0.5);
 }
+.game-overlay-message.draw {
+  background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+  color: #fff;
+  box-shadow: 0 8px 32px rgba(127, 140, 141, 0.5);
+}
 .game-overlay-hint {
   margin-top: 1.5rem;
   color: rgba(255, 255, 255, 0.8);

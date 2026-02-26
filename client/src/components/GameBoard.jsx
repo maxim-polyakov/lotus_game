@@ -119,8 +119,8 @@ export default function GameBoard({ matchId, onExit }) {
       </header>
       {match.status === 'FINISHED' && (
         <div className="game-overlay">
-          <div className={`game-overlay-message ${match.winnerId === user?.id ? 'victory' : 'defeat'}`}>
-            {match.winnerId === user?.id ? 'Победа!' : 'Поражение'}
+          <div className={`game-overlay-message ${match.winnerId === user?.id ? 'victory' : match.winnerId === null ? 'draw' : 'defeat'}`}>
+            {match.winnerId === user?.id ? 'Победа!' : match.winnerId === null ? 'Ничья' : 'Поражение'}
           </div>
           <p className="game-overlay-hint">Через несколько секунд — поиск следующего матча...</p>
         </div>

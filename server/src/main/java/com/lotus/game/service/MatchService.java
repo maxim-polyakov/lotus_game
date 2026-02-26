@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -225,12 +226,18 @@ public class MatchService {
         nextState.getBoard().forEach(m -> m.setCanAttack(true));
         nextState.getBoard().forEach(m -> m.setExhausted(false));
 
-        drawCards(nextState, 1);
+        int cardsToDraw = ThreadLocalRandom.current().nextInt(1, 4);
+        drawCards(nextState, cardsToDraw);
 
-        match.setCurrentTurnPlayerId(nextPlayer);
+        if (state.getPlayer1().getDeck().isEmpty() && state.getPlayer2().getDeck().isEmpty()) {
+            match.setStatus(Match.MatchStatus.FINISHED);
+            match.setWinnerId(null);
+        } else {
+            match.setCurrentTurnPlayerId(nextPlayer);
+            state.setTurnNumber(state.getTurnNumber() + 1);
+            state.setCurrentTurnPlayerId(nextPlayer);
+        }
         match.setGameState(state);
-        state.setTurnNumber(state.getTurnNumber() + 1);
-        state.setCurrentTurnPlayerId(nextPlayer);
         matchRepository.save(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
