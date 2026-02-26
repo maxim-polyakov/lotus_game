@@ -8,11 +8,11 @@ import CardDisplay from '../components/CardDisplay';
 
 function enrichDeckWithCards(deck, allCards) {
   if (!deck?.cards || !allCards?.length) return deck;
-  const cards = deck.cards.flatMap((slot) => {
+  const slots = deck.cards.map((slot) => {
     const card = allCards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
-    return card ? Array(slot.count).fill(card) : [];
-  });
-  return { ...deck, cardsResolved: cards };
+    return card ? { card, count: slot.count } : null;
+  }).filter(Boolean);
+  return { ...deck, cardsResolved: slots };
 }
 
 export default function PlayPage() {
@@ -79,8 +79,8 @@ export default function PlayPage() {
             >
               <h3>{d.name}</h3>
               <div className="deck-cards-preview">
-                {(enrichDeckWithCards(d, allCards).cardsResolved || []).slice(0, 8).map((c, i) => (
-                  <CardDisplay key={`${c.id}-${i}`} card={c} size="sm" />
+                {(enrichDeckWithCards(d, allCards).cardsResolved || []).slice(0, 8).map(({ card, count }, i) => (
+                  <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="sm" />
                 ))}
               </div>
               <span className="deck-card-count">{d.cards?.reduce((s, x) => s + (x.count || 0), 0) || 0} карт</span>
@@ -92,8 +92,8 @@ export default function PlayPage() {
         <div className="selected-deck-cards">
           <h3>Карты в колоде:</h3>
           <div className="cards-grid">
-            {selectedDeckEnriched.cardsResolved.map((c, i) => (
-              <CardDisplay key={`${c.id}-${i}`} card={c} size="lg" />
+            {selectedDeckEnriched.cardsResolved.map(({ card, count }, i) => (
+              <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="lg" />
             ))}
           </div>
         </div>

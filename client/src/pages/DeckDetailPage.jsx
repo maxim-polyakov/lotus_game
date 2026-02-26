@@ -5,11 +5,11 @@ import CardDisplay from '../components/CardDisplay';
 
 function enrichDeckWithCards(deck, allCards) {
   if (!deck?.cards || !allCards?.length) return deck;
-  const cards = deck.cards.flatMap((slot) => {
+  const slots = deck.cards.map((slot) => {
     const card = allCards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
-    return card ? Array(slot.count).fill(card) : [];
-  });
-  return { ...deck, cardsResolved: cards };
+    return card ? { card, count: slot.count } : null;
+  }).filter(Boolean);
+  return { ...deck, cardsResolved: slots };
 }
 
 export default function DeckDetailPage() {
@@ -45,8 +45,8 @@ export default function DeckDetailPage() {
       </div>
       <div className="deck-detail-cards">
         <div className="cards-grid">
-          {(enriched.cardsResolved || []).map((c, i) => (
-            <CardDisplay key={`${c.id}-${i}`} card={c} size="lg" />
+          {(enriched.cardsResolved || []).map(({ card, count }, i) => (
+            <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="lg" />
           ))}
         </div>
       </div>

@@ -12,16 +12,18 @@ export default function CardDisplay({ card, size = 'md', count }) {
   const sizeClass = `card-display--${size}`;
   const attack = card.attack ?? 0;
   const health = card.health ?? 0;
+  const hasImage = !!card.imageUrl;
 
   return (
-    <div className={`card-display ${sizeClass}`} title={card.description}>
-      {count > 1 && <span className="card-display-count">{count}</span>}
+    <div
+      className={`card-display ${sizeClass} ${hasImage ? 'card-display--with-image' : ''}`}
+      title={card.description}
+      style={hasImage ? { backgroundImage: `url(${card.imageUrl})` } : undefined}
+    >
+      {hasImage && <div className="card-display-image-overlay" />}
+      {count != null && count > 1 && <span className="card-display-count">{count}</span>}
       <div className="card-display-mana">{card.manaCost}</div>
-      {isMinion ? (
-        <div className="card-display-stats">{attack}/{health}</div>
-      ) : (
-        <div className="card-display-type">Заклинание</div>
-      )}
+      {!isMinion && <div className="card-display-type">Заклинание</div>}
       <div className="card-display-name">{card.name}</div>
       <div className="card-display-right-stats">
         <span className="card-display-attack" title="Атака">{attack}</span>

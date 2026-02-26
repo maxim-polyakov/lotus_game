@@ -5,13 +5,13 @@ import CardDisplay from '../components/CardDisplay';
 
 function enrichDeckWithCards(deck, allCards) {
   if (!deck?.cards) return { ...deck, cardsResolved: [] };
-  const cards = (allCards || []).length
-    ? deck.cards.flatMap((slot) => {
+  const slots = (allCards || []).length
+    ? deck.cards.map((slot) => {
         const card = allCards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
-        return card ? Array(slot.count).fill(card) : [];
-      })
+        return card ? { card, count: slot.count } : null;
+      }).filter(Boolean)
     : [];
-  return { ...deck, cardsResolved: cards };
+  return { ...deck, cardsResolved: slots };
 }
 
 export default function DecksPage() {
@@ -59,8 +59,8 @@ export default function DecksPage() {
             <Link key={d.id} to={`/decks/${d.id}`} className="deck-card deck-card-link">
               <h3>{d.name}</h3>
               <div className="deck-cards-preview">
-                {cardsToShow.map((c, i) => (
-                  <CardDisplay key={`${c.id}-${i}`} card={c} size="sm" />
+                {cardsToShow.map(({ card, count }, i) => (
+                  <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="sm" />
                 ))}
               </div>
               <span className="deck-card-count">

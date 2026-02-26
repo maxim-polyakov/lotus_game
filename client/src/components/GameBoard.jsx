@@ -4,10 +4,16 @@ import SockJS from 'sockjs-client';
 import api from '../api/client';
 import { API_BASE } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import CardDisplay from './CardDisplay';
 
 export default function GameBoard({ matchId, onExit }) {
   const [match, setMatch] = useState(null);
+  const [allCards, setAllCards] = useState([]);
   const { user } = useAuth();
+
+  const getCard = useCallback((cardType, cardId) => {
+    return allCards.find((c) => c.cardType === cardType && c.id === cardId);
+  }, [allCards]);
 
   const loadMatch = useCallback(() => {
     api.get(`/api/matches/${matchId}`).then(({ data }) => setMatch(data));
@@ -16,6 +22,10 @@ export default function GameBoard({ matchId, onExit }) {
   useEffect(() => {
     loadMatch();
   }, [loadMatch]);
+
+  useEffect(() => {
+    api.get('/api/cards').then(({ data }) => setAllCards(data || []));
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -86,33 +96,58 @@ export default function GameBoard({ matchId, onExit }) {
       <div className="enemy-area">
         <div>Соперник: HP {enemy.health}</div>
         <div className="board">
-          {enemy.board?.map((m) => (
-            <div key={m.instanceId} className="minion enemy-minion">
-              {m.attack}/{m.currentHealth}
-            </div>
-          ))}
+          {enemy.board?.map((m) => {
+            const card = getCard('MINION', m.cardId);
+            return card ? (
+              <div key={m.instanceId} className="minion enemy-minion">
+                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
+              </div>
+            ) : (
+              <div key={m.instanceId} className="minion enemy-minion">{m.attack}/{m.currentHealth}</div>
+            );
+          })}
         </div>
       </div>
       <div className="my-area">
         <div className="board">
-          {me.board?.map((m) => (
-            <div key={m.instanceId} className="minion my-minion">
-              {m.attack}/{m.currentHealth}
-              {isMyTurn && m.canAttack && (
-                <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
-              )}
-            </div>
-          ))}
+          {me.board?.map((m) => {
+            const card = getCard('MINION', m.cardId);
+            return card ? (
+              <div key={m.instanceId} className="minion my-minion">
+                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
+                {isMyTurn && m.canAttack && (
+                  <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
+                )}
+              </div>
+            ) : (
+              <div key={m.instanceId} className="minion my-minion">
+                {m.attack}/{m.currentHealth}
+                {isMyTurn && m.canAttack && (
+                  <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className="hand">
-          {me.hand?.map((c) => (
-            <div key={c.instanceId} className="card-in-hand">
-              {c.cardType} #{c.cardId}
-              {isMyTurn && c.cardType === 'MINION' && (
-                <button onClick={() => playCard(c.instanceId, me.board?.length || 0)} className="btn btn-primary btn-sm">Сыграть</button>
-              )}
-            </div>
-          ))}
+          {me.hand?.map((c) => {
+            const card = getCard(c.cardType, c.cardId);
+            return card ? (
+              <div key={c.instanceId} className="card-in-hand">
+                <CardDisplay card={card} size="sm" />
+                {isMyTurn && c.cardType === 'MINION' && (
+                  <button onClick={() => playCard(c.instanceId, me.board?.length || 0)} className="btn btn-primary btn-sm">Сыграть</button>
+                )}
+              </div>
+            ) : (
+              <div key={c.instanceId} className="card-in-hand">
+                {c.cardType} #{c.cardId}
+                {isMyTurn && c.cardType === 'MINION' && (
+                  <button onClick={() => playCard(c.instanceId, me.board?.length || 0)} className="btn btn-primary btn-sm">Сыграть</button>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div>Мана: {me.mana} | HP: {me.health}</div>
         {isMyTurn && (
