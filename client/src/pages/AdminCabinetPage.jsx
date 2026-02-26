@@ -10,6 +10,7 @@ export default function AdminCabinetPage() {
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [error, setError] = useState('');
 
@@ -109,6 +110,26 @@ export default function AdminCabinetPage() {
       setError(typeof msg === 'string' ? msg : (err.message || 'Ошибка загрузки изображения'));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleImageDelete = async () => {
+    if (!selected?.imageUrl) return;
+    setError('');
+    setDeleting(true);
+    try {
+      const path = selected.cardType === 'MINION'
+        ? `/api/cards/minions/${selected.id}/image`
+        : `/api/cards/spells/${selected.id}/image`;
+      const { data } = await api.delete(path);
+      setSelected((prev) => ({ ...prev, imageUrl: data?.imageUrl || null }));
+      setCards((prev) => prev.map((c) =>
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, imageUrl: null } : c
+      ));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -219,6 +240,15 @@ export default function AdminCabinetPage() {
                   <div className="current-image">
                     <span>Текущее:</span>
                     <img src={selected.imageUrl} alt="" style={{ maxWidth: 80, maxHeight: 80, marginTop: 4 }} />
+                    <button
+                      type="button"
+                      onClick={handleImageDelete}
+                      disabled={deleting}
+                      className="btn btn-secondary btn-sm"
+                      style={{ marginTop: 8 }}
+                    >
+                      {deleting ? 'Удаление...' : 'Удалить аватар'}
+                    </button>
                   </div>
                 )}
               </div>

@@ -15,6 +15,8 @@ function enrichDeckWithCards(deck, allCards) {
   return { ...deck, cardsResolved: slots };
 }
 
+const ACTIVE_MATCH_KEY = 'lotus_active_match_id';
+
 export default function PlayPage() {
   const [decks, setDecks] = useState([]);
   const [allCards, setAllCards] = useState([]);
@@ -35,6 +37,26 @@ export default function PlayPage() {
       .catch(console.error);
   }, []);
 
+  useEffect(() => {
+    const savedId = sessionStorage.getItem(ACTIVE_MATCH_KEY);
+    if (savedId && !match) {
+      api.get(`/api/matches/${savedId}`)
+        .then(({ data }) => setMatch(data))
+        .catch(() => sessionStorage.removeItem(ACTIVE_MATCH_KEY));
+    }
+  }, [match]);
+
+  useEffect(() => {
+    if (match?.id && ['WAITING', 'IN_PROGRESS', 'FINISHED'].includes(match.status)) {
+      sessionStorage.setItem(ACTIVE_MATCH_KEY, String(match.id));
+    }
+  }, [match?.id, match?.status]);
+
+  const clearActiveMatch = () => {
+    setMatch(null);
+    sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+  };
+
   const findMatch = async () => {
     if (!selectedDeck) {
       setError('Выберите колоду');
@@ -53,11 +75,15 @@ export default function PlayPage() {
   };
 
   if (match && match.status === 'IN_PROGRESS') {
-    return <GameBoard matchId={match.id} onExit={() => setMatch(null)} />;
+    return <GameBoard matchId={match.id} onExit={clearActiveMatch} />;
+  }
+
+  if (match && match.status === 'FINISHED') {
+    return <GameBoard matchId={match.id} onExit={clearActiveMatch} />;
   }
 
   if (match && match.status === 'WAITING') {
-    return <WaitingMatch match={match} onUpdate={setMatch} onCancel={() => setMatch(null)} />;
+    return <WaitingMatch match={match} onUpdate={setMatch} onCancel={clearActiveMatch} />;
   }
 
   const selectedDeckData = decks.find((d) => d.id === selectedDeck);

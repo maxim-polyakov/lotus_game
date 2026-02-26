@@ -50,6 +50,27 @@ public class CardImageController {
         }
     }
 
+    @DeleteMapping("/minions/{id}/image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteMinionImage(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        String oldUrl = minion.getImageUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем — очищаем ссылку в БД в любом случае
+            }
+            minion.setImageUrl(null);
+            minionRepository.save(minion);
+        }
+        return ResponseEntity.ok(Map.of("imageUrl", ""));
+    }
+
     @PostMapping(value = "/spells/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> uploadSpellImage(
@@ -71,5 +92,26 @@ public class CardImageController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
         }
+    }
+
+    @DeleteMapping("/spells/{id}/image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteSpellImage(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Spell spell = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        String oldUrl = spell.getImageUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем — очищаем ссылку в БД в любом случае
+            }
+            spell.setImageUrl(null);
+            spellRepository.save(spell);
+        }
+        return ResponseEntity.ok(Map.of("imageUrl", ""));
     }
 }

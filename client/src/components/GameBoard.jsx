@@ -42,6 +42,13 @@ export default function GameBoard({ matchId, onExit }) {
     return () => c.deactivate();
   }, [matchId]);
 
+  useEffect(() => {
+    if (match?.status === 'FINISHED' && onExit) {
+      const t = setTimeout(() => onExit(), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [match?.status, onExit]);
+
   const playCard = async (instanceId, targetPosition) => {
     try {
       await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition });
@@ -85,10 +92,15 @@ export default function GameBoard({ matchId, onExit }) {
         <h2>Матч #{match.id}</h2>
         <button onClick={onExit} className="btn btn-secondary">Выход</button>
       </header>
+      {match.status === 'FINISHED' && (
+        <div className="game-overlay">
+          <div className={`game-overlay-message ${match.winnerId === user?.id ? 'victory' : 'defeat'}`}>
+            {match.winnerId === user?.id ? 'Победа!' : 'Поражение'}
+          </div>
+          <p className="game-overlay-hint">Через несколько секунд — поиск следующего матча...</p>
+        </div>
+      )}
       <div className="game-status">
-        {match.status === 'FINISHED' && (
-          <p>{match.winnerId === user?.id ? 'Победа!' : 'Поражение'}</p>
-        )}
         {match.status === 'IN_PROGRESS' && (
           <p>{isMyTurn ? 'Ваш ход' : 'Ход соперника'}</p>
         )}
