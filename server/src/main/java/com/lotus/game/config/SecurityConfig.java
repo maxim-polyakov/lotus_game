@@ -35,6 +35,8 @@ public class SecurityConfig {
             "/api/auth/verify-email",
             "/api/auth/login",
             "/api/auth/refresh",
+            "/api/cards",
+            "/api/cards/**",
             "/actuator/health",
             "/error",
             "/h2-console/**",

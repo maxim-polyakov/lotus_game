@@ -4,17 +4,34 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import GameBoard from '../components/GameBoard';
 import WaitingMatch from '../components/WaitingMatch';
+import CardDisplay from '../components/CardDisplay';
+
+function enrichDeckWithCards(deck, allCards) {
+  if (!deck?.cards || !allCards?.length) return deck;
+  const cards = deck.cards.flatMap((slot) => {
+    const card = allCards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
+    return card ? Array(slot.count).fill(card) : [];
+  });
+  return { ...deck, cardsResolved: cards };
+}
 
 export default function PlayPage() {
   const [decks, setDecks] = useState([]);
+  const [allCards, setAllCards] = useState([]);
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [match, setMatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/api/decks')
-      .then(({ data }) => setDecks(data))
+    Promise.all([
+      api.get('/api/decks').then(({ data }) => data),
+      api.get('/api/cards').then(({ data }) => data),
+    ])
+      .then(([decksData, cardsData]) => {
+        setDecks(decksData);
+        setAllCards(cardsData);
+      })
       .catch(console.error);
   }, []);
 
@@ -43,21 +60,45 @@ export default function PlayPage() {
     return <WaitingMatch match={match} onUpdate={setMatch} onCancel={() => setMatch(null)} />;
   }
 
+  const selectedDeckData = decks.find((d) => d.id === selectedDeck);
+  const selectedDeckEnriched = selectedDeckData ? enrichDeckWithCards(selectedDeckData, allCards) : null;
+
   return (
     <div className="play-page">
       <h1>Найти матч</h1>
-      <Link to="/">Назад</Link>
+      <Link to="/" className="btn btn-secondary">Назад</Link>
       {error && <div className="error">{error}</div>}
-      <div>
-        <label>Колода:</label>
-        <select value={selectedDeck || ''} onChange={(e) => setSelectedDeck(Number(e.target.value) || null)}>
-          <option value="">— Выберите —</option>
+      <div className="deck-selection">
+        <label>Выберите колоду:</label>
+        <div className="decks-cards-row">
           {decks.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <div
+              key={d.id}
+              className={`deck-card ${selectedDeck === d.id ? 'selected' : ''}`}
+              onClick={() => setSelectedDeck(d.id)}
+            >
+              <h3>{d.name}</h3>
+              <div className="deck-cards-preview">
+                {(enrichDeckWithCards(d, allCards).cardsResolved || []).slice(0, 8).map((c, i) => (
+                  <CardDisplay key={`${c.id}-${i}`} card={c} size="sm" />
+                ))}
+              </div>
+              <span className="deck-card-count">{d.cards?.reduce((s, x) => s + (x.count || 0), 0) || 0} карт</span>
+            </div>
           ))}
-        </select>
+        </div>
       </div>
-      <button onClick={findMatch} disabled={loading || !selectedDeck}>
+      {selectedDeckEnriched?.cardsResolved && (
+        <div className="selected-deck-cards">
+          <h3>Карты в колоде:</h3>
+          <div className="cards-grid">
+            {selectedDeckEnriched.cardsResolved.map((c, i) => (
+              <CardDisplay key={`${c.id}-${i}`} card={c} size="lg" />
+            ))}
+          </div>
+        </div>
+      )}
+      <button onClick={findMatch} disabled={loading || !selectedDeck} className="btn btn-primary">
         {loading ? 'Поиск...' : 'Найти матч'}
       </button>
     </div>

@@ -4,8 +4,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -25,6 +28,29 @@ public class GlobalExceptionHandler {
                         .error("Bad Request")
                         .message(ex.getMessage())
                         .build());
+    }
+
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    public ResponseEntity<ErrorBody> handleMultipart(Exception ex) {
+        String msg = ex instanceof MissingServletRequestPartException m
+                ? "Не прикреплён файл: " + m.getRequestPartName()
+                : (ex.getMessage() != null ? ex.getMessage() : "Ошибка загрузки файла");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorBody.builder()
+                .timestamp(Instant.now().toString())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(msg)
+                .build());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorBody> handleMaxUpload(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorBody.builder()
+                .timestamp(Instant.now().toString())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message("Файл слишком большой (макс. 10MB)")
+                .build());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

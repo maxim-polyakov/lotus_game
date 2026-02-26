@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class StorageService {
      * @param contentType MIME-тип (image/png, image/jpeg и т.д.)
      * @param originalFilename исходное имя файла (для расширения)
      */
-    public String uploadCardImage(InputStream inputStream, String contentType, String originalFilename) {
+    public String uploadCardImage(InputStream inputStream, long contentLength, String contentType, String originalFilename) {
         String ext = getExtension(originalFilename);
         String key = CARDS_PREFIX + UUID.randomUUID() + ext;
 
@@ -40,10 +41,14 @@ public class StorageService {
                 .contentType(contentType)
                 .build();
 
-        s3Client.putObject(request, RequestBody.fromInputStream(inputStream, -1));
+        s3Client.putObject(request, RequestBody.fromInputStream(inputStream, contentLength));
         String url = buildPublicUrl(key);
         log.info("Uploaded card image: {}", url);
         return url;
+    }
+
+    public String uploadCardImage(byte[] bytes, String contentType, String originalFilename) {
+        return uploadCardImage(new ByteArrayInputStream(bytes), bytes.length, contentType, originalFilename);
     }
 
     public void deleteByUrl(String url) {

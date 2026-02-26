@@ -15,7 +15,7 @@ export default function WaitingMatch({ match, onUpdate, onCancel }) {
     <div className="play-page">
       <h2>Ожидание соперника...</h2>
       <p>Матч #{match.id}</p>
-      <button onClick={onCancel}>Отмена</button>
+      <button onClick={onCancel} className="btn btn-secondary">Отмена</button>
     </div>
   );
 }

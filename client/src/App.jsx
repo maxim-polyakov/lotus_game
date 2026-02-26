@@ -4,15 +4,26 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import DecksPage from './pages/DecksPage';
+import DeckCreatePage from './pages/DeckCreatePage';
+import DeckDetailPage from './pages/DeckDetailPage';
 import PlayPage from './pages/PlayPage';
+import AdminCabinetPage from './pages/AdminCabinetPage';
 import './App.css';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <div>Загрузка...</div>;
   return user ? children : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div>Загрузка...</div>;
+  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+  return isAdmin ? children : <Navigate to="/" />;
 }
 
 export default function App() {
@@ -23,9 +34,13 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/decks" element={<PrivateRoute><DecksPage /></PrivateRoute>} />
+          <Route path="/decks/new" element={<PrivateRoute><DeckCreatePage /></PrivateRoute>} />
+          <Route path="/decks/:id" element={<PrivateRoute><DeckDetailPage /></PrivateRoute>} />
           <Route path="/play" element={<PrivateRoute><PlayPage /></PrivateRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

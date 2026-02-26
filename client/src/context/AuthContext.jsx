@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api/client';
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../utils/tokenStorage';
 
 const AuthContext = createContext(null);
 
@@ -8,29 +9,40 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
+    const refresh = getRefreshToken();
+    const access = getAccessToken();
+
+    if (!refresh && !access) {
       setLoading(false);
       return;
     }
-    api.get('/api/me')
-      .then(({ data }) => setUser(data))
-      .catch(() => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-      })
-      .finally(() => setLoading(false));
+
+    const initAuth = async () => {
+      try {
+        if (refresh) {
+          const { data } = await api.post('/api/auth/refresh', { refreshToken: refresh });
+          const rememberMe = localStorage.getItem('rememberMe') === 'true';
+          setTokens(data.accessToken, data.refreshToken, rememberMe);
+        }
+        const { data } = await api.get('/api/me');
+        setUser(data);
+      } catch {
+        clearTokens();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
-  const login = (data) => {
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
+  const login = (data, rememberMe = false) => {
+    setTokens(data.accessToken, data.refreshToken, rememberMe);
     setUser({ id: data.userId, username: data.username, roles: data.roles });
   };
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    clearTokens();
     setUser(null);
   };
 

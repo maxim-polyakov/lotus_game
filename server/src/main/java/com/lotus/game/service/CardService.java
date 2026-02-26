@@ -1,6 +1,8 @@
 package com.lotus.game.service;
 
 import com.lotus.game.dto.game.CardDto;
+import com.lotus.game.dto.game.UpdateMinionRequest;
+import com.lotus.game.dto.game.UpdateSpellRequest;
 import com.lotus.game.entity.Minion;
 import com.lotus.game.entity.Spell;
 import com.lotus.game.repository.MinionRepository;
@@ -47,5 +49,27 @@ public class CardService {
             return CardDto.fromSpell(s);
         }
         throw new IllegalArgumentException("Unknown card type: " + cardType);
+    }
+
+    @Transactional
+    public CardDto updateMinion(Long id, UpdateMinionRequest req) {
+        Minion m = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        if (req.getName() != null) m.setName(req.getName());
+        if (req.getManaCost() != null) m.setManaCost(req.getManaCost());
+        if (req.getAttack() != null) m.setAttack(req.getAttack());
+        if (req.getHealth() != null) m.setHealth(req.getHealth());
+        if (req.getDescription() != null) m.setDescription(req.getDescription());
+        return CardDto.fromMinion(minionRepository.save(m));
+    }
+
+    @Transactional
+    public CardDto updateSpell(Long id, UpdateSpellRequest req) {
+        Spell s = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        if (req.getName() != null) s.setName(req.getName());
+        if (req.getManaCost() != null) s.setManaCost(req.getManaCost());
+        if (req.getDescription() != null) s.setDescription(req.getDescription());
+        return CardDto.fromSpell(spellRepository.save(s));
     }
 }

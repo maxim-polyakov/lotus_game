@@ -68,10 +68,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                 if (m.matches()) {
                     Long matchId = Long.parseLong(m.group(1));
                     Long userId = ((GameUserDetails) ((UsernamePasswordAuthenticationToken) user).getPrincipal()).getId();
-                    var match = matchRepository.findById(matchId);
-                    if (match.isEmpty()) return null;
-                    var m = match.get();
-                    if (!m.getPlayer1Id().equals(userId) && !java.util.Objects.equals(m.getPlayer2Id(), userId)) {
+                    var matchOpt = matchRepository.findById(matchId);
+                    if (matchOpt.isEmpty()) return null;
+                    var matchEntity = matchOpt.get();
+                    if (!matchEntity.getPlayer1Id().equals(userId) && !java.util.Objects.equals(matchEntity.getPlayer2Id(), userId)) {
                         log.warn("User {} attempted to subscribe to match {} without access", userId, matchId);
                         return null;
                     }

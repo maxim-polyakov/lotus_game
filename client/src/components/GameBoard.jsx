@@ -73,7 +73,7 @@ export default function GameBoard({ matchId, onExit }) {
     <div className="game-board">
       <header>
         <h2>Матч #{match.id}</h2>
-        <button onClick={onExit}>Выход</button>
+        <button onClick={onExit} className="btn btn-secondary">Выход</button>
       </header>
       <div className="game-status">
         {match.status === 'FINISHED' && (
@@ -99,7 +99,7 @@ export default function GameBoard({ matchId, onExit }) {
             <div key={m.instanceId} className="minion my-minion">
               {m.attack}/{m.currentHealth}
               {isMyTurn && m.canAttack && (
-                <button onClick={() => attack(m.instanceId, 'hero')}>Атаковать героя</button>
+                <button onClick={() => attack(m.instanceId, 'hero')} className="btn btn-primary btn-sm">Атаковать героя</button>
               )}
             </div>
           ))}
@@ -109,14 +109,14 @@ export default function GameBoard({ matchId, onExit }) {
             <div key={c.instanceId} className="card-in-hand">
               {c.cardType} #{c.cardId}
               {isMyTurn && c.cardType === 'MINION' && (
-                <button onClick={() => playCard(c.instanceId, me.board?.length || 0)}>Сыграть</button>
+                <button onClick={() => playCard(c.instanceId, me.board?.length || 0)} className="btn btn-primary btn-sm">Сыграть</button>
               )}
             </div>
           ))}
         </div>
         <div>Мана: {me.mana} | HP: {me.health}</div>
         {isMyTurn && (
-          <button onClick={endTurn}>Завершить ход</button>
+          <button onClick={endTurn} className="btn btn-primary">Завершить ход</button>
         )}
       </div>
     </div>
