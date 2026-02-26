@@ -3,6 +3,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import api from '../api/client';
 import { API_BASE } from '../api/client';
+import { getAccessToken } from '../utils/tokenStorage';
 import { useAuth } from '../context/AuthContext';
 import CardDisplay from './CardDisplay';
 
@@ -28,7 +29,7 @@ export default function GameBoard({ matchId, onExit }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = getAccessToken();
     if (!token || !matchId) return;
     const sock = new SockJS(`${API_BASE}/ws`);
     const c = new Client({
@@ -52,6 +53,8 @@ export default function GameBoard({ matchId, onExit }) {
   const playCard = async (instanceId, targetPosition) => {
     try {
       await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition });
+      const { data } = await api.get(`/api/matches/${matchId}`);
+      setMatch(data);
     } catch (e) {
       alert(e.response?.data?.message || 'Ошибка');
     }
@@ -63,6 +66,8 @@ export default function GameBoard({ matchId, onExit }) {
         attackerInstanceId: attackerId,
         targetInstanceId: targetId,
       });
+      const { data } = await api.get(`/api/matches/${matchId}`);
+      setMatch(data);
     } catch (e) {
       alert(e.response?.data?.message || 'Ошибка');
     }
@@ -71,6 +76,8 @@ export default function GameBoard({ matchId, onExit }) {
   const endTurn = async () => {
     try {
       await api.post(`/api/matches/${matchId}/end-turn`);
+      const { data } = await api.get(`/api/matches/${matchId}`);
+      setMatch(data);
     } catch (e) {
       alert(e.response?.data?.message || 'Ошибка');
     }
