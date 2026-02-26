@@ -16,6 +16,8 @@ export default function GameBoard({ matchId, onExit }) {
   const [selectedAttacker, setSelectedAttacker] = useState(null);
   const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
   const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const { user } = useAuth();
   const { soundEnabled, toggleSound } = useSettings();
   const { theme, toggleTheme } = useTheme();
@@ -25,7 +27,14 @@ export default function GameBoard({ matchId, onExit }) {
   }, [allCards]);
 
   const loadMatch = useCallback(() => {
-    api.get(`/api/matches/${matchId}`).then(({ data }) => setMatch(data));
+    setLoadError(null);
+    api.get(`/api/matches/${matchId}`)
+      .then(({ data }) => {
+        setMatch(data);
+      })
+      .catch((e) => {
+        setLoadError(e.response?.data?.message || e.message || 'Не удалось загрузить матч');
+      });
   }, [matchId]);
 
   useEffect(() => {
@@ -33,19 +42,36 @@ export default function GameBoard({ matchId, onExit }) {
   }, [loadMatch]);
 
   useEffect(() => {
-    api.get('/api/cards').then(({ data }) => setAllCards(data || []));
+    api.get('/api/cards')
+      .then(({ data }) => setAllCards(data || []))
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!matchId || !match) return;
+    if (match.status !== 'IN_PROGRESS') return;
+    if (wsConnected) return;
+    const interval = setInterval(loadMatch, 5000);
+    return () => clearInterval(interval);
+  }, [matchId, match?.status, wsConnected, loadMatch]);
 
   useEffect(() => {
     const token = getAccessToken();
     if (!token || !matchId) return;
-    const sock = new SockJS(`${API_BASE}/ws`);
     const c = new Client({
-      webSocketFactory: () => sock,
+      webSocketFactory: () => new SockJS(`${API_BASE}/ws`),
       connectHeaders: { token },
+      reconnectDelay: 3000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
       onConnect: () => {
+        setWsConnected(true);
         c.subscribe(`/topic/match/${matchId}`, (msg) => setMatch(JSON.parse(msg.body)));
       },
+      onDisconnect: () => setWsConnected(false),
+      onStompError: () => setWsConnected(false),
+      onWebSocketError: () => setWsConnected(false),
+      onWebSocketClose: () => setWsConnected(false),
     });
     c.activate();
     return () => c.deactivate();
@@ -86,7 +112,9 @@ export default function GameBoard({ matchId, onExit }) {
         else playSound('cardPlay');
       }
     } catch (e) {
-      alert(e.response?.data?.message || 'Ошибка');
+      const msg = e.response?.data?.message || 'Ошибка';
+      alert(msg);
+      loadMatch();
     }
   };
 
@@ -103,7 +131,9 @@ export default function GameBoard({ matchId, onExit }) {
       setTimeout(() => setLastAttackedTargetId(null), 400);
       if (soundEnabled) playSound('attack');
     } catch (e) {
-      alert(e.response?.data?.message || 'Ошибка');
+      const msg = e.response?.data?.message || 'Ошибка';
+      alert(msg);
+      loadMatch();
     }
   };
 
@@ -123,11 +153,30 @@ export default function GameBoard({ matchId, onExit }) {
       const { data } = await api.get(`/api/matches/${matchId}`);
       setMatch(data);
     } catch (e) {
-      alert(e.response?.data?.message || 'Ошибка');
+      const msg = e.response?.data?.message || 'Ошибка';
+      alert(msg);
+      loadMatch();
     }
   };
 
-  if (!match) return <div>Загрузка матча...</div>;
+  if (!match) {
+    return (
+      <div className="game-board game-board-loading">
+        <header>
+          <h2>Матч #{matchId}</h2>
+          <button onClick={onExit} className="btn btn-secondary">Выход</button>
+        </header>
+        {loadError ? (
+          <div className="game-load-error">
+            <p>{loadError}</p>
+            <button onClick={loadMatch} className="btn btn-primary">Повторить загрузку</button>
+          </div>
+        ) : (
+          <div className="game-loading">Загрузка матча...</div>
+        )}
+      </div>
+    );
+  }
 
   const gs = match.gameState;
   if (!gs) return <div>Ожидание начала...</div>;
@@ -142,6 +191,11 @@ export default function GameBoard({ matchId, onExit }) {
       <header>
         <h2>Матч #{match.id}</h2>
         <div className="header-actions">
+          {!wsConnected && (
+            <button onClick={loadMatch} className="btn btn-outline btn-sm" title="Соединение потеряно. Нажмите для обновления состояния матча">
+              🔄 Обновить
+            </button>
+          )}
           <button onClick={toggleTheme} className="btn btn-outline btn-sm" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">
             {theme === 'dark' ? '☀' : '🌙'}
           </button>

@@ -36,4 +36,7 @@ public class Spell {
 
     @Column(name = "sound_url", length = 512)
     private String soundUrl;
+
+    @Column(name = "animation_url", length = 512)
+    private String animationUrl;
 }

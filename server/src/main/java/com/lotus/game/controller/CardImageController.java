@@ -202,4 +202,92 @@ public class CardImageController {
         }
         return ResponseEntity.ok(Map.of("soundUrl", ""));
     }
+
+    @PostMapping(value = "/minions/{id}/animation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadMinionAnimation(
+            @PathVariable Long id,
+            @RequestParam("animation") MultipartFile file,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Файл не прикреплён"));
+        }
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "image/gif";
+            String url = storageService.uploadCardAnimation(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "animation.gif");
+            minion.setAnimationUrl(url);
+            minionRepository.save(minion);
+            return ResponseEntity.ok(Map.of("animationUrl", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/minions/{id}/animation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteMinionAnimation(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        String oldUrl = minion.getAnimationUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем
+            }
+            minion.setAnimationUrl(null);
+            minionRepository.save(minion);
+        }
+        return ResponseEntity.ok(Map.of("animationUrl", ""));
+    }
+
+    @PostMapping(value = "/spells/{id}/animation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadSpellAnimation(
+            @PathVariable Long id,
+            @RequestParam("animation") MultipartFile file,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Файл не прикреплён"));
+        }
+        Spell spell = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "image/gif";
+            String url = storageService.uploadCardAnimation(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "animation.gif");
+            spell.setAnimationUrl(url);
+            spellRepository.save(spell);
+            return ResponseEntity.ok(Map.of("animationUrl", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/spells/{id}/animation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteSpellAnimation(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Spell spell = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        String oldUrl = spell.getAnimationUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем
+            }
+            spell.setAnimationUrl(null);
+            spellRepository.save(spell);
+        }
+        return ResponseEntity.ok(Map.of("animationUrl", ""));
+    }
 }

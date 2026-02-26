@@ -9,9 +9,13 @@ export default function AdminCabinetPage() {
   const [form, setForm] = useState({ name: '', manaCost: 0, attack: 0, health: 0, description: '' });
   const [imageFile, setImageFile] = useState(null);
   const [soundFile, setSoundFile] = useState(null);
+  const [animationFile, setAnimationFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [soundUploading, setSoundUploading] = useState(false);
+  const [animationUploading, setAnimationUploading] = useState(false);
+  const [animationDeleting, setAnimationDeleting] = useState(false);
+  const [animationUploadSuccess, setAnimationUploadSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [soundDeleting, setSoundDeleting] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -37,6 +41,7 @@ export default function AdminCabinetPage() {
       });
       setImageFile(null);
       setSoundFile(null);
+      setAnimationFile(null);
     }
   }, [selected]);
 
@@ -164,6 +169,58 @@ export default function AdminCabinetPage() {
       setError(typeof msg === 'string' ? msg : (err.message || 'Ошибка загрузки звука'));
     } finally {
       setSoundUploading(false);
+    }
+  };
+
+  const handleAnimationUpload = async (e) => {
+    e.preventDefault();
+    if (!selected || !animationFile) return;
+    if (animationFile.size > 10 * 1024 * 1024) {
+      setError('Анимация не более 10 МБ');
+      return;
+    }
+    setError('');
+    setAnimationUploadSuccess(false);
+    setAnimationUploading(true);
+    try {
+      const path = selected.cardType === 'MINION'
+        ? `/api/cards/minions/${selected.id}/animation`
+        : `/api/cards/spells/${selected.id}/animation`;
+      const formData = new FormData();
+      formData.append('animation', animationFile);
+      const { data } = await api.post(path, formData);
+      setSelected((prev) => ({ ...prev, animationUrl: data.animationUrl }));
+      setCards((prev) => prev.map((c) =>
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, animationUrl: data.animationUrl } : c
+      ));
+      setAnimationFile(null);
+      setAnimationUploadSuccess(true);
+      setTimeout(() => setAnimationUploadSuccess(false), 3000);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data;
+      setError(typeof msg === 'string' ? msg : (err.message || 'Ошибка загрузки анимации'));
+    } finally {
+      setAnimationUploading(false);
+    }
+  };
+
+  const handleAnimationDelete = async () => {
+    if (!selected?.animationUrl) return;
+    setError('');
+    setAnimationDeleting(true);
+    try {
+      const path = selected.cardType === 'MINION'
+        ? `/api/cards/minions/${selected.id}/animation`
+        : `/api/cards/spells/${selected.id}/animation`;
+      const { data } = await api.delete(path);
+      setSelected((prev) => ({ ...prev, animationUrl: data?.animationUrl || null }));
+      setCards((prev) => prev.map((c) =>
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, animationUrl: null } : c
+      ));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка удаления');
+    } finally {
+      setAnimationDeleting(false);
     }
   };
 
@@ -373,6 +430,46 @@ export default function AdminCabinetPage() {
                       style={{ marginTop: 8 }}
                     >
                       {soundDeleting ? 'Удаление...' : 'Удалить звук'}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="admin-animation-upload">
+                <h4>Анимация карты</h4>
+                <form onSubmit={handleAnimationUpload}>
+                  <div className="admin-file-input-wrap">
+                    <label className="btn btn-secondary admin-file-label">
+                      Выбрать анимацию
+                      <input
+                        key={`animation-${selected.cardType}-${selected.id}`}
+                        type="file"
+                        accept="image/gif,video/webm,video/mp4"
+                        className="admin-file-input"
+                        onChange={(e) => setAnimationFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {animationFile && <span className="admin-file-name">{animationFile.name}</span>}
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={!animationFile || animationUploading}>
+                    {animationUploading ? 'Загрузка...' : animationUploadSuccess ? 'Загружено!' : 'Загрузить анимацию'}
+                  </button>
+                </form>
+                {selected.animationUrl && (
+                  <div className="current-animation">
+                    <span>Текущая:</span>
+                    {selected.animationUrl.toLowerCase().endsWith('.gif') ? (
+                      <img src={selected.animationUrl} alt="" style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
+                    ) : (
+                      <video src={selected.animationUrl} autoPlay loop muted playsInline style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleAnimationDelete}
+                      disabled={animationDeleting}
+                      className="btn btn-secondary btn-sm"
+                      style={{ marginTop: 8 }}
+                    >
+                      {animationDeleting ? 'Удаление...' : 'Удалить анимацию'}
                     </button>
                   </div>
                 )}

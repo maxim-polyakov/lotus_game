@@ -20,6 +20,7 @@ public class CardDto {
     private String description;
     private String imageUrl;
     private String soundUrl;
+    private String animationUrl;
 
     public static CardDto fromMinion(Minion m) {
         return CardDto.builder()
@@ -32,6 +33,7 @@ public class CardDto {
                 .description(m.getDescription())
                 .imageUrl(m.getImageUrl())
                 .soundUrl(m.getSoundUrl())
+                .animationUrl(m.getAnimationUrl())
                 .build();
     }
 
@@ -46,6 +48,7 @@ public class CardDto {
                 .description(s.getDescription())
                 .imageUrl(s.getImageUrl())
                 .soundUrl(s.getSoundUrl())
+                .animationUrl(s.getAnimationUrl())
                 .build();
     }
 }
