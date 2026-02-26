@@ -9,10 +9,12 @@ import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { playSound, playSoundFromUrl } from '../utils/sound';
 import CardDisplay from './CardDisplay';
+import EffectOverlay from './EffectOverlay';
 
-export default function GameBoard({ matchId, onExit }) {
+export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const [match, setMatch] = useState(null);
-  const [allCards, setAllCards] = useState([]);
+  const [allCardsState, setAllCardsState] = useState([]);
+  const allCards = allCardsProp?.length ? allCardsProp : allCardsState;
   const [selectedAttacker, setSelectedAttacker] = useState(null);
   const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
   const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
@@ -43,10 +45,11 @@ export default function GameBoard({ matchId, onExit }) {
   }, [loadMatch]);
 
   useEffect(() => {
+    if (allCardsProp?.length) return;
     api.get('/api/cards')
-      .then(({ data }) => setAllCards(data || []))
+      .then(({ data }) => setAllCardsState(data || []))
       .catch(() => {});
-  }, []);
+  }, [matchId, allCardsProp?.length]);
 
   useEffect(() => {
     if (!matchId || !match) return;
@@ -220,13 +223,7 @@ export default function GameBoard({ matchId, onExit }) {
         </div>
       </header>
       {effectOverlay && (
-        <div className="game-effect-overlay" onClick={() => setEffectOverlay(null)}>
-          {effectOverlay.url.toLowerCase().endsWith('.gif') ? (
-            <img src={effectOverlay.url} alt="" />
-          ) : (
-            <video src={effectOverlay.url} autoPlay muted playsInline onEnded={() => setEffectOverlay(null)} />
-          )}
-        </div>
+        <EffectOverlay url={effectOverlay.url} onClose={() => setEffectOverlay(null)} />
       )}
       {match.status === 'FINISHED' && (
         <div className="game-overlay">

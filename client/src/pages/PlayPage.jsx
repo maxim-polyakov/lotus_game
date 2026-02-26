@@ -74,11 +74,11 @@ export default function PlayPage() {
   };
 
   if (match && match.status === 'IN_PROGRESS') {
-    return <GameBoard matchId={match.id} onExit={clearActiveMatch} />;
+    return <GameBoard matchId={match.id} onExit={clearActiveMatch} allCards={allCards} />;
   }
 
   if (match && match.status === 'FINISHED') {
-    return <GameBoard matchId={match.id} onExit={clearActiveMatch} />;
+    return <GameBoard matchId={match.id} onExit={clearActiveMatch} allCards={allCards} />;
   }
 
   if (match && match.status === 'WAITING') {
