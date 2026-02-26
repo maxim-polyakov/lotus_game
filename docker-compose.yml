@@ -1,10 +1,25 @@
 services:
+  client:
+    build: ./client
+    container_name: lotus-client
+    restart: unless-stopped
+    ports:
+      - "3165:3000"
+    env_file:
+      - ./client/.env
+    depends_on:
+      - server
+    networks:
+      - lotus_net
+
   server:
     build: ./server
     container_name: lotus-server
     restart: unless-stopped
     ports:
       - "5497:8080"
+    env_file:
+      - ./server/.env
     networks:
       - lotus_net
 

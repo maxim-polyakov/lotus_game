@@ -1,17 +1,20 @@
 FROM node:24-alpine
 
+ARG REACT_APP_API_URL=http://localhost:5497
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
 WORKDIR /app
 
-# Копируем package.json, yarn.lock и ставим зависимости
-COPY package*.json yarn.lock ./
-RUN yarn --frozen-lockfile
+# Копируем package.json и package-lock.json
+COPY package*.json ./
+RUN npm ci
 
 # Копируем весь код и собираем production-версию
 COPY . .
-RUN yarn build
+RUN npm run build
 
 # Устанавливаем serve для отдачи статики
-RUN yarn global add serve
+RUN npm install -g serve
 
 EXPOSE 3000
 
