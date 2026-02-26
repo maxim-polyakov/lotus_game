@@ -1,6 +1,6 @@
 FROM node:24-alpine
 
-ARG REACT_APP_API_URL=http://localhost:5497
+ARG REACT_APP_API_URL=https://lotusapi.baxic.ru
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 WORKDIR /app

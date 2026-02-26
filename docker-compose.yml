@@ -1,6 +1,9 @@
 services:
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-https://lotusapi.baxic.ru}
     container_name: lotus-client
     restart: unless-stopped
     ports:

@@ -25,7 +25,25 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка входа');
+      let msg = err.response?.data?.message;
+      if (!msg) {
+        if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
+          msg = 'Сервер недоступен. Проверьте подключение к интернету и URL API.';
+        } else if (err.response?.status === 400) {
+          msg = 'Неверный логин или пароль.';
+        } else if (err.response?.status === 401) {
+          msg = 'Требуется авторизация.';
+        } else if (err.response?.status === 403) {
+          msg = 'Доступ запрещён.';
+        } else if (err.response?.status >= 500) {
+          msg = 'Ошибка сервера. Попробуйте позже.';
+        } else {
+          msg = err.message || 'Ошибка входа.';
+        }
+      } else if (msg === 'Invalid username/email or password') {
+        msg = 'Неверный логин или пароль.';
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
