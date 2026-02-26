@@ -13,6 +13,8 @@ export default function AdminCabinetPage() {
   const [deleting, setDeleting] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [promoteInput, setPromoteInput] = useState('');
+  const [promoting, setPromoting] = useState(false);
 
   useEffect(() => {
     api.get('/api/cards')
@@ -113,6 +115,21 @@ export default function AdminCabinetPage() {
     }
   };
 
+  const handlePromoteToAdmin = async (e) => {
+    e.preventDefault();
+    if (!promoteInput.trim()) return;
+    setError('');
+    setPromoting(true);
+    try {
+      await api.post('/api/admin/users/promote-admin', { emailOrUsername: promoteInput.trim() });
+      setPromoteInput('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка');
+    } finally {
+      setPromoting(false);
+    }
+  };
+
   const handleImageDelete = async () => {
     if (!selected?.imageUrl) return;
     setError('');
@@ -140,6 +157,21 @@ export default function AdminCabinetPage() {
         <Link to="/" className="btn btn-secondary">На главную</Link>
       </div>
       {error && <div className="error">{error}</div>}
+      <div className="admin-promote-section">
+        <h3>Сделать админом</h3>
+        <form onSubmit={handlePromoteToAdmin} className="admin-promote-form">
+          <input
+            type="text"
+            value={promoteInput}
+            onChange={(e) => setPromoteInput(e.target.value)}
+            placeholder="Email или username"
+            className="admin-promote-input"
+          />
+          <button type="submit" className="btn btn-primary" disabled={promoting || !promoteInput.trim()}>
+            {promoting ? '...' : 'Назначить ROLE_ADMIN'}
+          </button>
+        </form>
+      </div>
       <div className="admin-content">
         <div className="admin-cards-list">
           <h3>Карты</h3>

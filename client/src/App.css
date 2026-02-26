@@ -854,6 +854,25 @@ header .header-username {
   border-bottom: 1px solid #e8e8e8;
 }
 .admin-header h1 { margin: 0; font-size: 1.25rem; }
+.admin-promote-section {
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.admin-promote-section h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+.admin-promote-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.admin-promote-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 200px;
+}
 .admin-content {
   display: grid;
   grid-template-columns: 1fr 360px;

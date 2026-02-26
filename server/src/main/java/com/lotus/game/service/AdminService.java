@@ -22,4 +22,18 @@ public class AdminService {
             userRepository.save(user);
         }
     }
+
+    @Transactional
+    public void promoteToAdminByEmailOrUsername(String emailOrUsername) {
+        if (emailOrUsername == null || emailOrUsername.isBlank()) {
+            throw new IllegalArgumentException("Введите email или username");
+        }
+        String trimmed = emailOrUsername.trim();
+        User user = userRepository.findByUsername(trimmed)
+                .or(() -> userRepository.findByEmail(trimmed))
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден: " + trimmed));
+        if (user.getRoles().add(ROLE_ADMIN)) {
+            userRepository.save(user);
+        }
+    }
 }
