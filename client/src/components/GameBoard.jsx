@@ -120,6 +120,8 @@ export default function GameBoard({ matchId, onExit }) {
 
   const attack = async (attackerId, targetId) => {
     try {
+      const attackerMinion = me.board?.find((m) => m.instanceId === attackerId);
+      const attackerCard = attackerMinion ? getCard('MINION', attackerMinion.cardId) : null;
       await api.post(`/api/matches/${matchId}/attack`, {
         attackerInstanceId: attackerId,
         targetInstanceId: targetId,
@@ -129,7 +131,10 @@ export default function GameBoard({ matchId, onExit }) {
       setSelectedAttacker(null);
       setLastAttackedTargetId(targetId);
       setTimeout(() => setLastAttackedTargetId(null), 400);
-      if (soundEnabled) playSound('attack');
+      if (soundEnabled) {
+        if (attackerCard?.attackSoundUrl) playSoundFromUrl(attackerCard.attackSoundUrl);
+        else playSound('attack');
+      }
     } catch (e) {
       const msg = e.response?.data?.message || 'Ошибка';
       alert(msg);

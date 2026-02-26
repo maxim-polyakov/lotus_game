@@ -159,6 +159,50 @@ public class CardImageController {
         return ResponseEntity.ok(Map.of("soundUrl", ""));
     }
 
+    @PostMapping(value = "/minions/{id}/attack-sound", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadMinionAttackSound(
+            @PathVariable Long id,
+            @RequestParam("sound") MultipartFile file,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Файл не прикреплён"));
+        }
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "audio/mpeg";
+            String url = storageService.uploadCardSound(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "attack.mp3");
+            minion.setAttackSoundUrl(url);
+            minionRepository.save(minion);
+            return ResponseEntity.ok(Map.of("attackSoundUrl", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/minions/{id}/attack-sound")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteMinionAttackSound(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        String oldUrl = minion.getAttackSoundUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем
+            }
+            minion.setAttackSoundUrl(null);
+            minionRepository.save(minion);
+        }
+        return ResponseEntity.ok(Map.of("attackSoundUrl", ""));
+    }
+
     @PostMapping(value = "/spells/{id}/sound", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> uploadSpellSound(
