@@ -47,8 +47,11 @@ public class Minion {
     @Column(name = "sound_url", length = 512)
     private String soundUrl;
 
-    @Column(name = "animation_url", length = 512)
-    private String animationUrl;
+    @Column(name = "play_effect_url", length = 512)
+    private String playEffectUrl;
+
+    @Column(name = "attack_effect_url", length = 512)
+    private String attackEffectUrl;
 
     @Column(name = "attack_sound_url", length = 512)
     private String attackSoundUrl;

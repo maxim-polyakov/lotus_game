@@ -16,6 +16,7 @@ export default function GameBoard({ matchId, onExit }) {
   const [selectedAttacker, setSelectedAttacker] = useState(null);
   const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
   const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
+  const [effectOverlay, setEffectOverlay] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const { user } = useAuth();
@@ -111,6 +112,10 @@ export default function GameBoard({ matchId, onExit }) {
         if (card?.soundUrl) playSoundFromUrl(card.soundUrl);
         else playSound('cardPlay');
       }
+      if (card?.playEffectUrl) {
+        setEffectOverlay({ url: card.playEffectUrl });
+        setTimeout(() => setEffectOverlay(null), 2500);
+      }
     } catch (e) {
       const msg = e.response?.data?.message || 'Ошибка';
       alert(msg);
@@ -134,6 +139,10 @@ export default function GameBoard({ matchId, onExit }) {
       if (soundEnabled) {
         if (attackerCard?.attackSoundUrl) playSoundFromUrl(attackerCard.attackSoundUrl);
         else playSound('attack');
+      }
+      if (attackerCard?.attackEffectUrl) {
+        setEffectOverlay({ url: attackerCard.attackEffectUrl });
+        setTimeout(() => setEffectOverlay(null), 2500);
       }
     } catch (e) {
       const msg = e.response?.data?.message || 'Ошибка';
@@ -210,6 +219,15 @@ export default function GameBoard({ matchId, onExit }) {
           <button onClick={onExit} className="btn btn-secondary">Выход</button>
         </div>
       </header>
+      {effectOverlay && (
+        <div className="game-effect-overlay" onClick={() => setEffectOverlay(null)}>
+          {effectOverlay.url.toLowerCase().endsWith('.gif') ? (
+            <img src={effectOverlay.url} alt="" />
+          ) : (
+            <video src={effectOverlay.url} autoPlay muted playsInline onEnded={() => setEffectOverlay(null)} />
+          )}
+        </div>
+      )}
       {match.status === 'FINISHED' && (
         <div className="game-overlay">
           <div className={`game-overlay-message ${match.winnerId === user?.id ? 'victory' : match.winnerId === null ? 'draw' : 'defeat'}`}>

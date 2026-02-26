@@ -442,6 +442,24 @@ header .header-username {
   margin: 0 auto;
   position: relative;
 }
+.game-effect-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  cursor: pointer;
+  animation: overlay-fade-in 0.2s ease-out;
+}
+.game-effect-overlay img,
+.game-effect-overlay video {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  pointer-events: none;
+}
 .game-overlay {
   position: fixed;
   inset: 0;
@@ -609,19 +627,6 @@ header .header-username {
 .card-display--with-image .card-display-type,
 .card-display--with-image .card-display-right-stats {
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-}
-.card-display-animation {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-}
-.card-display-animation img,
-.card-display-animation video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 .card-display-image-overlay {
   position: absolute;
@@ -1066,6 +1071,7 @@ header .header-username {
   white-space: nowrap;
 }
 .admin-hint { color: #666; font-style: italic; }
+.admin-hint-small { color: #888; font-size: 0.85em; margin: 0.25rem 0 0.5rem; }
 .admin-cabinet .error { margin: 1rem 2rem; }
 @media (max-width: 900px) {
   .admin-content { grid-template-columns: 1fr; }

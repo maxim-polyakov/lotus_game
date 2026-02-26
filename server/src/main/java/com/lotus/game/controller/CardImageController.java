@@ -247,11 +247,11 @@ public class CardImageController {
         return ResponseEntity.ok(Map.of("soundUrl", ""));
     }
 
-    @PostMapping(value = "/minions/{id}/animation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/minions/{id}/play-effect", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> uploadMinionAnimation(
+    public ResponseEntity<Map<String, String>> uploadMinionPlayEffect(
             @PathVariable Long id,
-            @RequestParam("animation") MultipartFile file,
+            @RequestParam("effect") MultipartFile file,
             @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         if (file == null || file.isEmpty()) {
@@ -261,41 +261,85 @@ public class CardImageController {
                 .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
         try {
             String contentType = file.getContentType() != null ? file.getContentType() : "image/gif";
-            String url = storageService.uploadCardAnimation(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "animation.gif");
-            minion.setAnimationUrl(url);
+            String url = storageService.uploadCardEffect(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "effect.gif");
+            minion.setPlayEffectUrl(url);
             minionRepository.save(minion);
-            return ResponseEntity.ok(Map.of("animationUrl", url));
+            return ResponseEntity.ok(Map.of("playEffectUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
         }
     }
 
-    @DeleteMapping("/minions/{id}/animation")
+    @DeleteMapping("/minions/{id}/play-effect")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> deleteMinionAnimation(
+    public ResponseEntity<Map<String, String>> deleteMinionPlayEffect(
             @PathVariable Long id,
             @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         Minion minion = minionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
-        String oldUrl = minion.getAnimationUrl();
+        String oldUrl = minion.getPlayEffectUrl();
         if (oldUrl != null) {
             try {
                 storageService.deleteByUrl(oldUrl);
             } catch (Exception e) {
                 // Логируем, но продолжаем
             }
-            minion.setAnimationUrl(null);
+            minion.setPlayEffectUrl(null);
             minionRepository.save(minion);
         }
-        return ResponseEntity.ok(Map.of("animationUrl", ""));
+        return ResponseEntity.ok(Map.of("playEffectUrl", ""));
     }
 
-    @PostMapping(value = "/spells/{id}/animation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/minions/{id}/attack-effect", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> uploadSpellAnimation(
+    public ResponseEntity<Map<String, String>> uploadMinionAttackEffect(
             @PathVariable Long id,
-            @RequestParam("animation") MultipartFile file,
+            @RequestParam("effect") MultipartFile file,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Файл не прикреплён"));
+        }
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "image/gif";
+            String url = storageService.uploadCardEffect(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "effect.gif");
+            minion.setAttackEffectUrl(url);
+            minionRepository.save(minion);
+            return ResponseEntity.ok(Map.of("attackEffectUrl", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/minions/{id}/attack-effect")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteMinionAttackEffect(
+            @PathVariable Long id,
+            @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        String oldUrl = minion.getAttackEffectUrl();
+        if (oldUrl != null) {
+            try {
+                storageService.deleteByUrl(oldUrl);
+            } catch (Exception e) {
+                // Логируем, но продолжаем
+            }
+            minion.setAttackEffectUrl(null);
+            minionRepository.save(minion);
+        }
+        return ResponseEntity.ok(Map.of("attackEffectUrl", ""));
+    }
+
+    @PostMapping(value = "/spells/{id}/play-effect", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadSpellPlayEffect(
+            @PathVariable Long id,
+            @RequestParam("effect") MultipartFile file,
             @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         if (file == null || file.isEmpty()) {
@@ -305,33 +349,33 @@ public class CardImageController {
                 .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
         try {
             String contentType = file.getContentType() != null ? file.getContentType() : "image/gif";
-            String url = storageService.uploadCardAnimation(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "animation.gif");
-            spell.setAnimationUrl(url);
+            String url = storageService.uploadCardEffect(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "effect.gif");
+            spell.setPlayEffectUrl(url);
             spellRepository.save(spell);
-            return ResponseEntity.ok(Map.of("animationUrl", url));
+            return ResponseEntity.ok(Map.of("playEffectUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
         }
     }
 
-    @DeleteMapping("/spells/{id}/animation")
+    @DeleteMapping("/spells/{id}/play-effect")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> deleteSpellAnimation(
+    public ResponseEntity<Map<String, String>> deleteSpellPlayEffect(
             @PathVariable Long id,
             @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         Spell spell = spellRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
-        String oldUrl = spell.getAnimationUrl();
+        String oldUrl = spell.getPlayEffectUrl();
         if (oldUrl != null) {
             try {
                 storageService.deleteByUrl(oldUrl);
             } catch (Exception e) {
                 // Логируем, но продолжаем
             }
-            spell.setAnimationUrl(null);
+            spell.setPlayEffectUrl(null);
             spellRepository.save(spell);
         }
-        return ResponseEntity.ok(Map.of("animationUrl", ""));
+        return ResponseEntity.ok(Map.of("playEffectUrl", ""));
     }
 }

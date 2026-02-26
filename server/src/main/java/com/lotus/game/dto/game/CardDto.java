@@ -20,7 +20,8 @@ public class CardDto {
     private String description;
     private String imageUrl;
     private String soundUrl;
-    private String animationUrl;
+    private String playEffectUrl;
+    private String attackEffectUrl;
     private String attackSoundUrl;
 
     public static CardDto fromMinion(Minion m) {
@@ -34,7 +35,8 @@ public class CardDto {
                 .description(m.getDescription())
                 .imageUrl(m.getImageUrl())
                 .soundUrl(m.getSoundUrl())
-                .animationUrl(m.getAnimationUrl())
+                .playEffectUrl(m.getPlayEffectUrl())
+                .attackEffectUrl(m.getAttackEffectUrl())
                 .attackSoundUrl(m.getAttackSoundUrl())
                 .build();
     }
@@ -50,7 +52,7 @@ public class CardDto {
                 .description(s.getDescription())
                 .imageUrl(s.getImageUrl())
                 .soundUrl(s.getSoundUrl())
-                .animationUrl(s.getAnimationUrl())
+                .playEffectUrl(s.getPlayEffectUrl())
                 .build();
     }
 }

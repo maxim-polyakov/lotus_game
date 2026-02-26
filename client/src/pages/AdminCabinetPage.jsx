@@ -10,16 +10,20 @@ export default function AdminCabinetPage() {
   const [imageFile, setImageFile] = useState(null);
   const [soundFile, setSoundFile] = useState(null);
   const [attackSoundFile, setAttackSoundFile] = useState(null);
-  const [animationFile, setAnimationFile] = useState(null);
+  const [playEffectFile, setPlayEffectFile] = useState(null);
+  const [attackEffectFile, setAttackEffectFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [soundUploading, setSoundUploading] = useState(false);
   const [attackSoundUploading, setAttackSoundUploading] = useState(false);
   const [attackSoundDeleting, setAttackSoundDeleting] = useState(false);
   const [attackSoundUploadSuccess, setAttackSoundUploadSuccess] = useState(false);
-  const [animationUploading, setAnimationUploading] = useState(false);
-  const [animationDeleting, setAnimationDeleting] = useState(false);
-  const [animationUploadSuccess, setAnimationUploadSuccess] = useState(false);
+  const [playEffectUploading, setPlayEffectUploading] = useState(false);
+  const [playEffectDeleting, setPlayEffectDeleting] = useState(false);
+  const [playEffectUploadSuccess, setPlayEffectUploadSuccess] = useState(false);
+  const [attackEffectUploading, setAttackEffectUploading] = useState(false);
+  const [attackEffectDeleting, setAttackEffectDeleting] = useState(false);
+  const [attackEffectUploadSuccess, setAttackEffectUploadSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [soundDeleting, setSoundDeleting] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -46,7 +50,8 @@ export default function AdminCabinetPage() {
       setImageFile(null);
       setSoundFile(null);
       setAttackSoundFile(null);
-      setAnimationFile(null);
+      setPlayEffectFile(null);
+      setAttackEffectFile(null);
     }
   }, [selected]);
 
@@ -223,55 +228,101 @@ export default function AdminCabinetPage() {
     }
   };
 
-  const handleAnimationUpload = async (e) => {
+  const handlePlayEffectUpload = async (e) => {
     e.preventDefault();
-    if (!selected || !animationFile) return;
-    if (animationFile.size > 10 * 1024 * 1024) {
-      setError('Анимация не более 10 МБ');
+    if (!selected || !playEffectFile) return;
+    if (playEffectFile.size > 10 * 1024 * 1024) {
+      setError('Эффект не более 10 МБ');
       return;
     }
     setError('');
-    setAnimationUploadSuccess(false);
-    setAnimationUploading(true);
+    setPlayEffectUploadSuccess(false);
+    setPlayEffectUploading(true);
     try {
       const path = selected.cardType === 'MINION'
-        ? `/api/cards/minions/${selected.id}/animation`
-        : `/api/cards/spells/${selected.id}/animation`;
+        ? `/api/cards/minions/${selected.id}/play-effect`
+        : `/api/cards/spells/${selected.id}/play-effect`;
       const formData = new FormData();
-      formData.append('animation', animationFile);
+      formData.append('effect', playEffectFile);
       const { data } = await api.post(path, formData);
-      setSelected((prev) => ({ ...prev, animationUrl: data.animationUrl }));
+      setSelected((prev) => ({ ...prev, playEffectUrl: data.playEffectUrl }));
       setCards((prev) => prev.map((c) =>
-        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, animationUrl: data.animationUrl } : c
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, playEffectUrl: data.playEffectUrl } : c
       ));
-      setAnimationFile(null);
-      setAnimationUploadSuccess(true);
-      setTimeout(() => setAnimationUploadSuccess(false), 3000);
+      setPlayEffectFile(null);
+      setPlayEffectUploadSuccess(true);
+      setTimeout(() => setPlayEffectUploadSuccess(false), 3000);
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data;
-      setError(typeof msg === 'string' ? msg : (err.message || 'Ошибка загрузки анимации'));
+      setError(typeof msg === 'string' ? msg : (err.message || 'Ошибка загрузки эффекта'));
     } finally {
-      setAnimationUploading(false);
+      setPlayEffectUploading(false);
     }
   };
 
-  const handleAnimationDelete = async () => {
-    if (!selected?.animationUrl) return;
+  const handlePlayEffectDelete = async () => {
+    if (!selected?.playEffectUrl) return;
     setError('');
-    setAnimationDeleting(true);
+    setPlayEffectDeleting(true);
     try {
       const path = selected.cardType === 'MINION'
-        ? `/api/cards/minions/${selected.id}/animation`
-        : `/api/cards/spells/${selected.id}/animation`;
+        ? `/api/cards/minions/${selected.id}/play-effect`
+        : `/api/cards/spells/${selected.id}/play-effect`;
       const { data } = await api.delete(path);
-      setSelected((prev) => ({ ...prev, animationUrl: data?.animationUrl || null }));
+      setSelected((prev) => ({ ...prev, playEffectUrl: data?.playEffectUrl || null }));
       setCards((prev) => prev.map((c) =>
-        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, animationUrl: null } : c
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, playEffectUrl: null } : c
       ));
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка удаления');
     } finally {
-      setAnimationDeleting(false);
+      setPlayEffectDeleting(false);
+    }
+  };
+
+  const handleAttackEffectUpload = async (e) => {
+    e.preventDefault();
+    if (!selected || !attackEffectFile || selected.cardType !== 'MINION') return;
+    if (attackEffectFile.size > 10 * 1024 * 1024) {
+      setError('Эффект не более 10 МБ');
+      return;
+    }
+    setError('');
+    setAttackEffectUploadSuccess(false);
+    setAttackEffectUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('effect', attackEffectFile);
+      const { data } = await api.post(`/api/cards/minions/${selected.id}/attack-effect`, formData);
+      setSelected((prev) => ({ ...prev, attackEffectUrl: data.attackEffectUrl }));
+      setCards((prev) => prev.map((c) =>
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, attackEffectUrl: data.attackEffectUrl } : c
+      ));
+      setAttackEffectFile(null);
+      setAttackEffectUploadSuccess(true);
+      setTimeout(() => setAttackEffectUploadSuccess(false), 3000);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data;
+      setError(typeof msg === 'string' ? msg : (err.message || 'Ошибка загрузки эффекта'));
+    } finally {
+      setAttackEffectUploading(false);
+    }
+  };
+
+  const handleAttackEffectDelete = async () => {
+    if (!selected?.attackEffectUrl || selected.cardType !== 'MINION') return;
+    setError('');
+    setAttackEffectDeleting(true);
+    try {
+      const { data } = await api.delete(`/api/cards/minions/${selected.id}/attack-effect`);
+      setSelected((prev) => ({ ...prev, attackEffectUrl: data?.attackEffectUrl || null }));
+      setCards((prev) => prev.map((c) =>
+        (c.id === selected.id && c.cardType === selected.cardType) ? { ...c, attackEffectUrl: null } : c
+      ));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка удаления');
+    } finally {
+      setAttackEffectDeleting(false);
     }
   };
 
@@ -523,46 +574,90 @@ export default function AdminCabinetPage() {
                   )}
                 </div>
               )}
-              <div className="admin-animation-upload">
-                <h4>Анимация карты</h4>
-                <form onSubmit={handleAnimationUpload}>
+              <div className="admin-effect-upload">
+                <h4>Эффект розыгрыша (GIF/WebM/MP4)</h4>
+                <p className="admin-hint-small">Проигрывается при выкладывании карты на стол</p>
+                <form onSubmit={handlePlayEffectUpload}>
                   <div className="admin-file-input-wrap">
                     <label className="btn btn-secondary admin-file-label">
-                      Выбрать анимацию
+                      Выбрать эффект
                       <input
-                        key={`animation-${selected.cardType}-${selected.id}`}
+                        key={`play-effect-${selected.cardType}-${selected.id}`}
                         type="file"
                         accept="image/gif,video/webm,video/mp4"
                         className="admin-file-input"
-                        onChange={(e) => setAnimationFile(e.target.files?.[0] ?? null)}
+                        onChange={(e) => setPlayEffectFile(e.target.files?.[0] ?? null)}
                       />
                     </label>
-                    {animationFile && <span className="admin-file-name">{animationFile.name}</span>}
+                    {playEffectFile && <span className="admin-file-name">{playEffectFile.name}</span>}
                   </div>
-                  <button type="submit" className="btn btn-primary" disabled={!animationFile || animationUploading}>
-                    {animationUploading ? 'Загрузка...' : animationUploadSuccess ? 'Загружено!' : 'Загрузить анимацию'}
+                  <button type="submit" className="btn btn-primary" disabled={!playEffectFile || playEffectUploading}>
+                    {playEffectUploading ? 'Загрузка...' : playEffectUploadSuccess ? 'Загружено!' : 'Загрузить'}
                   </button>
                 </form>
-                {selected.animationUrl && (
-                  <div className="current-animation">
-                    <span>Текущая:</span>
-                    {selected.animationUrl.toLowerCase().endsWith('.gif') ? (
-                      <img src={selected.animationUrl} alt="" style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
+                {selected.playEffectUrl && (
+                  <div className="current-effect">
+                    <span>Текущий:</span>
+                    {selected.playEffectUrl.toLowerCase().endsWith('.gif') ? (
+                      <img src={selected.playEffectUrl} alt="" style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
                     ) : (
-                      <video src={selected.animationUrl} autoPlay loop muted playsInline style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
+                      <video src={selected.playEffectUrl} autoPlay loop muted playsInline style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
                     )}
                     <button
                       type="button"
-                      onClick={handleAnimationDelete}
-                      disabled={animationDeleting}
+                      onClick={handlePlayEffectDelete}
+                      disabled={playEffectDeleting}
                       className="btn btn-secondary btn-sm"
                       style={{ marginTop: 8 }}
                     >
-                      {animationDeleting ? 'Удаление...' : 'Удалить анимацию'}
+                      {playEffectDeleting ? 'Удаление...' : 'Удалить'}
                     </button>
                   </div>
                 )}
               </div>
+              {selected.cardType === 'MINION' && (
+                <div className="admin-effect-upload">
+                  <h4>Эффект атаки (GIF/WebM/MP4)</h4>
+                  <p className="admin-hint-small">Проигрывается при атаке миньона</p>
+                  <form onSubmit={handleAttackEffectUpload}>
+                    <div className="admin-file-input-wrap">
+                      <label className="btn btn-secondary admin-file-label">
+                        Выбрать эффект
+                        <input
+                          key={`attack-effect-${selected.id}`}
+                          type="file"
+                          accept="image/gif,video/webm,video/mp4"
+                          className="admin-file-input"
+                          onChange={(e) => setAttackEffectFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                      {attackEffectFile && <span className="admin-file-name">{attackEffectFile.name}</span>}
+                    </div>
+                    <button type="submit" className="btn btn-primary" disabled={!attackEffectFile || attackEffectUploading}>
+                      {attackEffectUploading ? 'Загрузка...' : attackEffectUploadSuccess ? 'Загружено!' : 'Загрузить'}
+                    </button>
+                  </form>
+                  {selected.attackEffectUrl && (
+                    <div className="current-effect">
+                      <span>Текущий:</span>
+                      {selected.attackEffectUrl.toLowerCase().endsWith('.gif') ? (
+                        <img src={selected.attackEffectUrl} alt="" style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
+                      ) : (
+                        <video src={selected.attackEffectUrl} autoPlay loop muted playsInline style={{ maxWidth: 120, maxHeight: 120, marginTop: 4 }} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleAttackEffectDelete}
+                        disabled={attackEffectDeleting}
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginTop: 8 }}
+                      >
+                        {attackEffectDeleting ? 'Удаление...' : 'Удалить'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <p className="admin-hint">Выберите карту для редактирования</p>

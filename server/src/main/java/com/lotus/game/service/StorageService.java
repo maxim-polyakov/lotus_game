@@ -75,9 +75,9 @@ public class StorageService {
     }
 
     /**
-     * Загружает анимацию карты (GIF, WebM, MP4) и возвращает публичный URL.
+     * Загружает эффект карты (GIF, WebM, MP4) — анимация розыгрыша/атаки.
      */
-    public String uploadCardAnimation(byte[] bytes, String contentType, String originalFilename) {
+    public String uploadCardEffect(byte[] bytes, String contentType, String originalFilename) {
         String ext = getExtension(originalFilename);
         String lower = ext.toLowerCase();
         if (!lower.equals(".gif") && !lower.equals(".webm") && !lower.equals(".mp4")) {
@@ -91,7 +91,7 @@ public class StorageService {
                 .build();
         s3Client.putObject(request, RequestBody.fromBytes(bytes));
         String url = buildPublicUrl(key);
-        log.info("Uploaded card animation: {}", url);
+        log.info("Uploaded card effect: {}", url);
         return url;
     }
 
