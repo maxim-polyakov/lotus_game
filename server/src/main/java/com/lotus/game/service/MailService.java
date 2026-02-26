@@ -1,9 +1,10 @@
 package com.lotus.game.service;
 
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,10 @@ public class MailService {
     private final JavaMailSender mailSender;
 
     @Value("${app.mail.from}")
-    private String fromAddress;
+    private String fromEmail;
+
+    @Value("${app.mail.from.name:Lotus}")
+    private String fromName;
 
     private static final String VERIFICATION_SUBJECT = "Код подтверждения регистрации — Lotus Game";
 
@@ -24,12 +28,12 @@ public class MailService {
                 "Здравствуйте!\n\nВаш код для подтверждения регистрации: %s\n\nКод действителен 15 минут.\n\n— Lotus Game",
                 code
         );
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);
-        message.setTo(toEmail);
-        message.setSubject(VERIFICATION_SUBJECT);
-        message.setText(text);
         try {
+            MimeMessage message = mailSender.createMimeMessage();
+            message.setFrom(new InternetAddress(fromEmail, fromName));
+            message.setRecipients(MimeMessage.RecipientType.TO, toEmail);
+            message.setSubject(VERIFICATION_SUBJECT);
+            message.setText(text, "UTF-8");
             mailSender.send(message);
             log.info("Verification email sent to {}", toEmail);
         } catch (Exception e) {
