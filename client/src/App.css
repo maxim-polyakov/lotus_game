@@ -720,6 +720,45 @@ header .header-username {
 .deck-detail-cards .cards-grid {
   min-height: auto;
 }
+
+/* Редактирование колоды — карточки с изображениями */
+.deck-edit-cards-section {
+  margin: 1.5rem 0;
+}
+.deck-edit-cards-section h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+.deck-edit-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.deck-edit-card-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+}
+.deck-edit-card-item .card-display {
+  cursor: default;
+}
+.deck-edit-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.deck-edit-card-count {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
 .deck-card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
 .deck-card .deck-cards-preview {
   display: flex;

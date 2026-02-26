@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
+import CardDisplay from '../components/CardDisplay';
 
 const DECK_SIZE = 30;
 
@@ -123,20 +124,23 @@ export default function DeckDetailPage() {
         <div className="deck-total">
           Карт в колоде: {total} / {DECK_SIZE}
         </div>
-        <div className="cards-list">
+        <div className="deck-edit-cards-section">
           <h3>Состав колоды</h3>
-          {allCards.map((c) => (
-            <div key={`${c.cardType}-${c.id}`} className="card-row">
-              <span className="card-name">
-                [{c.cardType}] {c.name} ({c.manaCost} маны)
-              </span>
-              <div className="card-controls">
-                <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={getCount(c) === 0}>−</button>
-                <span className="card-count">{getCount(c)}</span>
-                <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
-              </div>
-            </div>
-          ))}
+          <div className="deck-edit-cards-grid">
+            {allCards.map((c) => {
+              const count = getCount(c);
+              return (
+                <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
+                  <CardDisplay card={c} size="lg" count={count} />
+                  <div className="deck-edit-card-controls">
+                    <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
+                    <span className="deck-edit-card-count">{count}</span>
+                    <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
         <button type="submit" className="btn btn-primary" disabled={saving || total !== DECK_SIZE}>
           {saving ? 'Сохранение...' : 'Сохранить изменения'}
