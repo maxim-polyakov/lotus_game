@@ -333,8 +333,10 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             const canPlay = isMyTurn && card && hasMana && (c.cardType === 'SPELL' || !boardFull);
             const spellNeedsTarget = c.cardType === 'SPELL' && card?.damage > 0;
             const playHandler = () => {
-              if (c.cardType === 'MINION') playCard(c.instanceId, me.board?.length || 0);
-              else if (c.cardType === 'SPELL') {
+              if (c.cardType === 'MINION') {
+                setSelectedSpell(null);
+                playCard(c.instanceId, me.board?.length || 0);
+              } else if (c.cardType === 'SPELL') {
                 if (spellNeedsTarget) setSelectedSpell({ instanceId: c.instanceId, card });
                 else playCard(c.instanceId, null, null);
               }
@@ -348,7 +350,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                       if (selectedSpell?.instanceId === c.instanceId) setSelectedSpell(null);
                       else playHandler();
                     }}
-                    disabled={!canPlay || (selectedSpell && selectedSpell.instanceId !== c.instanceId)}
+                    disabled={!canPlay || (selectedSpell && c.cardType === 'SPELL' && selectedSpell.instanceId !== c.instanceId)}
                     className={`btn btn-primary btn-sm ${selectedSpell?.instanceId === c.instanceId ? 'btn-secondary' : ''}`}
                   >
                     {c.cardType === 'SPELL'
