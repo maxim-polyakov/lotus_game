@@ -41,8 +41,9 @@ export function AuthProvider({ children }) {
     try {
       const { data: me } = await api.get('/api/me');
       setUser(me);
-    } catch {
-      setUser({ id: data.userId, username: data.username, roles: data.roles });
+    } catch (err) {
+      clearTokens();
+      throw err;
     }
   };
 

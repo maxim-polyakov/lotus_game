@@ -20,8 +20,25 @@ export default function LoginPage() {
       setSearchParams({}, { replace: true });
       return;
     }
+    const code = searchParams.get('code');
     const accessToken = searchParams.get('accessToken');
     const refreshToken = searchParams.get('refreshToken');
+    // Новый flow: код обменивается на токены (избегаем обрезки длинного URL)
+    if (code && searchParams.get('oauth') === 'google') {
+      setLoading(true);
+      api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
+        .then(({ data }) => {
+          return login({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] }, true);
+        })
+        .then(() => navigate('/', { replace: true }))
+        .catch(() => setError('Ошибка входа через Google'))
+        .finally(() => {
+          setLoading(false);
+          setSearchParams({}, { replace: true });
+        });
+      return;
+    }
+    // Старый flow: токены в URL (для обратной совместимости)
     if (accessToken && refreshToken) {
       setLoading(true);
       login({ accessToken, refreshToken, userId: 0, username: '', roles: [] }, true)

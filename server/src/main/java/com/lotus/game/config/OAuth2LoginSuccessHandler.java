@@ -1,6 +1,6 @@
 package com.lotus.game.config;
 
-import com.lotus.game.dto.auth.AuthResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lotus.game.entity.User;
 import com.lotus.game.repository.UserRepository;
 import com.lotus.game.security.JwtService;
@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -25,8 +27,13 @@ import java.util.UUID;
 @Slf4j
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    private static final String OAUTH_CODE_PREFIX = "oauth:code:";
+    private static final Duration CODE_TTL = Duration.ofMinutes(2);
+
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
@@ -34,45 +41,58 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
-        OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-        Map<String, Object> attrs = oauth2User.getAttributes();
+        try {
+            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+            Map<String, Object> attrs = oauth2User.getAttributes();
 
-        String googleId = (String) attrs.get("sub");
-        String email = (String) attrs.get("email");
-        String name = (String) attrs.get("name");
-        String picture = (String) attrs.get("picture");
+            String googleId = (String) attrs.get("sub");
+            String email = (String) attrs.get("email");
+            String name = (String) attrs.get("name");
+            String picture = (String) attrs.get("picture");
 
-        if (googleId == null || email == null) {
-            log.warn("Google OAuth2: missing sub or email in attributes");
-            redirectToFrontendWithError(response, "Не удалось получить данные от Google");
-            return;
-        }
+            if (googleId == null || email == null) {
+                log.warn("Google OAuth2: missing sub or email in attributes");
+                redirectToFrontendWithError(response, "Не удалось получить данные от Google");
+                return;
+            }
 
-        User user = userRepository.findByGoogleId(googleId)
-                .or(() -> userRepository.findByEmail(email))
-                .orElseGet(() -> createGoogleUser(googleId, email, name, picture));
+            User user = userRepository.findByGoogleId(googleId)
+                    .or(() -> userRepository.findByEmail(email))
+                    .orElseGet(() -> createGoogleUser(googleId, email, name, picture));
 
-        if (user.getGoogleId() == null) {
-            user.setGoogleId(googleId);
-            user.setEmailVerified(true);
-            if (picture != null) user.setAvatarUrl(picture);
+            if (user.getGoogleId() == null) {
+                user.setGoogleId(googleId);
+                user.setEmailVerified(true);
+                if (picture != null) user.setAvatarUrl(picture);
+                userRepository.save(user);
+            }
+
+            user.setLastLoginAt(Instant.now());
             userRepository.save(user);
+
+            String accessToken = jwtService.buildAccessToken(user);
+            String refreshToken = jwtService.buildRefreshToken(user);
+            long expiresIn = jwtService.getAccessTokenExpirationSeconds();
+
+            // Используем короткий код вместо токенов в URL (избегаем обрезки длинного URL)
+            String code = UUID.randomUUID().toString().replace("-", "");
+            String payload = objectMapper.writeValueAsString(Map.of(
+                    "accessToken", accessToken,
+                    "refreshToken", refreshToken,
+                    "expiresIn", expiresIn
+            ));
+            redisTemplate.opsForValue().set(OAUTH_CODE_PREFIX + code, payload, CODE_TTL);
+
+            String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
+                    .queryParam("oauth", "google")
+                    .queryParam("code", code)
+                    .build().toUriString();
+
+            getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+        } catch (Exception e) {
+            log.error("Google OAuth2: error during authentication success", e);
+            redirectToFrontendWithError(response, "Ошибка авторизации. Попробуйте позже.");
         }
-
-        user.setLastLoginAt(Instant.now());
-        userRepository.save(user);
-
-        String accessToken = jwtService.buildAccessToken(user);
-        String refreshToken = jwtService.buildRefreshToken(user);
-
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
-                .queryParam("oauth", "google")
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
-                .queryParam("expiresIn", jwtService.getAccessTokenExpirationSeconds())
-                .build().toUriString();
-
-        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
     private User createGoogleUser(String googleId, String email, String name, String picture) {
