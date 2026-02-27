@@ -317,18 +317,33 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         <div className="hand">
           {me.hand?.map((c) => {
             const card = getCard(c.cardType, c.cardId);
+            const hasMana = card && me.mana >= (card.manaCost ?? 0);
+            const boardFull = (me.board?.length ?? 0) >= 7;
+            const canPlay = isMyTurn && card && hasMana && (c.cardType === 'SPELL' || !boardFull);
+            const playHandler = () => {
+              if (c.cardType === 'MINION') playCard(c.instanceId, me.board?.length || 0);
+              else if (c.cardType === 'SPELL') playCard(c.instanceId, null);
+            };
             return card ? (
               <div key={c.instanceId} className="card-in-hand">
                 <CardDisplay card={card} size="sm" />
-                {isMyTurn && c.cardType === 'MINION' && (
-                  <button onClick={() => playCard(c.instanceId, me.board?.length || 0)} className="btn btn-primary btn-sm">Сыграть</button>
+                {isMyTurn && (c.cardType === 'MINION' || c.cardType === 'SPELL') && (
+                  <button
+                    onClick={playHandler}
+                    disabled={!canPlay}
+                    className="btn btn-primary btn-sm"
+                  >
+                    {c.cardType === 'SPELL' ? 'Применить' : 'Сыграть'}
+                  </button>
                 )}
               </div>
             ) : (
               <div key={c.instanceId} className="card-in-hand">
                 {c.cardType} #{c.cardId}
-                {isMyTurn && c.cardType === 'MINION' && (
-                  <button onClick={() => playCard(c.instanceId, me.board?.length || 0)} className="btn btn-primary btn-sm">Сыграть</button>
+                {isMyTurn && (c.cardType === 'MINION' || c.cardType === 'SPELL') && (
+                  <button onClick={playHandler} disabled={!canPlay} className="btn btn-primary btn-sm">
+                    {c.cardType === 'SPELL' ? 'Применить' : 'Сыграть'}
+                  </button>
                 )}
               </div>
             );
