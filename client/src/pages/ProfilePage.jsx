@@ -167,7 +167,7 @@ export default function ProfilePage() {
                 <li key={m.id}>
                   Матч #{m.id} — {m.status === 'FINISHED' ? (m.winnerId === user?.id ? 'Победа' : m.winnerId ? 'Поражение' : 'Ничья') : m.status}
                   {m.status === 'FINISHED' && (
-                    <Link to={`/replay/${m.id}`} className="btn btn-outline btn-sm" style={{ marginLeft: '0.5rem' }}>
+                    <Link to={`/replay/${m.id}`} className="btn btn-outline btn-sm match-replay-btn">
                       Реплей
                     </Link>
                   )}

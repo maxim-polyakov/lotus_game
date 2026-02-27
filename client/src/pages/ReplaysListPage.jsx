@@ -47,7 +47,7 @@ export default function ReplaysListPage() {
           <Link to="/" className="btn btn-secondary">Назад</Link>
         </div>
       </div>
-      {error && <div className="error" style={{ margin: '1rem 2rem' }}>{error}</div>}
+      {error && <div className="error replays-error">{error}</div>}
       <div className="replays-content">
         {finishedMatches.length === 0 && !error && (
           <p className="replays-empty">У вас пока нет завершённых матчей с реплеями.</p>

@@ -1638,19 +1638,103 @@ header .header-username {
   margin-top: 0.75rem;
 }
 
+/* Реплеи — адаптация под мобильные */
 @media (max-width: 768px) {
+  .replays-list-page {
+    min-height: 100vh;
+  }
   .replays-page-header {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .replays-page-header h1 {
+    font-size: 1.15rem;
+    text-align: center;
+  }
+  .replays-page-actions {
+    display: flex;
+    justify-content: center;
+  }
+  .replays-page-actions .btn {
+    width: 100%;
+    max-width: 200px;
   }
   .replays-content {
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
   .replays-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
+  .replay-card {
+    padding: 1rem;
+  }
+  .replay-card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .replay-card-id {
+    font-size: 0.95rem;
+  }
+  .replay-card-result {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+  }
+  .replay-card-meta {
+    font-size: 0.8rem;
+  }
+  .replay-card-watch {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+  .replays-empty {
+    padding: 1.5rem 1rem;
+    font-size: 0.95rem;
+  }
+  .replays-loading {
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .replays-page-header {
+    padding: 0.75rem;
+  }
+  .replays-page-header h1 {
+    font-size: 1.1rem;
+  }
+  .replays-content {
+    padding: 0.75rem;
+  }
+  .replays-grid {
+    gap: 0.6rem;
+  }
+  .replay-card {
+    padding: 0.85rem;
+  }
+  .replay-card-id {
+    font-size: 0.9rem;
+  }
+  .replay-card-meta {
+    font-size: 0.75rem;
+  }
+  .replay-card-watch {
+    font-size: 0.8rem;
+  }
+  .replays-list-page .error,
+  .replays-error {
+    margin: 0.75rem 1rem !important;
+  }
+}
+
+.replays-list-page .replays-error {
+  margin: 1rem 2rem;
 }
 
 /* Колоды — адаптив для мобильных */
@@ -1958,6 +2042,9 @@ header .header-username {
     width: 100%;
     padding: 0.9rem 1.5rem;
   }
+  .play-page .btn-secondary {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2020,144 +2107,386 @@ header .header-username {
   }
 }
 
-/* Игровое поле */
+/* Игровое поле — адаптация под мобильные */
 @media (max-width: 768px) {
   .game-board {
     padding: 0.5rem;
     max-width: 100%;
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
   .game-board header {
     flex-wrap: wrap;
+    padding: 0.5rem 0;
+    gap: 0.4rem;
   }
   .game-board header h2 {
-    font-size: 1rem;
+    font-size: 0.95rem;
     flex: 1;
     min-width: 0;
   }
+  .game-board .header-actions {
+    gap: 0.4rem;
+  }
+  .game-board .header-actions .btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  .game-status {
+    padding: 0.4rem 0;
+  }
   .game-status p {
     font-size: 0.9rem;
+    margin: 0.2rem 0;
   }
   .attack-hint {
     font-size: 0.8rem;
+    line-height: 1.3;
   }
   .enemy-area,
   .my-area {
-    padding: 0.75rem;
-    margin: 0.5rem 0;
+    padding: 0.6rem;
+    margin: 0.4rem 0;
+    border-radius: 6px;
+  }
+  .enemy-header {
+    margin-bottom: 0.4rem;
   }
   .board {
-    gap: 0.35rem;
-    min-height: 80px;
+    gap: 0.3rem;
+    min-height: 70px;
   }
-  .card-display--sm {
-    width: 58px;
-    min-height: 78px;
+  .game-board .card-display--sm {
+    width: 56px;
+    min-height: 74px;
     font-size: 10px;
   }
-  .card-display--sm .card-display-mana {
-    width: 16px;
-    height: 16px;
+  .game-board .card-display--sm .card-display-mana {
+    width: 15px;
+    height: 15px;
     font-size: 9px;
   }
-  .card-display--sm .card-display-name {
+  .game-board .card-display--sm .card-display-name {
     font-size: 8px;
   }
-  .card-display--sm .card-display-right-stats {
-    padding: 0.1rem 0.2rem;
+  .game-board .card-display--sm .card-display-right-stats {
+    padding: 0.1rem 0.15rem;
   }
-  .card-display--sm .card-display-attack,
-  .card-display--sm .card-display-health {
+  .game-board .card-display--sm .card-display-attack,
+  .game-board .card-display--sm .card-display-health {
     min-width: 12px;
     font-size: 0.7em;
   }
-  .hand {
-    gap: 0.35rem;
-    margin: 0.5rem 0;
+  .game-board .minion {
+    padding: 0.2rem;
+  }
+  .game-board .hand {
+    gap: 0.3rem;
+    margin: 0.4rem 0;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 0.25rem;
+    overflow-y: visible;
+    padding-bottom: 0.3rem;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    touch-action: pan-x;
+  }
+  .card-in-hand {
+    flex-shrink: 0;
+    gap: 0.2rem;
   }
   .card-in-hand .card-display {
-    width: 58px !important;
-    min-height: 78px !important;
+    width: 56px !important;
+    min-height: 74px !important;
+  }
+  .card-in-hand .btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+    min-height: 36px;
   }
   .minion-attack-badge {
-    font-size: 8px;
+    font-size: 7px;
   }
   .enemy-hero {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.9rem;
-  }
-  .game-overlay-message {
-    font-size: 2rem;
-    padding: 1.5rem 2rem;
-  }
-  .game-overlay-hint {
-    font-size: 0.9rem;
-    margin-top: 1rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
   }
   .my-hero-row {
     font-size: 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
   }
   .game-board .btn-primary {
-    padding: 0.65rem 1.25rem;
+    padding: 0.7rem 1.25rem;
     font-size: 0.95rem;
+    width: 100%;
+  }
+  .game-overlay-message {
+    font-size: 1.75rem;
+    padding: 1.25rem 1.5rem;
+  }
+  .game-overlay-hint {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    padding: 0 1rem;
+    text-align: center;
+  }
+  .game-overlay .btn {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
   .game-board {
     padding: 0.35rem;
+    padding-left: max(0.35rem, env(safe-area-inset-left));
+    padding-right: max(0.35rem, env(safe-area-inset-right));
   }
-  .card-display--sm {
-    width: 50px;
-    min-height: 68px;
+  .game-board header h2 {
+    font-size: 0.9rem;
   }
-  .card-display--sm .card-display-name {
-    font-size: 7px;
+  .game-status p {
+    font-size: 0.85rem;
+  }
+  .attack-hint {
+    font-size: 0.75rem;
+  }
+  .enemy-area,
+  .my-area {
+    padding: 0.5rem;
+    margin: 0.35rem 0;
+  }
+  .board {
+    gap: 0.25rem;
+    min-height: 60px;
+  }
+  .game-board .card-display--sm {
+    width: 46px;
+    min-height: 62px;
+  }
+  .game-board .card-display--sm .card-display-mana {
+    width: 12px;
+    height: 12px;
+    font-size: 8px;
+  }
+  .game-board .card-display--sm .card-display-name {
+    font-size: 6px;
+    line-height: 1.1;
+  }
+  .game-board .card-display--sm .card-display-attack,
+  .game-board .card-display--sm .card-display-health {
+    min-width: 10px;
+    font-size: 0.65em;
   }
   .card-in-hand .card-display {
-    width: 50px !important;
-    min-height: 68px !important;
+    width: 46px !important;
+    min-height: 62px !important;
+  }
+  .card-in-hand .btn {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.4rem;
+  }
+  .enemy-hero {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  .my-hero-row {
+    font-size: 0.85rem;
+  }
+  .my-hero-row .btn-outline {
+    width: 100%;
+  }
+  .game-overlay-message {
+    font-size: 1.5rem;
+    padding: 1rem 1.25rem;
+  }
+  .game-overlay-hint {
+    font-size: 0.85rem;
   }
   .card-display-keywords .keyword {
-    font-size: 0.55em;
-    padding: 0.05rem 0.2rem;
+    font-size: 0.5em;
+    padding: 0.05rem 0.15rem;
   }
 }
 
-/* Replay страница */
+/* Очень узкие экраны (например, в альбомной ориентации) */
+@media (max-width: 360px) {
+  .game-board .card-display--sm {
+    width: 42px;
+    min-height: 56px;
+  }
+  .game-board .card-display--sm .card-display-name {
+    font-size: 5px;
+  }
+  .card-in-hand .card-display {
+    width: 42px !important;
+    min-height: 56px !important;
+  }
+}
+
+/* Replay страница — просмотр реплея */
 @media (max-width: 768px) {
   .replay-page {
     padding: 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
   }
-  .replay-board .enemy-area,
-  .replay-board .my-area {
-    padding: 0.5rem;
+  .replay-page header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
-  .replay-board .board {
-    gap: 0.35rem;
+  .replay-page header h2 {
+    font-size: 1rem;
+    flex: 1;
+    min-width: 0;
   }
   .replay-controls {
     flex-wrap: wrap;
     gap: 0.5rem;
+    padding: 0.5rem 0;
+    margin: 0.5rem 0;
+  }
+  .replay-controls .btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  .replay-step-info {
+    font-size: 0.85rem;
+    width: 100%;
+    text-align: center;
+    order: -1;
+  }
+  .replay-board .enemy-area,
+  .replay-board .my-area {
+    padding: 0.5rem;
+    margin: 0.4rem 0;
+  }
+  .replay-board .board {
+    gap: 0.3rem;
+    min-height: 70px;
+  }
+  .replay-board .enemy-hero {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  .replay-board .card-display--sm {
+    width: 56px;
+    min-height: 74px;
+  }
+  .replay-board .card-display--sm .card-display-name {
+    font-size: 8px;
+  }
+  .replay-board .hand {
+    gap: 0.3rem;
+    margin: 0.4rem 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .replay-board .card-in-hand .card-display {
+    width: 56px !important;
+    min-height: 74px !important;
+  }
+  .replay-board .my-area > div:last-child {
+    font-size: 0.9rem;
+  }
+  .replay-loading,
+  .replay-error {
+    padding: 1.5rem 1rem;
+  }
+  .replay-error .btn {
+    width: 100%;
+    max-width: 200px;
   }
 }
 
-/* Leaderboard */
+@media (max-width: 480px) {
+  .replay-page {
+    padding: 0.5rem;
+  }
+  .replay-page header h2 {
+    font-size: 0.95rem;
+  }
+  .replay-controls {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .replay-controls .btn {
+    width: 100%;
+    min-width: 0;
+  }
+  .replay-step-info {
+    font-size: 0.8rem;
+  }
+  .replay-board .enemy-area,
+  .replay-board .my-area {
+    padding: 0.4rem;
+  }
+  .replay-board .board {
+    gap: 0.25rem;
+    min-height: 60px;
+  }
+  .replay-board .card-display--sm {
+    width: 46px;
+    min-height: 62px;
+  }
+  .replay-board .card-display--sm .card-display-name {
+    font-size: 6px;
+  }
+  .replay-board .card-in-hand .card-display {
+    width: 46px !important;
+    min-height: 62px !important;
+  }
+  .replay-board .enemy-hero {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  .replay-board .my-area > div:last-child {
+    font-size: 0.85rem;
+  }
+}
+
+/* Leaderboard — адаптация под мобильные */
 @media (max-width: 768px) {
   .leaderboard-page header {
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .leaderboard-page .header-logo {
+    font-size: 1rem;
+  }
+  .leaderboard-page .header-logo img {
+    width: 28px;
+    height: 28px;
   }
   .leaderboard-main {
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .leaderboard-main h2 {
+    font-size: 1.2rem;
+  }
+  .leaderboard-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .leaderboard-table {
+    border-radius: 10px;
   }
   .leaderboard-header,
   .leaderboard-row {
     grid-template-columns: 36px 1fr 60px 70px;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.75rem;
     font-size: 0.9rem;
   }
   .lb-avatar,
@@ -2172,43 +2501,175 @@ header .header-username {
   .leaderboard-page header {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
     padding: 0.75rem;
+  }
+  .leaderboard-page .header-logo {
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+  .leaderboard-page .header-logo img {
+    width: 24px;
+    height: 24px;
+  }
+  .leaderboard-page .header-actions .btn {
+    width: 100%;
   }
   .leaderboard-main {
     padding: 0.75rem;
   }
+  .leaderboard-main h2 {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  .leaderboard-subtitle {
+    font-size: 0.85rem;
+    text-align: center;
+    margin-bottom: 0.85rem;
+  }
   .leaderboard-header,
   .leaderboard-row {
-    grid-template-columns: 30px 1fr 50px 60px;
+    grid-template-columns: 28px 1fr 48px 52px;
     gap: 0.35rem;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.82rem;
+  }
+  .leaderboard-header {
+    font-size: 0.8rem;
+  }
+  .lb-place {
+    font-size: 0.9rem;
   }
   .lb-username {
     font-size: 0.85rem;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .lb-avatar,
+  .lb-avatar-placeholder {
+    width: 22px;
+    height: 22px;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+  .lb-user {
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  .leaderboard-empty {
+    padding: 1.5rem 1rem;
+    font-size: 0.9rem;
   }
 }
 
-/* Profile */
+@media (max-width: 360px) {
+  .leaderboard-header,
+  .leaderboard-row {
+    grid-template-columns: 24px 1fr 44px 48px;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.78rem;
+  }
+  .lb-avatar,
+  .lb-avatar-placeholder {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+}
+
+/* Profile — адаптация под мобильные */
+.profile-matches {
+  margin-top: 2rem;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+}
+.profile-matches h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+.matches-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.matches-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border, #eee);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.matches-list li:last-child {
+  border-bottom: none;
+}
+.match-replay-btn {
+  margin-left: 0.5rem;
+}
+
 @media (max-width: 768px) {
+  .profile-page header {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
   .profile-main {
     padding: 1.5rem 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .profile-main h2 {
+    font-size: 1.35rem;
   }
   .profile-card,
-  .profile-stats {
+  .profile-stats,
+  .profile-matches {
     padding: 1.5rem;
+  }
+  .avatar-upload-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .avatar-upload-row .btn {
+    width: 100%;
+  }
+  .avatar-file-name {
+    text-align: center;
+    word-break: break-all;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .stat-item {
+    padding: 0.85rem;
+  }
+  .stat-value {
+    font-size: 1.35rem;
+  }
+  .profile-matches {
+    margin-top: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
   .profile-main {
     padding: 1rem 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  .profile-main h2 {
+    font-size: 1.2rem;
   }
   .profile-card,
-  .profile-stats {
+  .profile-stats,
+  .profile-matches {
     padding: 1rem;
+  }
+  .profile-avatar-wrap {
+    margin-bottom: 1rem;
   }
   .profile-avatar,
   .profile-avatar-placeholder {
@@ -2216,41 +2677,109 @@ header .header-username {
     height: 72px;
     font-size: 2rem;
   }
+  .profile-form input {
+    padding: 0.6rem 0.75rem;
+    font-size: 16px; /* предотвращает zoom на iOS */
+  }
+  .profile-form .btn-primary {
+    width: 100%;
+  }
   .stats-grid {
     grid-template-columns: 1fr;
   }
+  .stat-item {
+    padding: 0.75rem;
+  }
+  .stat-value {
+    font-size: 1.25rem;
+  }
+  .profile-matches {
+    margin-top: 1rem;
+  }
+  .matches-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem 0;
+  }
+  .matches-list li .btn,
+  .match-replay-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    margin-left: 0;
+  }
 }
 
-/* Admin cabinet */
+/* Admin cabinet — адаптация под мобильные */
 @media (max-width: 768px) {
+  .admin-cabinet {
+    min-height: 100vh;
+  }
   .admin-header,
   .admin-promote-section,
   .admin-game-sounds-section {
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .admin-header h1 {
+    font-size: 1.15rem;
+  }
+  .admin-header .btn {
+    width: 100%;
+    max-width: 200px;
   }
   .admin-content {
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
   .admin-promote-form {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
   }
   .admin-promote-input {
     min-width: 0;
+    width: 100%;
+  }
+  .admin-promote-form .btn {
+    width: 100%;
   }
   .admin-game-sounds-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .admin-game-sound-item {
+    padding: 0.85rem;
+  }
+  .admin-game-sound-item .btn {
+    width: 100%;
+  }
+  .admin-game-sound-item audio {
+    max-width: 100% !important;
+  }
+  .admin-cards-grid {
+    gap: 0.5rem;
   }
   .admin-card-item {
     padding: 0.4rem;
+    min-width: 70px;
   }
   .admin-card-preview-img {
     width: 56px;
     height: 76px;
   }
   .admin-card-preview-name {
-    max-width: 60px;
+    max-width: 70px;
     font-size: 0.75rem;
+  }
+  .admin-edit-panel {
+    position: sticky;
+    bottom: 0;
+  }
+  .admin-form input[type="number"] {
+    width: 100%;
+    max-width: 120px;
   }
 }
 
@@ -2259,18 +2788,94 @@ header .header-username {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .admin-header h1 {
+    font-size: 1.05rem;
+    text-align: center;
+  }
+  .admin-header .btn {
+    max-width: none;
+  }
+  .admin-promote-section,
+  .admin-game-sounds-section {
+    padding: 0.75rem;
+  }
+  .admin-promote-section h3,
+  .admin-game-sounds-section h3 {
+    font-size: 0.95rem;
   }
   .admin-content {
     padding: 0.75rem;
   }
+  .admin-cards-list h3,
+  .admin-edit-panel h3 {
+    font-size: 0.95rem;
+  }
+  .admin-cards-grid {
+    gap: 0.4rem;
+  }
+  .admin-card-item {
+    min-width: 60px;
+    padding: 0.35rem;
+  }
+  .admin-card-preview-img {
+    width: 48px;
+    height: 66px;
+  }
+  .admin-card-preview-name {
+    max-width: 55px;
+    font-size: 0.7rem;
+  }
   .admin-edit-panel {
-    padding: 1rem;
+    padding: 0.85rem;
   }
   .admin-form .form-group {
     margin-bottom: 0.75rem;
   }
+  .admin-form input,
+  .admin-form textarea,
+  .admin-form select {
+    width: 100%;
+    font-size: 16px; /* предотвращает zoom на iOS */
+  }
+  .admin-form input[type="number"] {
+    max-width: none;
+  }
   .form-checkboxes {
     flex-direction: column;
+    gap: 0.35rem;
+  }
+  .form-checkboxes .checkbox-label {
+    padding: 0.4rem 0;
+  }
+  .admin-form .form-group input[style*="marginLeft"],
+  .admin-form .form-group input[style*="margin-left"] {
+    margin-left: 0 !important;
+    margin-top: 0.35rem !important;
+    width: 100% !important;
+  }
+  .admin-form .form-group select[style*="marginLeft"],
+  .admin-form .form-group select[style*="margin-left"] {
+    margin-left: 0 !important;
+    margin-top: 0.35rem !important;
+  }
+  .admin-file-input-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-file-label {
+    width: 100%;
+    justify-content: center;
+  }
+  .admin-file-name {
+    max-width: none;
+    word-break: break-all;
+    text-align: center;
+  }
+  .admin-image-upload .btn,
+  .admin-sound-upload .btn {
+    width: 100%;
   }
   .admin-cabinet .error {
     margin: 0.75rem 1rem !important;
@@ -2299,25 +2904,87 @@ header .header-username {
   }
 }
 
-/* Modal, Tutorial */
-@media (max-width: 480px) {
+/* Modal, Tutorial (Правила) — адаптация под мобильные */
+@media (max-width: 768px) {
   .modal-overlay {
-    padding: 0.5rem;
-    align-items: flex-end;
+    padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
   .modal-content {
-    max-height: 85vh;
-    border-radius: 12px 12px 0 0;
+    max-width: 100%;
   }
   .modal-header,
   .modal-body {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .modal-header h2 {
+    font-size: 1.15rem;
+  }
+  .tutorial-modal section {
+    margin-bottom: 1rem;
+  }
+  .tutorial-modal h3 {
+    font-size: 0.98rem;
+  }
+  .tutorial-modal p {
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    align-items: flex-end;
+  }
+  .modal-content {
+    max-height: 90vh;
+    max-height: calc(90vh - env(safe-area-inset-bottom));
+    border-radius: 12px 12px 0 0;
+    width: 100%;
+  }
+  .modal-header {
     padding: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-top));
+  }
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+  .modal-header .btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 1.5rem;
+  }
+  .modal-body {
+    padding: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  .tutorial-modal section {
+    margin-bottom: 0.9rem;
   }
   .tutorial-modal h3 {
     font-size: 0.95rem;
   }
   .tutorial-modal p {
     font-size: 0.9rem;
+    line-height: 1.55;
+  }
+}
+
+@media (max-width: 360px) {
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+  .tutorial-modal h3 {
+    font-size: 0.9rem;
+  }
+  .tutorial-modal p {
+    font-size: 0.85rem;
   }
 }
 
