@@ -17,7 +17,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findByStatus(Match.MatchStatus status);
 
-    @Query("SELECT m FROM Match m WHERE m.status = 'WAITING' AND m.matchMode = :mode AND m.player1Rating BETWEEN :minRating AND :maxRating")
+    @Query("SELECT m FROM Match m WHERE m.status = 'WAITING' AND m.matchMode = :mode AND COALESCE(m.player1Rating, 1000) BETWEEN :minRating AND :maxRating")
     List<Match> findWaitingByRatingRangeAndMode(@Param("minRating") int minRating, @Param("maxRating") int maxRating, @Param("mode") Match.MatchMode mode);
 
     List<Match> findByPlayer1IdOrPlayer2IdOrderByCreatedAtDesc(Long player1Id, Long player2Id);
