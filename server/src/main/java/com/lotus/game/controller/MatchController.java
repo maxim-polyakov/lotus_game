@@ -1,6 +1,7 @@
 package com.lotus.game.controller;
 
 import com.lotus.game.dto.game.*;
+import com.lotus.game.entity.Match;
 import com.lotus.game.security.GameUserDetails;
 import com.lotus.game.service.MatchService;
 import jakarta.validation.Valid;
@@ -20,15 +21,23 @@ public class MatchController {
 
     @PostMapping("/find")
     public ResponseEntity<MatchDto> findOrCreateMatch(@RequestParam Long deckId,
+                                                       @RequestParam(defaultValue = "RANKED") String mode,
                                                        @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(matchService.findOrCreateMatch(user.getId(), deckId));
+        Match.MatchMode matchMode = "CASUAL".equalsIgnoreCase(mode) ? Match.MatchMode.CASUAL : Match.MatchMode.RANKED;
+        return ResponseEntity.ok(matchService.findOrCreateMatch(user.getId(), deckId, matchMode));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<MatchDto> getMatch(@PathVariable Long id, @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(matchService.getMatch(id, user.getId()));
+    }
+
+    @GetMapping("/{id}/replay")
+    public ResponseEntity<List<ReplayStepDto>> getReplay(@PathVariable Long id, @AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(matchService.getReplay(id, user.getId()));
     }
 
     @GetMapping

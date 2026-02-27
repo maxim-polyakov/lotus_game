@@ -20,6 +20,7 @@ export default function PlayPage() {
   const [decks, setDecks] = useState([]);
   const [allCards, setAllCards] = useState([]);
   const [selectedDeck, setSelectedDeck] = useState(null);
+  const [matchMode, setMatchMode] = useState('RANKED');
   const [match, setMatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,7 +65,7 @@ export default function PlayPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post(`/api/matches/find?deckId=${selectedDeck}`);
+      const { data } = await api.post(`/api/matches/find?deckId=${selectedDeck}&mode=${matchMode}`);
       setMatch(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка');
@@ -93,6 +94,33 @@ export default function PlayPage() {
       <h1>Найти матч</h1>
       <Link to="/" className="btn btn-secondary">Назад</Link>
       {error && <div className="error">{error}</div>}
+      <div className="mode-selection" style={{ marginBottom: '1rem' }}>
+        <label>Режим игры:</label>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+          <label className="mode-option">
+            <input
+              type="radio"
+              name="mode"
+              value="RANKED"
+              checked={matchMode === 'RANKED'}
+              onChange={(e) => setMatchMode(e.target.value)}
+            />
+            <span>Ранговый</span>
+            <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Влияет на рейтинг</small>
+          </label>
+          <label className="mode-option">
+            <input
+              type="radio"
+              name="mode"
+              value="CASUAL"
+              checked={matchMode === 'CASUAL'}
+              onChange={(e) => setMatchMode(e.target.value)}
+            />
+            <span>Обычный</span>
+            <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Без изменения рейтинга</small>
+          </label>
+        </div>
+      </div>
       <div className="deck-selection">
         <label>Выберите колоду:</label>
         <div className="decks-cards-row">

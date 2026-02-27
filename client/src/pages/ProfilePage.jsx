@@ -8,6 +8,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState(user?.username || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [stats, setStats] = useState(null);
+  const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -18,10 +19,13 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    api.get('/api/me/stats')
-      .then(({ data }) => setStats(data))
-      .catch(() => setStats({ wins: 0, losses: 0, draws: 0, totalMatches: 0 }))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/api/me/stats').then(({ data }) => data).catch(() => ({ wins: 0, losses: 0, draws: 0, totalMatches: 0 })),
+      api.get('/api/matches').then(({ data }) => data).catch(() => []),
+    ]).then(([statsData, matchesData]) => {
+      setStats(statsData);
+      setMatches(matchesData || []);
+    }).finally(() => setLoading(false));
   }, []);
 
   const handleSubmit = async (e) => {
@@ -123,6 +127,23 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+        {matches.length > 0 && (
+          <div className="profile-matches">
+            <h3>Последние матчи</h3>
+            <ul className="matches-list">
+              {matches.slice(0, 10).map((m) => (
+                <li key={m.id}>
+                  Матч #{m.id} — {m.status === 'FINISHED' ? (m.winnerId === user?.id ? 'Победа' : m.winnerId ? 'Поражение' : 'Ничья') : m.status}
+                  {m.status === 'FINISHED' && (
+                    <Link to={`/replay/${m.id}`} className="btn btn-outline btn-sm" style={{ marginLeft: '0.5rem' }}>
+                      Реплей
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -65,6 +65,9 @@ public class CardService {
         if (req.getAttack() != null) m.setAttack(req.getAttack());
         if (req.getHealth() != null) m.setHealth(req.getHealth());
         if (req.getDescription() != null) m.setDescription(req.getDescription());
+        if (req.getTaunt() != null) m.setTaunt(req.getTaunt());
+        if (req.getCharge() != null) m.setCharge(req.getCharge());
+        if (req.getDivineShield() != null) m.setDivineShield(req.getDivineShield());
         return CardDto.fromMinion(minionRepository.save(m));
     }
 

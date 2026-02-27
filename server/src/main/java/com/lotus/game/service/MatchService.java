@@ -6,6 +6,7 @@ import com.lotus.game.entity.DeckCard;
 import com.lotus.game.entity.Match;
 import com.lotus.game.entity.Minion;
 import com.lotus.game.entity.Spell;
+import com.lotus.game.config.GameStateConverter;
 import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.repository.DeckRepository;
 import com.lotus.game.repository.MatchRepository;
@@ -42,7 +43,7 @@ public class MatchService {
     private final CacheManager cacheManager;
 
     @Transactional
-    public MatchDto findOrCreateMatch(Long userId, Long deckId) {
+    public MatchDto findOrCreateMatch(Long userId, Long deckId, Match.MatchMode mode) {
         Deck deck = deckRepository.findById(deckId)
                 .orElseThrow(() -> new IllegalArgumentException("Deck not found: " + deckId));
         if (!deck.getUserId().equals(userId)) {
@@ -52,10 +53,10 @@ public class MatchService {
         int myRating = userRepository.findById(userId)
                 .map(u -> u.getRating())
                 .orElse(1000);
-        int minRating = Math.max(0, myRating - MATCHMAKING_RATING_RANGE);
-        int maxRating = myRating + MATCHMAKING_RATING_RANGE;
+        int minRating = mode == Match.MatchMode.CASUAL ? 0 : Math.max(0, myRating - MATCHMAKING_RATING_RANGE);
+        int maxRating = mode == Match.MatchMode.CASUAL ? 9999 : myRating + MATCHMAKING_RATING_RANGE;
 
-        List<Match> waitingList = matchRepository.findWaitingByRatingRange(minRating, maxRating).stream()
+        List<Match> waitingList = matchRepository.findWaitingByRatingRangeAndMode(minRating, maxRating, mode).stream()
                 .filter(m -> !m.getPlayer1Id().equals(userId))
                 .toList();
         if (!waitingList.isEmpty()) {
@@ -66,6 +67,7 @@ public class MatchService {
             match.setStatus(Match.MatchStatus.IN_PROGRESS);
             match.setCurrentTurnPlayerId(match.getPlayer1Id());
             match.setGameState(initGameState(match));
+            addReplayStep(match, "INIT", null, "Match started", match.getGameState());
             matchRepository.save(match);
             evictMatchCacheForPlayers(match);
             MatchDto dto = MatchDto.from(match);
@@ -77,6 +79,7 @@ public class MatchService {
                 .player1Id(userId)
                 .deck1Id(deckId)
                 .player1Rating(myRating)
+                .matchMode(mode)
                 .status(Match.MatchStatus.WAITING)
                 .build();
         match = matchRepository.save(match);
@@ -92,6 +95,17 @@ public class MatchService {
             throw new IllegalArgumentException("Access denied");
         }
         return MatchDto.from(match);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReplayStepDto> getReplay(Long matchId, Long userId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+        if (!match.getPlayer1Id().equals(userId) && !Objects.equals(match.getPlayer2Id(), userId)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        List<ReplayStepDto> steps = match.getReplaySteps();
+        return steps != null ? steps : List.of();
     }
 
     @Transactional(readOnly = true)
@@ -133,8 +147,9 @@ public class MatchService {
                         throw new IllegalArgumentException("Укажите цель для заклинания (миньон или герой соперника)");
                     }
                     if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
-                        if (!enemy.getBoard().isEmpty()) {
-                            throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
+                        boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
+                        if (hasTaunt) {
+                            throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньон с Провокацией (Taunt)");
                         }
                         enemy.setHealth(enemy.getHealth() - dmg);
                         if (enemy.getHealth() <= 0) {
@@ -146,15 +161,20 @@ public class MatchService {
                                 .filter(m -> m.getInstanceId().equals(request.getTargetInstanceId()))
                                 .findFirst()
                                 .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
-                        target.setCurrentHealth(target.getCurrentHealth() - dmg);
-                        if (target.getCurrentHealth() <= 0) {
-                            enemy.getBoard().remove(target);
+                        if (target.isDivineShield()) {
+                            target.setDivineShield(false);
+                        } else {
+                            target.setCurrentHealth(target.getCurrentHealth() - dmg);
+                            if (target.getCurrentHealth() <= 0) {
+                                enemy.getBoard().remove(target);
+                            }
                         }
                     }
                 }
                 player.setMana(player.getMana() - spell.getManaCost());
                 player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
                 match.setGameState(state);
+                addReplayStep(match, "PLAY", userId, "Spell: " + spell.getName(), state);
                 matchRepository.save(match);
                 applyRatingUpdateIfFinished(match);
                 evictMatchCacheForPlayers(match);
@@ -178,20 +198,24 @@ public class MatchService {
             throw new IllegalArgumentException("Invalid board position");
         }
 
+        boolean canAttackNow = Boolean.TRUE.equals(minion.getCharge());
         GameState.BoardMinion boardMinion = GameState.BoardMinion.builder()
                 .instanceId(UUID.randomUUID().toString())
                 .cardId(minion.getId())
                 .attack(minion.getAttack())
                 .currentHealth(minion.getHealth())
                 .maxHealth(minion.getHealth())
-                .canAttack(false)
-                .exhausted(true)
+                .canAttack(canAttackNow)
+                .exhausted(!canAttackNow)
+                .taunt(Boolean.TRUE.equals(minion.getTaunt()))
+                .divineShield(Boolean.TRUE.equals(minion.getDivineShield()))
                 .build();
         player.getBoard().add(pos, boardMinion);
         player.setMana(player.getMana() - minion.getManaCost());
         player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
 
         match.setGameState(state);
+        addReplayStep(match, "PLAY", userId, "Minion: " + minion.getName(), state);
         matchRepository.save(match);
         evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
@@ -222,8 +246,9 @@ public class MatchService {
         }
 
         if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
-            if (!enemy.getBoard().isEmpty()) {
-                throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
+            boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
+            if (hasTaunt) {
+                throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньон с Провокацией (Taunt)");
             }
             enemy.setHealth(enemy.getHealth() - attacker.getAttack());
             attacker.setCanAttack(false);
@@ -237,8 +262,16 @@ public class MatchService {
                     .filter(m -> m.getInstanceId().equals(request.getTargetInstanceId()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Target not found"));
-            target.setCurrentHealth(target.getCurrentHealth() - attacker.getAttack());
-            attacker.setCurrentHealth(attacker.getCurrentHealth() - target.getAttack());
+            if (target.isDivineShield()) {
+                target.setDivineShield(false);
+            } else {
+                target.setCurrentHealth(target.getCurrentHealth() - attacker.getAttack());
+            }
+            if (attacker.isDivineShield()) {
+                attacker.setDivineShield(false);
+            } else {
+                attacker.setCurrentHealth(attacker.getCurrentHealth() - target.getAttack());
+            }
             attacker.setCanAttack(false);
             attacker.setExhausted(true);
             if (target.getCurrentHealth() <= 0) {
@@ -250,6 +283,7 @@ public class MatchService {
         }
 
         match.setGameState(state);
+        addReplayStep(match, "ATTACK", userId, "Attack " + request.getAttackerInstanceId() + " -> " + request.getTargetInstanceId(), state);
         matchRepository.save(match);
         applyRatingUpdateIfFinished(match);
         evictMatchCacheForPlayers(match);
@@ -297,6 +331,7 @@ public class MatchService {
             }
         }
         match.setGameState(state);
+        addReplayStep(match, "END_TURN", userId, "End turn", state);
         matchRepository.save(match);
         applyRatingUpdateIfFinished(match);
         evictMatchCacheForPlayers(match);
@@ -306,7 +341,8 @@ public class MatchService {
     }
 
     private void applyRatingUpdateIfFinished(Match match) {
-        if (match.getStatus() == Match.MatchStatus.FINISHED && match.getPlayer2Id() != null) {
+        if (match.getStatus() == Match.MatchStatus.FINISHED && match.getPlayer2Id() != null
+                && match.getMatchMode() == Match.MatchMode.RANKED) {
             ratingService.updateRatingsAfterMatch(
                     match.getPlayer1Id(),
                     match.getPlayer2Id(),
@@ -414,6 +450,23 @@ public class MatchService {
 
     private GameState.PlayerState getEnemyState(GameState state, Long userId, Match match) {
         return match.getPlayer1Id().equals(userId) ? state.getPlayer2() : state.getPlayer1();
+    }
+
+    private void addReplayStep(Match match, String actionType, Long playerId, String description, GameState stateAfter) {
+        List<ReplayStepDto> steps = match.getReplaySteps();
+        if (steps == null) steps = new ArrayList<>();
+        int idx = steps.size();
+        int turn = stateAfter != null ? stateAfter.getTurnNumber() : 1;
+        ReplayStepDto step = ReplayStepDto.builder()
+                .stepIndex(idx)
+                .turnNumber(turn)
+                .actionType(actionType)
+                .playerId(playerId)
+                .description(description)
+                .gameState(stateAfter != null ? GameStateConverter.deepCopy(stateAfter) : null)
+                .build();
+        steps.add(step);
+        match.setReplaySteps(steps);
     }
 
     private void evictMatchCacheForPlayers(Match match) {

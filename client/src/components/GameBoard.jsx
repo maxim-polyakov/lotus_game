@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import api from '../api/client';
@@ -250,6 +251,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             {match.winnerId === user?.id ? 'Победа!' : match.winnerId === null ? 'Ничья' : 'Поражение'}
           </div>
           <p className="game-overlay-hint">Через несколько секунд — поиск следующего матча...</p>
+          <Link to={`/replay/${match.id}`} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+            Смотреть реплей
+          </Link>
         </div>
       )}
       <div className="game-status">
@@ -287,7 +291,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
                 title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : ''}
               >
-                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
+                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
               </div>
             ) : (
               <div
@@ -316,7 +320,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                 onClick={() => handleAttackerClick(m.instanceId, canAttack)}
                 title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
               >
-                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
+                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
                 {canAttack && (
                   <span className="minion-attack-badge">Может атаковать</span>
                 )}

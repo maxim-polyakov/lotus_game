@@ -527,6 +527,19 @@ header .header-username {
   color: rgba(255, 255, 255, 0.8);
   font-size: 1rem;
 }
+.game-overlay .btn { margin-top: 0.5rem; }
+.replay-page { padding: 1rem; max-width: 900px; margin: 0 auto; }
+.replay-loading, .replay-error { padding: 2rem; text-align: center; }
+.replay-error p { margin-bottom: 1rem; color: #c0392b; }
+.replay-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 0.5rem;
+}
+.replay-step-info { font-size: 0.95rem; color: var(--text-muted, #888); }
 .game-board header { border: none; }
 .game-board-loading .game-load-error,
 .game-board-loading .game-loading {

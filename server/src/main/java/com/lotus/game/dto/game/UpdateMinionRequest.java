@@ -21,4 +21,8 @@ public class UpdateMinionRequest {
 
     @Size(max = 500)
     private String description;
+
+    private Boolean taunt;
+    private Boolean charge;
+    private Boolean divineShield;
 }

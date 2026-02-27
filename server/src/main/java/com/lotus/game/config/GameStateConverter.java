@@ -30,4 +30,13 @@ public class GameStateConverter implements AttributeConverter<GameState, String>
             throw new IllegalArgumentException("Cannot deserialize GameState", e);
         }
     }
+
+    public static GameState deepCopy(GameState state) {
+        if (state == null) return null;
+        try {
+            return MAPPER.readValue(MAPPER.writeValueAsString(state), GameState.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Cannot copy GameState", e);
+        }
+    }
 }

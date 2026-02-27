@@ -1,6 +1,7 @@
 package com.lotus.game.entity;
 
 import com.lotus.game.dto.game.GameState;
+import com.lotus.game.dto.game.ReplayStepDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,6 +39,11 @@ public class Match {
     private Integer player2Rating;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "match_mode", nullable = false, length = 20)
+    @Builder.Default
+    private MatchMode matchMode = MatchMode.RANKED;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private MatchStatus status = MatchStatus.WAITING;
@@ -55,6 +61,10 @@ public class Match {
     @Convert(converter = com.lotus.game.config.GameStateConverter.class)
     private GameState gameState;
 
+    @Column(name = "replay_data", columnDefinition = "text")
+    @Convert(converter = com.lotus.game.config.ReplayStepsConverter.class)
+    private java.util.List<ReplayStepDto> replaySteps = new java.util.ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -66,5 +76,10 @@ public class Match {
         WAITING,      // ожидает второго игрока
         IN_PROGRESS,
         FINISHED
+    }
+
+    public enum MatchMode {
+        RANKED,   // влияет на рейтинг, матчмейкинг по силе
+        CASUAL   // не влияет на рейтинг, свободный матчмейкинг
     }
 }

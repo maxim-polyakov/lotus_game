@@ -73,5 +73,9 @@ public class GameState {
         private int maxHealth;
         private boolean canAttack;
         private boolean exhausted;
+        @Builder.Default
+        private boolean taunt = false;
+        @Builder.Default
+        private boolean divineShield = false;
     }
 }

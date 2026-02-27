@@ -55,4 +55,16 @@ public class Minion {
 
     @Column(name = "attack_sound_url", length = 512)
     private String attackSoundUrl;
+
+    @Column(name = "taunt")
+    @Builder.Default
+    private boolean taunt = false;
+
+    @Column(name = "charge")
+    @Builder.Default
+    private boolean charge = false;
+
+    @Column(name = "divine_shield")
+    @Builder.Default
+    private boolean divineShield = false;
 }

@@ -24,6 +24,9 @@ public class CardDto {
     private String attackEffectUrl;
     private Integer damage;
     private String attackSoundUrl;
+    private Boolean taunt;
+    private Boolean charge;
+    private Boolean divineShield;
 
     public static CardDto fromMinion(Minion m) {
         return CardDto.builder()
@@ -39,6 +42,9 @@ public class CardDto {
                 .playEffectUrl(m.getPlayEffectUrl())
                 .attackEffectUrl(m.getAttackEffectUrl())
                 .attackSoundUrl(m.getAttackSoundUrl())
+                .taunt(m.isTaunt())
+                .charge(m.isCharge())
+                .divineShield(m.isDivineShield())
                 .build();
     }
 
