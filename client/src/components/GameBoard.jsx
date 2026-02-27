@@ -416,7 +416,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                   >
                     {c.cardType === 'SPELL'
                       ? (selectedSpell?.instanceId === c.instanceId ? 'Отмена' : spellNeedsTarget ? 'Выбрать цель' : 'Применить')
-                      : (selectedBattlecry?.instanceId === c.instanceId ? 'Отмена' : battlecryNeedsTarget ? 'Выбрать цель' : 'Сыграть')}
+                      : (selectedBattlecry?.instanceId === c.instanceId ? 'Отмена' : 'Сыграть')}
                   </button>
                 )}
               </div>
