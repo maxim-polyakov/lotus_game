@@ -1378,6 +1378,29 @@ header .header-username {
   background: rgba(0, 0, 0, 0.02);
 }
 .lb-place { color: var(--text-muted); }
+.lb-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.lb-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.lb-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #4a90d9;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
 .lb-rating { font-weight: 600; color: #9b59b6; }
 .lb-rank { color: #f39c12; }
 .leaderboard-empty {

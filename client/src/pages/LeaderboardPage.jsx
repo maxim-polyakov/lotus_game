@@ -42,7 +42,14 @@ export default function LeaderboardPage() {
             {list.map((p, i) => (
               <div key={p.username} className="leaderboard-row">
                 <span className="lb-place">{i + 1}</span>
-                <span className="lb-username">{p.username}</span>
+                <span className="lb-user">
+                  {p.avatarUrl ? (
+                    <img src={p.avatarUrl} alt="" className="lb-avatar" />
+                  ) : (
+                    <span className="lb-avatar-placeholder">{p.username?.charAt(0)?.toUpperCase() || '?'}</span>
+                  )}
+                  <span className="lb-username">{p.username}</span>
+                </span>
                 <span className="lb-rating">{p.rating}</span>
                 <span className="lb-rank">{p.rank}</span>
               </div>

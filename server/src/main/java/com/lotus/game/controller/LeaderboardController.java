@@ -24,6 +24,7 @@ public class LeaderboardController {
         List<Map<String, Object>> list = userRepository.findTop10ByOrderByRatingDesc().stream()
                 .map(u -> Map.<String, Object>of(
                         "username", u.getUsername(),
+                        "avatarUrl", u.getAvatarUrl() != null ? u.getAvatarUrl() : "",
                         "rating", u.getRating(),
                         "rank", RatingService.getRankName(u.getRating())
                 ))
