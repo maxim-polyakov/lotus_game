@@ -22,6 +22,7 @@ public class StorageService {
 
     private static final String CARDS_PREFIX = "cards/";
     private static final String SOUNDS_PREFIX = "sounds/";
+    private static final String GAME_SOUNDS_PREFIX = "game-sounds/";
     private static final String ANIMATIONS_PREFIX = "animations/";
 
     private final S3Client s3Client;
@@ -71,6 +72,27 @@ public class StorageService {
         s3Client.putObject(request, RequestBody.fromBytes(bytes));
         String url = buildPublicUrl(key);
         log.info("Uploaded card sound: {}", url);
+        return url;
+    }
+
+    /**
+     * Загружает звук для игры (победа/поражение/ничья).
+     */
+    public String uploadGameSound(byte[] bytes, String contentType, String originalFilename) {
+        String ext = getExtension(originalFilename);
+        String lower = ext.toLowerCase();
+        if (!lower.equals(".mp3") && !lower.equals(".wav") && !lower.equals(".ogg") && !lower.equals(".m4a") && !lower.equals(".webm")) {
+            ext = ".mp3";
+        }
+        String key = GAME_SOUNDS_PREFIX + UUID.randomUUID() + ext;
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(props.getBucketName())
+                .key(key)
+                .contentType(contentType != null ? contentType : "audio/mpeg")
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        String url = buildPublicUrl(key);
+        log.info("Uploaded game sound: {}", url);
         return url;
     }
 

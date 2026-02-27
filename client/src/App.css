@@ -953,6 +953,25 @@ header .header-username {
   font-size: 1rem;
   min-width: 200px;
 }
+.admin-game-sounds-section {
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.admin-game-sounds-section h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.admin-game-sounds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+}
+.admin-game-sound-item {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fafafa;
+}
+.admin-game-sound-item h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
 .admin-content {
   display: grid;
   grid-template-columns: 1fr 360px;

@@ -31,11 +31,27 @@ export default function AdminCabinetPage() {
   const [error, setError] = useState('');
   const [promoteInput, setPromoteInput] = useState('');
   const [promoting, setPromoting] = useState(false);
+  const [gameSounds, setGameSounds] = useState({ victorySoundUrl: null, defeatSoundUrl: null, drawSoundUrl: null });
+  const [victorySoundFile, setVictorySoundFile] = useState(null);
+  const [defeatSoundFile, setDefeatSoundFile] = useState(null);
+  const [drawSoundFile, setDrawSoundFile] = useState(null);
+  const [victorySoundUploading, setVictorySoundUploading] = useState(false);
+  const [defeatSoundUploading, setDefeatSoundUploading] = useState(false);
+  const [drawSoundUploading, setDrawSoundUploading] = useState(false);
+  const [victorySoundDeleting, setVictorySoundDeleting] = useState(false);
+  const [defeatSoundDeleting, setDefeatSoundDeleting] = useState(false);
+  const [drawSoundDeleting, setDrawSoundDeleting] = useState(false);
 
   useEffect(() => {
     api.get('/api/cards')
       .then(({ data }) => setCards(data || []))
       .catch((e) => setError(e.response?.data?.message || 'Не удалось загрузить карты'));
+  }, []);
+
+  useEffect(() => {
+    api.get('/api/settings/game-sounds')
+      .then(({ data }) => setGameSounds(data || {}))
+      .catch(() => setGameSounds({}));
   }, []);
 
   useEffect(() => {
@@ -148,6 +164,47 @@ export default function AdminCabinetPage() {
       setError(err.response?.data?.message || 'Ошибка');
     } finally {
       setPromoting(false);
+    }
+  };
+
+  const handleGameSoundUpload = async (e, key) => {
+    e.preventDefault();
+    const file = key === 'victorySoundUrl' ? victorySoundFile : key === 'defeatSoundUrl' ? defeatSoundFile : drawSoundFile;
+    const setUploading = key === 'victorySoundUrl' ? setVictorySoundUploading : key === 'defeatSoundUrl' ? setDefeatSoundUploading : setDrawSoundUploading;
+    const setFile = key === 'victorySoundUrl' ? setVictorySoundFile : key === 'defeatSoundUrl' ? setDefeatSoundFile : setDrawSoundFile;
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Звук не более 5 МБ');
+      return;
+    }
+    setError('');
+    setUploading(true);
+    try {
+      const endpoint = key === 'victorySoundUrl' ? '/api/admin/settings/victory-sound' : key === 'defeatSoundUrl' ? '/api/admin/settings/defeat-sound' : '/api/admin/settings/draw-sound';
+      const formData = new FormData();
+      formData.append('sound', file);
+      const { data } = await api.post(endpoint, formData);
+      setGameSounds((prev) => ({ ...prev, [key]: data[key] }));
+      setFile(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка загрузки');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleGameSoundDelete = async (key) => {
+    setError('');
+    const setDeleting = key === 'victorySoundUrl' ? setVictorySoundDeleting : key === 'defeatSoundUrl' ? setDefeatSoundDeleting : setDrawSoundDeleting;
+    setDeleting(true);
+    try {
+      const endpoint = key === 'victorySoundUrl' ? '/api/admin/settings/victory-sound' : key === 'defeatSoundUrl' ? '/api/admin/settings/defeat-sound' : '/api/admin/settings/draw-sound';
+      await api.delete(endpoint);
+      setGameSounds((prev) => ({ ...prev, [key]: null }));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -388,6 +445,81 @@ export default function AdminCabinetPage() {
             {promoting ? '...' : 'Назначить ROLE_ADMIN'}
           </button>
         </form>
+      </div>
+      <div className="admin-game-sounds-section">
+        <h3>Звуки игры (победа / поражение / ничья)</h3>
+        <p className="admin-hint-small">Проигрываются при завершении матча. Если не заданы — используются стандартные.</p>
+        <div className="admin-game-sounds-grid">
+          <div className="admin-game-sound-item">
+            <h4>Победа</h4>
+            <form onSubmit={(e) => handleGameSoundUpload(e, 'victorySoundUrl')}>
+              <div className="admin-file-input-wrap">
+                <label className="btn btn-secondary admin-file-label">
+                  Выбрать
+                  <input type="file" accept="audio/*" className="admin-file-input" onChange={(e) => setVictorySoundFile(e.target.files?.[0] ?? null)} />
+                </label>
+                {victorySoundFile && <span className="admin-file-name">{victorySoundFile.name}</span>}
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={!victorySoundFile || victorySoundUploading}>
+                {victorySoundUploading ? '...' : 'Загрузить'}
+              </button>
+            </form>
+            {gameSounds.victorySoundUrl && (
+              <div className="current-sound">
+                <audio src={gameSounds.victorySoundUrl} controls style={{ width: '100%', maxWidth: 200, marginTop: 4 }} />
+                <button type="button" onClick={() => handleGameSoundDelete('victorySoundUrl')} disabled={victorySoundDeleting} className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>
+                  {victorySoundDeleting ? '...' : 'Удалить'}
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="admin-game-sound-item">
+            <h4>Поражение</h4>
+            <form onSubmit={(e) => handleGameSoundUpload(e, 'defeatSoundUrl')}>
+              <div className="admin-file-input-wrap">
+                <label className="btn btn-secondary admin-file-label">
+                  Выбрать
+                  <input type="file" accept="audio/*" className="admin-file-input" onChange={(e) => setDefeatSoundFile(e.target.files?.[0] ?? null)} />
+                </label>
+                {defeatSoundFile && <span className="admin-file-name">{defeatSoundFile.name}</span>}
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={!defeatSoundFile || defeatSoundUploading}>
+                {defeatSoundUploading ? '...' : 'Загрузить'}
+              </button>
+            </form>
+            {gameSounds.defeatSoundUrl && (
+              <div className="current-sound">
+                <audio src={gameSounds.defeatSoundUrl} controls style={{ width: '100%', maxWidth: 200, marginTop: 4 }} />
+                <button type="button" onClick={() => handleGameSoundDelete('defeatSoundUrl')} disabled={defeatSoundDeleting} className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>
+                  {defeatSoundDeleting ? '...' : 'Удалить'}
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="admin-game-sound-item">
+            <h4>Ничья</h4>
+            <form onSubmit={(e) => handleGameSoundUpload(e, 'drawSoundUrl')}>
+              <div className="admin-file-input-wrap">
+                <label className="btn btn-secondary admin-file-label">
+                  Выбрать
+                  <input type="file" accept="audio/*" className="admin-file-input" onChange={(e) => setDrawSoundFile(e.target.files?.[0] ?? null)} />
+                </label>
+                {drawSoundFile && <span className="admin-file-name">{drawSoundFile.name}</span>}
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={!drawSoundFile || drawSoundUploading}>
+                {drawSoundUploading ? '...' : 'Загрузить'}
+              </button>
+            </form>
+            {gameSounds.drawSoundUrl && (
+              <div className="current-sound">
+                <audio src={gameSounds.drawSoundUrl} controls style={{ width: '100%', maxWidth: 200, marginTop: 4 }} />
+                <button type="button" onClick={() => handleGameSoundDelete('drawSoundUrl')} disabled={drawSoundDeleting} className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>
+                  {drawSoundDeleting ? '...' : 'Удалить'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       <div className="admin-content">
         <div className="admin-cards-list">

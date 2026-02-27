@@ -22,6 +22,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const [effectOverlay, setEffectOverlay] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [gameSounds, setGameSounds] = useState({});
   const { user } = useAuth();
   const { soundEnabled, toggleSound } = useSettings();
   const { theme, toggleTheme } = useTheme();
@@ -51,6 +52,12 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
       .then(({ data }) => setAllCardsState(data || []))
       .catch(() => {});
   }, [matchId, allCardsProp?.length]);
+
+  useEffect(() => {
+    api.get('/api/settings/game-sounds')
+      .then(({ data }) => setGameSounds(data || {}))
+      .catch(() => setGameSounds({}));
+  }, []);
 
   useEffect(() => {
     if (!matchId || !match) return;
@@ -84,11 +91,15 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
 
   useEffect(() => {
     if (match?.status === 'FINISHED' && soundEnabled) {
-      if (match.winnerId === user?.id) playSound('victory');
-      else if (match.winnerId === null) playSound('draw');
-      else playSound('defeat');
+      if (match.winnerId === user?.id) {
+        gameSounds.victorySoundUrl ? playSoundFromUrl(gameSounds.victorySoundUrl) : playSound('victory');
+      } else if (match.winnerId === null) {
+        gameSounds.drawSoundUrl ? playSoundFromUrl(gameSounds.drawSoundUrl) : playSound('draw');
+      } else {
+        gameSounds.defeatSoundUrl ? playSoundFromUrl(gameSounds.defeatSoundUrl) : playSound('defeat');
+      }
     }
-  }, [match?.status, match?.winnerId, user?.id, soundEnabled]);
+  }, [match?.status, match?.winnerId, user?.id, soundEnabled, gameSounds.victorySoundUrl, gameSounds.defeatSoundUrl, gameSounds.drawSoundUrl]);
 
   useEffect(() => {
     if (match?.status === 'FINISHED' && onExit) {
