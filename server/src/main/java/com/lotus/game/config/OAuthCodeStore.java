@@ -59,8 +59,9 @@ public class OAuthCodeStore {
         if ("redis".equalsIgnoreCase(mode)) {
             try {
                 String key = REDIS_PREFIX + code;
-                String json = redisTemplate.opsForValue().getAndDelete(key);
+                String json = redisTemplate.opsForValue().get(key);
                 if (json == null) return null;
+                redisTemplate.delete(key);
                 return objectMapper.readValue(json, new TypeReference<>() {});
             } catch (Exception e) {
                 log.warn("Redis OAuth get failed: {}", e.getMessage());

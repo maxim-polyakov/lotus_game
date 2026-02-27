@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../utils/tokenStorage';
 
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     initAuth();
   }, []);
 
-  const login = async (data, rememberMe = false) => {
+  const login = useCallback(async (data, rememberMe = false) => {
     setTokens(data.accessToken, data.refreshToken, rememberMe);
     try {
       const { data: me } = await api.get('/api/me');
@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
       clearTokens();
       throw err;
     }
-  };
+  }, []);
 
   const logout = () => {
     clearTokens();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api, { API_BASE } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { login } = useAuth();
+  const oauthHandled = useRef(false);
 
   useEffect(() => {
     const oauthError = searchParams.get('oauth_error');
@@ -23,12 +24,17 @@ export default function LoginPage() {
     const code = searchParams.get('code');
     const accessToken = searchParams.get('accessToken');
     const refreshToken = searchParams.get('refreshToken');
+    if (oauthHandled.current) return;
     if (code && searchParams.get('oauth') === 'google') {
+      oauthHandled.current = true;
       setLoading(true);
       api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
         .then(({ data }) => login({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] }, true))
         .then(() => navigate('/', { replace: true }))
-        .catch(() => setError('Ошибка входа через Google'))
+        .catch(() => {
+          oauthHandled.current = false;
+          setError('Ошибка входа через Google');
+        })
         .finally(() => {
           setLoading(false);
           setSearchParams({}, { replace: true });
@@ -36,10 +42,14 @@ export default function LoginPage() {
       return;
     }
     if (accessToken && refreshToken) {
+      oauthHandled.current = true;
       setLoading(true);
       login({ accessToken, refreshToken, userId: 0, username: '', roles: [] }, true)
         .then(() => navigate('/', { replace: true }))
-        .catch(() => setError('Ошибка входа через Google'))
+        .catch(() => {
+          oauthHandled.current = false;
+          setError('Ошибка входа через Google');
+        })
         .finally(() => {
           setLoading(false);
           setSearchParams({}, { replace: true });
