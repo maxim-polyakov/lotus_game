@@ -36,11 +36,13 @@ api.interceptors.response.use(
           return api.request(err.config);
         } catch (_) {
           clearTokens();
-          window.location.href = '/login';
+          window.location.href = '/login?auth_error=session_expired';
+          return Promise.reject(err);
         }
       } else {
         clearTokens();
-        window.location.href = '/login';
+        window.location.href = '/login?auth_error=session_expired';
+        return Promise.reject(err);
       }
     }
     return Promise.reject(err);

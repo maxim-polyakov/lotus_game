@@ -16,8 +16,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     const oauthError = searchParams.get('oauth_error');
+    const authError = searchParams.get('auth_error');
     if (oauthError) {
       setError(decodeURIComponent(oauthError));
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    if (authError) {
+      setError(authError === 'session_expired' ? 'Сессия истекла. Войдите снова.' : authError);
       setSearchParams({}, { replace: true });
       return;
     }
@@ -31,9 +37,10 @@ export default function LoginPage() {
       api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
         .then(({ data }) => login({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] }, true))
         .then(() => navigate('/', { replace: true }))
-        .catch(() => {
+        .catch((err) => {
           oauthHandled.current = false;
-          setError('Ошибка входа через Google');
+          console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
+          setError(err?.response?.data?.message || 'Ошибка входа через Google');
         })
         .finally(() => {
           setLoading(false);
@@ -46,9 +53,10 @@ export default function LoginPage() {
       setLoading(true);
       login({ accessToken, refreshToken, userId: 0, username: '', roles: [] }, true)
         .then(() => navigate('/', { replace: true }))
-        .catch(() => {
+        .catch((err) => {
           oauthHandled.current = false;
-          setError('Ошибка входа через Google');
+          console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
+          setError(err?.response?.data?.message || 'Ошибка входа через Google');
         })
         .finally(() => {
           setLoading(false);
