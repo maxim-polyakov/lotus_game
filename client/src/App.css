@@ -1352,3 +1352,125 @@ header .header-username {
   text-align: center;
   color: var(--text-muted);
 }
+
+/* Колоды — адаптив для мобильных */
+@media (max-width: 768px) {
+  .decks-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .decks-page-header h1 {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  .decks-page-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .decks-page-actions .btn {
+    flex: 1;
+    min-width: 120px;
+    margin-bottom: 0;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+  .decks-grid-full {
+    padding: 1rem;
+  }
+  .decks-grid {
+    gap: 0.75rem;
+  }
+  .deck-card {
+    min-width: 100%;
+    width: 100%;
+    padding: 1rem;
+  }
+  .deck-card h3 {
+    font-size: 0.95rem;
+  }
+  .deck-card .deck-cards-preview {
+    gap: 0.35rem;
+    min-height: 85px;
+    padding: 0.4rem;
+  }
+  .deck-card .deck-cards-preview .card-display {
+    width: 48px !important;
+    min-height: 66px !important;
+  }
+  .deck-card .deck-cards-preview .card-display-mana {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 9px !important;
+  }
+  .deck-card .deck-cards-preview .card-display-name {
+    font-size: 8px !important;
+    line-height: 1.1;
+  }
+  .deck-card .deck-cards-preview .card-display-right-stats {
+    padding: 0.1rem 0.15rem;
+    font-size: 0.65em;
+  }
+  .deck-card-count {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .decks-page-header {
+    padding: 0.75rem;
+  }
+  .decks-page-actions {
+    flex-direction: column;
+  }
+  .decks-page-actions .btn {
+    min-width: 100%;
+    width: 100%;
+  }
+  .decks-grid-full {
+    padding: 0.75rem;
+  }
+  .decks-page .error {
+    margin: 0.75rem 1rem !important;
+  }
+}
+
+/* Детали колоды — мобильная адаптация */
+@media (max-width: 768px) {
+  .deck-detail-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .deck-detail-header h1 {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  .deck-detail-header .btn {
+    width: 100%;
+  }
+  .deck-detail-cards {
+    padding: 1rem;
+  }
+  .deck-edit-cards-section {
+    margin: 1rem 0;
+  }
+  .deck-edit-cards-grid {
+    gap: 0.75rem;
+  }
+  .deck-edit-card-item {
+    padding: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .deck-detail-cards {
+    padding: 0.75rem;
+  }
+  .deck-detail-cards .cards-grid {
+    gap: 0.5rem;
+  }
+}
