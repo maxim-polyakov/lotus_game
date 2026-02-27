@@ -35,12 +35,21 @@ export default function LoginPage() {
       oauthHandled.current = true;
       setLoading(true);
       api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
-        .then(({ data }) => login({ accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] }, true))
+        .then((res) => {
+          const data = res?.data;
+          if (!data?.accessToken || !data?.refreshToken) {
+            throw new Error('Токены не получены от сервера');
+          }
+          return login(
+            { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] },
+            true
+          );
+        })
         .then(() => navigate('/', { replace: true }))
         .catch((err) => {
           oauthHandled.current = false;
           console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
-          setError(err?.response?.data?.message || 'Ошибка входа через Google');
+          setError(err?.message || err?.response?.data?.message || 'Ошибка входа через Google');
         })
         .finally(() => {
           setLoading(false);
@@ -56,7 +65,7 @@ export default function LoginPage() {
         .catch((err) => {
           oauthHandled.current = false;
           console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
-          setError(err?.response?.data?.message || 'Ошибка входа через Google');
+          setError(err?.message || err?.response?.data?.message || 'Ошибка входа через Google');
         })
         .finally(() => {
           setLoading(false);

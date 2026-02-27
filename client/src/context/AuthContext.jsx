@@ -37,9 +37,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (data, rememberMe = false) => {
+    if (!data?.accessToken || !data?.refreshToken) {
+      throw new Error('Токены не переданы');
+    }
     setTokens(data.accessToken, data.refreshToken, rememberMe);
     try {
       const { data: me } = await api.get('/api/me');
+      if (!me) throw new Error('Не удалось загрузить данные пользователя');
       setUser(me);
     } catch (err) {
       clearTokens();
