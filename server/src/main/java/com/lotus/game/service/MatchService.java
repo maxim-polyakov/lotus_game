@@ -599,12 +599,14 @@ public class MatchService {
     }
 
     private GameState.BoardMinion buildBoardMinion(Minion minion, boolean canAttack, boolean exhausted, boolean canAttackHero) {
+        int atk = minion.getAttack() != null ? minion.getAttack() : 0;
+        int hp = minion.getHealth() != null ? minion.getHealth() : 0;
         return GameState.BoardMinion.builder()
                 .instanceId(UUID.randomUUID().toString())
                 .cardId(minion.getId())
-                .attack(minion.getAttack())
-                .currentHealth(minion.getHealth())
-                .maxHealth(minion.getHealth())
+                .attack(atk)
+                .currentHealth(hp)
+                .maxHealth(hp)
                 .canAttack(canAttack)
                 .exhausted(exhausted)
                 .canAttackHero(canAttackHero)

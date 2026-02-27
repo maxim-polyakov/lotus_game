@@ -570,6 +570,84 @@ header .header-username {
   text-align: center;
 }
 .game-load-error p { margin-bottom: 1rem; color: #c0392b; }
+
+/* Подробное описание ошибок */
+.error-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.error-detail {
+  background: var(--card-bg);
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+.error-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(192, 57, 43, 0.08);
+}
+.error-detail-header h3 { margin: 0; font-size: 1.1rem; color: #c0392b; }
+.error-detail-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0 0.25rem;
+}
+.error-detail-close:hover { color: var(--text); }
+.error-detail-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+.error-detail-message {
+  font-size: 1rem;
+  margin: 0 0 1rem;
+  color: var(--text);
+}
+.error-detail-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+.error-detail-meta dt { color: var(--text-muted); }
+.error-detail-meta dd { margin: 0; }
+.error-detail-meta code { font-size: 0.85em; word-break: break-all; }
+.error-detail-details { margin-bottom: 1rem; }
+.error-detail-details h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+.error-detail-details ul { margin: 0; padding-left: 1.25rem; font-size: 0.9rem; }
+.error-detail-full {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+.error-detail-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
 .enemy-area, .my-area {
   border: 1px solid #444;
   padding: 1rem;

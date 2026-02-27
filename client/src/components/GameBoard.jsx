@@ -11,6 +11,7 @@ import { useSettings } from '../context/SettingsContext';
 import { playSound, playSoundFromUrl } from '../utils/sound';
 import CardDisplay from './CardDisplay';
 import EffectOverlay from './EffectOverlay';
+import ErrorDetail from './ErrorDetail';
 
 export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const [match, setMatch] = useState(null);
@@ -24,6 +25,8 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const [effectOverlay, setEffectOverlay] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [gameError, setGameError] = useState(null);
+  const [gameErrorContext, setGameErrorContext] = useState('');
   const [gameSounds, setGameSounds] = useState({});
   const { user } = useAuth();
   const { soundEnabled, toggleSound } = useSettings();
@@ -35,12 +38,15 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
 
   const loadMatch = useCallback(() => {
     setLoadError(null);
+    setGameError(null);
     api.get(`/api/matches/${matchId}`)
       .then(({ data }) => {
         setMatch(data);
       })
       .catch((e) => {
         setLoadError(e.response?.data?.message || e.message || 'Не удалось загрузить матч');
+        setGameError(e);
+        setGameErrorContext('Загрузка матча');
       });
   }, [matchId]);
 
@@ -136,8 +142,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         setTimeout(() => setEffectOverlay(null), 2500);
       }
     } catch (e) {
-      const msg = e.response?.data?.message || 'Ошибка';
-      alert(msg);
+      console.error('playCard error:', e.response?.data || e);
+      setGameError(e);
+      setGameErrorContext('Розыгрыш карты');
       loadMatch();
     }
   };
@@ -164,8 +171,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         setTimeout(() => setEffectOverlay(null), 2500);
       }
     } catch (e) {
-      const msg = e.response?.data?.message || 'Ошибка';
-      alert(msg);
+      console.error('attack error:', e.response?.data || e);
+      setGameError(e);
+      setGameErrorContext('Атака');
       loadMatch();
     }
   };
@@ -197,8 +205,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
       const { data } = await api.get(`/api/matches/${matchId}`);
       setMatch(data);
     } catch (e) {
-      const msg = e.response?.data?.message || 'Ошибка';
-      alert(msg);
+      console.error('endTurn error:', e.response?.data || e);
+      setGameError(e);
+      setGameErrorContext('Завершение хода');
       loadMatch();
     }
   };
@@ -217,6 +226,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
           </div>
         ) : (
           <div className="game-loading">Загрузка матча...</div>
+        )}
+        {gameError && (
+          <ErrorDetail err={gameError} context={gameErrorContext} onClose={() => setGameError(null)} />
         )}
       </div>
     );
@@ -432,6 +444,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
           <button onClick={endTurn} className="btn btn-primary">Завершить ход</button>
         )}
       </div>
+      {gameError && (
+        <ErrorDetail err={gameError} context={gameErrorContext} onClose={() => setGameError(null)} />
+      )}
     </div>
   );
 }

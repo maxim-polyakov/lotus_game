@@ -74,6 +74,7 @@ public class GameState {
         private boolean canAttack;
         private boolean exhausted;
         /** If false, minion can only attack other minions (Rush on play turn) */
+        @Builder.Default
         private boolean canAttackHero = true;
         @Builder.Default
         private boolean taunt = false;
@@ -89,6 +90,7 @@ public class GameState {
         private boolean lifesteal = false;
         @Builder.Default
         private boolean rush = false;
-        private int attacksThisTurn;
+        @Builder.Default
+        private int attacksThisTurn = 0;
     }
 }
