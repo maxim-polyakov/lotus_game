@@ -1,5 +1,6 @@
 package com.lotus.game.controller;
 
+import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.entity.Minion;
 import com.lotus.game.entity.Spell;
 import com.lotus.game.repository.MinionRepository;
@@ -8,6 +9,7 @@ import com.lotus.game.security.GameUserDetails;
 import com.lotus.game.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +28,12 @@ public class CardImageController {
     private final StorageService storageService;
     private final MinionRepository minionRepository;
     private final SpellRepository spellRepository;
+    private final CacheManager cacheManager;
+
+    private void evictCardsCache() {
+        var cache = cacheManager.getCache(RedisCacheConfig.CACHE_CARDS);
+        if (cache != null) cache.clear();
+    }
 
     @PostMapping(value = "/minions/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
@@ -44,6 +52,7 @@ public class CardImageController {
             String url = storageService.uploadCardImage(file.getBytes(), contentType, "image.png");
             minion.setImageUrl(url);
             minionRepository.save(minion);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("imageUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -68,6 +77,7 @@ public class CardImageController {
             minion.setImageUrl(null);
             minionRepository.save(minion);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("imageUrl", ""));
     }
 
@@ -88,6 +98,7 @@ public class CardImageController {
             String url = storageService.uploadCardImage(file.getBytes(), contentType, "image.png");
             spell.setImageUrl(url);
             spellRepository.save(spell);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("imageUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -112,6 +123,7 @@ public class CardImageController {
             spell.setImageUrl(null);
             spellRepository.save(spell);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("imageUrl", ""));
     }
 
@@ -132,6 +144,7 @@ public class CardImageController {
             String url = storageService.uploadCardSound(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "sound.mp3");
             minion.setSoundUrl(url);
             minionRepository.save(minion);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("soundUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -156,6 +169,7 @@ public class CardImageController {
             minion.setSoundUrl(null);
             minionRepository.save(minion);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("soundUrl", ""));
     }
 
@@ -176,6 +190,7 @@ public class CardImageController {
             String url = storageService.uploadCardSound(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "attack.mp3");
             minion.setAttackSoundUrl(url);
             minionRepository.save(minion);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("attackSoundUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -200,6 +215,7 @@ public class CardImageController {
             minion.setAttackSoundUrl(null);
             minionRepository.save(minion);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("attackSoundUrl", ""));
     }
 
@@ -220,6 +236,7 @@ public class CardImageController {
             String url = storageService.uploadCardSound(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "sound.mp3");
             spell.setSoundUrl(url);
             spellRepository.save(spell);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("soundUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -244,6 +261,7 @@ public class CardImageController {
             spell.setSoundUrl(null);
             spellRepository.save(spell);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("soundUrl", ""));
     }
 
@@ -264,6 +282,7 @@ public class CardImageController {
             String url = storageService.uploadCardEffect(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "effect.gif");
             minion.setPlayEffectUrl(url);
             minionRepository.save(minion);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("playEffectUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -288,6 +307,7 @@ public class CardImageController {
             minion.setPlayEffectUrl(null);
             minionRepository.save(minion);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("playEffectUrl", ""));
     }
 
@@ -308,6 +328,7 @@ public class CardImageController {
             String url = storageService.uploadCardEffect(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "effect.gif");
             minion.setAttackEffectUrl(url);
             minionRepository.save(minion);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("attackEffectUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -332,6 +353,7 @@ public class CardImageController {
             minion.setAttackEffectUrl(null);
             minionRepository.save(minion);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("attackEffectUrl", ""));
     }
 
@@ -352,6 +374,7 @@ public class CardImageController {
             String url = storageService.uploadCardEffect(file.getBytes(), contentType, file.getOriginalFilename() != null ? file.getOriginalFilename() : "effect.gif");
             spell.setPlayEffectUrl(url);
             spellRepository.save(spell);
+            evictCardsCache();
             return ResponseEntity.ok(Map.of("playEffectUrl", url));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Ошибка загрузки: " + e.getMessage()));
@@ -376,6 +399,7 @@ public class CardImageController {
             spell.setPlayEffectUrl(null);
             spellRepository.save(spell);
         }
+        evictCardsCache();
         return ResponseEntity.ok(Map.of("playEffectUrl", ""));
     }
 }

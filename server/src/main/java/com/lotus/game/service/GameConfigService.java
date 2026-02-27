@@ -1,9 +1,12 @@
 package com.lotus.game.service;
 
+import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.entity.GameConfig;
 import com.lotus.game.repository.GameConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +28,7 @@ public class GameConfigService {
     private final StorageService storageService;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_GAME_SOUNDS, key = "'sounds'")
     public Map<String, String> getGameSounds() {
         Map<String, String> result = new HashMap<>();
         configRepository.findByConfigKey(KEY_VICTORY_SOUND).ifPresent(c -> result.put(KEY_VICTORY_SOUND, c.getConfigValue()));
@@ -34,6 +38,7 @@ public class GameConfigService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_GAME_SOUNDS, allEntries = true)
     public String uploadGameSound(String key, MultipartFile file) throws IOException {
         if (!KEY_VICTORY_SOUND.equals(key) && !KEY_DEFEAT_SOUND.equals(key) && !KEY_DRAW_SOUND.equals(key)) {
             throw new IllegalArgumentException("Invalid sound key: " + key);
@@ -53,6 +58,7 @@ public class GameConfigService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_GAME_SOUNDS, allEntries = true)
     public void deleteGameSound(String key) {
         if (!KEY_VICTORY_SOUND.equals(key) && !KEY_DEFEAT_SOUND.equals(key) && !KEY_DRAW_SOUND.equals(key)) {
             throw new IllegalArgumentException("Invalid sound key: " + key);

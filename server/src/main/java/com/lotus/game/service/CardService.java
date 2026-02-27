@@ -5,9 +5,12 @@ import com.lotus.game.dto.game.UpdateMinionRequest;
 import com.lotus.game.dto.game.UpdateSpellRequest;
 import com.lotus.game.entity.Minion;
 import com.lotus.game.entity.Spell;
+import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.repository.MinionRepository;
 import com.lotus.game.repository.SpellRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ public class CardService {
     private final SpellRepository spellRepository;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_CARDS, key = "'all'")
     public List<CardDto> getAllCards() {
         List<CardDto> result = new ArrayList<>();
         minionRepository.findAllByOrderByManaCostAscNameAsc().stream()
@@ -52,6 +56,7 @@ public class CardService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
     public CardDto updateMinion(Long id, UpdateMinionRequest req) {
         Minion m = minionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
@@ -64,6 +69,7 @@ public class CardService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
     public CardDto updateSpell(Long id, UpdateSpellRequest req) {
         Spell s = spellRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));

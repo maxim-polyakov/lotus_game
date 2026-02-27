@@ -6,11 +6,15 @@ import com.lotus.game.entity.DeckCard;
 import com.lotus.game.entity.Match;
 import com.lotus.game.entity.Minion;
 import com.lotus.game.entity.Spell;
+import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.repository.DeckRepository;
 import com.lotus.game.repository.MatchRepository;
 import com.lotus.game.repository.MinionRepository;
 import com.lotus.game.repository.SpellRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +35,7 @@ public class MatchService {
     private final MinionRepository minionRepository;
     private final SpellRepository spellRepository;
     private final MatchBroadcastService broadcastService;
+    private final CacheManager cacheManager;
 
     @Transactional
     public MatchDto findOrCreateMatch(Long userId, Long deckId) {
@@ -51,6 +56,7 @@ public class MatchService {
             match.setCurrentTurnPlayerId(match.getPlayer1Id());
             match.setGameState(initGameState(match));
             matchRepository.save(match);
+            evictMatchCacheForPlayers(match);
             MatchDto dto = MatchDto.from(match);
             broadcastService.broadcastMatchUpdate(match.getId(), dto);
             return dto;
@@ -66,6 +72,7 @@ public class MatchService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_MATCHES, key = "#matchId + '_' + #userId")
     public MatchDto getMatch(Long matchId, Long userId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
@@ -137,6 +144,7 @@ public class MatchService {
                 player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
                 match.setGameState(state);
                 matchRepository.save(match);
+                evictMatchCacheForPlayers(match);
                 MatchDto dto = MatchDto.from(match);
                 broadcastService.broadcastMatchUpdate(matchId, dto);
                 return dto;
@@ -172,6 +180,7 @@ public class MatchService {
 
         match.setGameState(state);
         matchRepository.save(match);
+        evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
         return dto;
@@ -229,6 +238,7 @@ public class MatchService {
 
         match.setGameState(state);
         matchRepository.save(match);
+        evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
         return dto;
@@ -274,6 +284,7 @@ public class MatchService {
         }
         match.setGameState(state);
         matchRepository.save(match);
+        evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
         return dto;
@@ -378,5 +389,15 @@ public class MatchService {
 
     private GameState.PlayerState getEnemyState(GameState state, Long userId, Match match) {
         return match.getPlayer1Id().equals(userId) ? state.getPlayer2() : state.getPlayer1();
+    }
+
+    private void evictMatchCacheForPlayers(Match match) {
+        var cache = cacheManager.getCache(RedisCacheConfig.CACHE_MATCHES);
+        if (cache != null) {
+            cache.evict(match.getId() + "_" + match.getPlayer1Id());
+            if (match.getPlayer2Id() != null) {
+                cache.evict(match.getId() + "_" + match.getPlayer2Id());
+            }
+        }
     }
 }
