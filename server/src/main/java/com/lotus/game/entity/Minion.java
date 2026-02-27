@@ -67,4 +67,28 @@ public class Minion {
     @Column(name = "divine_shield")
     @Builder.Default
     private boolean divineShield = false;
+
+    /** Battlecry: NONE, DEAL_DAMAGE, HEAL, BUFF_ALLY, SUMMON */
+    @Column(name = "battlecry_type", length = 20)
+    private String battlecryType;
+
+    @Column(name = "battlecry_value")
+    private Integer battlecryValue;
+
+    /** For DEAL_DAMAGE: ANY, FRIENDLY, ENEMY */
+    @Column(name = "battlecry_target", length = 20)
+    private String battlecryTarget;
+
+    @Column(name = "battlecry_summon_card_id")
+    private Long battlecrySummonCardId;
+
+    /** Deathrattle: NONE, DEAL_DAMAGE, SUMMON */
+    @Column(name = "deathrattle_type", length = 20)
+    private String deathrattleType;
+
+    @Column(name = "deathrattle_value")
+    private Integer deathrattleValue;
+
+    @Column(name = "deathrattle_summon_card_id")
+    private Long deathrattleSummonCardId;
 }

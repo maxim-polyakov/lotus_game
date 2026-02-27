@@ -18,6 +18,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const allCards = allCardsProp?.length ? allCardsProp : allCardsState;
   const [selectedAttacker, setSelectedAttacker] = useState(null);
   const [selectedSpell, setSelectedSpell] = useState(null);
+  const [selectedBattlecry, setSelectedBattlecry] = useState(null);
   const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
   const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
   const [effectOverlay, setEffectOverlay] = useState(null);
@@ -113,6 +114,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
     if (match?.gameState && match.currentTurnPlayerId !== user?.id) {
       setSelectedAttacker(null);
       setSelectedSpell(null);
+      setSelectedBattlecry(null);
     }
   }, [match?.gameState, match?.currentTurnPlayerId, user?.id]);
 
@@ -181,6 +183,11 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
     if (selectedSpell) {
       playCard(selectedSpell.instanceId, null, targetId);
       setSelectedSpell(null);
+      return;
+    }
+    if (selectedBattlecry) {
+      playCard(selectedBattlecry.instanceId, me.board?.length || 0, targetId);
+      setSelectedBattlecry(null);
     }
   };
 
@@ -266,15 +273,24 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             {selectedSpell && (
               <p className="attack-hint">Выберите цель для заклинания (миньон или герой соперника)</p>
             )}
+            {selectedBattlecry?.battlecryType === 'DEAL_DAMAGE' && (
+              <p className="attack-hint">Battlecry: выберите цель для урона</p>
+            )}
+            {selectedBattlecry?.battlecryType === 'HEAL' && (
+              <p className="attack-hint">Battlecry: выберите союзника или себя для лечения</p>
+            )}
+            {selectedBattlecry?.battlecryType === 'BUFF_ALLY' && (
+              <p className="attack-hint">Battlecry: выберите союзного миньона для баффа</p>
+            )}
           </>
         )}
       </div>
       <div className="enemy-area">
         <div className="enemy-header">
           <div
-            className={`enemy-hero ${(selectedAttacker || selectedSpell) && !enemy.board?.length ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
-            onClick={() => (selectedAttacker || selectedSpell) && !enemy.board?.length && handleTargetClick('hero')}
-            title={(selectedAttacker || selectedSpell) && !enemy.board?.length ? 'Нажмите для атаки/заклинания' : ''}
+            className={`enemy-hero ${(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.some((m) => m.taunt) ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
+            onClick={() => (selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.some((m) => m.taunt) && handleTargetClick('hero')}
+            title={(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.some((m) => m.taunt) ? 'Нажмите для атаки/заклинания/Battlecry' : ''}
           >
             Соперник: HP {enemy.health}
           </div>
@@ -282,7 +298,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         <div className="board">
           {enemy.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
-            const isTarget = !!(selectedAttacker || selectedSpell);
+            const isTarget = !!(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE');
             const justHit = lastAttackedTargetId === m.instanceId;
             return card ? (
               <div
@@ -313,12 +329,17 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             const canAttack = isMyTurn && m.canAttack;
             const isSelected = selectedAttacker === m.instanceId;
             const justPlayed = lastPlayedBoardIndex === idx;
+            const isBattlecryTarget = (selectedBattlecry?.battlecryType === 'HEAL' || selectedBattlecry?.battlecryType === 'BUFF_ALLY');
+            const handleMyMinionClick = () => {
+              if (isBattlecryTarget) handleTargetClick(m.instanceId);
+              else handleAttackerClick(m.instanceId, canAttack);
+            };
             return card ? (
               <div
                 key={m.instanceId}
-                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''} ${justPlayed ? 'card-just-played' : ''}`}
-                onClick={() => handleAttackerClick(m.instanceId, canAttack)}
-                title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
+                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''} ${justPlayed ? 'card-just-played' : ''} ${isBattlecryTarget ? 'attack-target' : ''}`}
+                onClick={handleMyMinionClick}
+                title={canAttack ? 'Выберите миньона для атаки, затем цель' : isBattlecryTarget ? 'Выберите для Battlecry' : ''}
               >
                 <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
                 {canAttack && (
@@ -328,9 +349,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             ) : (
               <div
                 key={m.instanceId}
-                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''} ${justPlayed ? 'card-just-played' : ''}`}
-                onClick={() => handleAttackerClick(m.instanceId, canAttack)}
-                title={canAttack ? 'Выберите миньона для атаки, затем цель' : ''}
+                className={`minion my-minion ${canAttack ? 'can-attack' : ''} ${isSelected ? 'attacker-selected' : ''} ${justPlayed ? 'card-just-played' : ''} ${isBattlecryTarget ? 'attack-target' : ''}`}
+                onClick={handleMyMinionClick}
+                title={canAttack ? 'Выберите миньона для атаки, затем цель' : isBattlecryTarget ? 'Выберите для Battlecry' : ''}
               >
                 {m.attack}/{m.currentHealth}
                 {canAttack && (
@@ -347,11 +368,14 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             const boardFull = (me.board?.length ?? 0) >= 7;
             const canPlay = isMyTurn && card && hasMana && (c.cardType === 'SPELL' || !boardFull);
             const spellNeedsTarget = c.cardType === 'SPELL' && card?.damage > 0;
+            const battlecryNeedsTarget = c.cardType === 'MINION' && ['DEAL_DAMAGE', 'HEAL', 'BUFF_ALLY'].includes(card?.battlecryType);
             const playHandler = () => {
               if (c.cardType === 'MINION') {
                 setSelectedSpell(null);
-                playCard(c.instanceId, me.board?.length || 0);
+                if (battlecryNeedsTarget) setSelectedBattlecry({ instanceId: c.instanceId, card });
+                else playCard(c.instanceId, me.board?.length || 0);
               } else if (c.cardType === 'SPELL') {
+                setSelectedBattlecry(null);
                 if (spellNeedsTarget) setSelectedSpell({ instanceId: c.instanceId, card });
                 else playCard(c.instanceId, null, null);
               }
@@ -363,14 +387,15 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                   <button
                     onClick={() => {
                       if (selectedSpell?.instanceId === c.instanceId) setSelectedSpell(null);
+                      else if (selectedBattlecry?.instanceId === c.instanceId) setSelectedBattlecry(null);
                       else playHandler();
                     }}
-                    disabled={!canPlay || (selectedSpell && c.cardType === 'SPELL' && selectedSpell.instanceId !== c.instanceId)}
-                    className={`btn btn-primary btn-sm ${selectedSpell?.instanceId === c.instanceId ? 'btn-secondary' : ''}`}
+                    disabled={!canPlay || (selectedSpell && c.cardType === 'SPELL' && selectedSpell.instanceId !== c.instanceId) || (selectedBattlecry && c.cardType === 'MINION' && selectedBattlecry.instanceId !== c.instanceId)}
+                    className={`btn btn-primary btn-sm ${(selectedSpell?.instanceId === c.instanceId || selectedBattlecry?.instanceId === c.instanceId) ? 'btn-secondary' : ''}`}
                   >
                     {c.cardType === 'SPELL'
                       ? (selectedSpell?.instanceId === c.instanceId ? 'Отмена' : spellNeedsTarget ? 'Выбрать цель' : 'Применить')
-                      : 'Сыграть'}
+                      : (selectedBattlecry?.instanceId === c.instanceId ? 'Отмена' : battlecryNeedsTarget ? 'Выбрать цель' : 'Сыграть')}
                   </button>
                 )}
               </div>
@@ -386,7 +411,14 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             );
           })}
         </div>
-        <div>Мана: {me.mana} | HP: {me.health}</div>
+        <div className="my-hero-row">
+          <span>Мана: {me.mana} | HP: {me.health}</span>
+          {selectedBattlecry?.battlecryType === 'HEAL' && (
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => handleTargetClick('hero')}>
+              Лечить себя
+            </button>
+          )}
+        </div>
         {isMyTurn && (
           <button onClick={endTurn} className="btn btn-primary">Завершить ход</button>
         )}

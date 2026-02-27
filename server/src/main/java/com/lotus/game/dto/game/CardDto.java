@@ -27,6 +27,13 @@ public class CardDto {
     private Boolean taunt;
     private Boolean charge;
     private Boolean divineShield;
+    private String battlecryType;
+    private Integer battlecryValue;
+    private String battlecryTarget;
+    private Long battlecrySummonCardId;
+    private String deathrattleType;
+    private Integer deathrattleValue;
+    private Long deathrattleSummonCardId;
 
     public static CardDto fromMinion(Minion m) {
         return CardDto.builder()
@@ -45,6 +52,13 @@ public class CardDto {
                 .taunt(m.isTaunt())
                 .charge(m.isCharge())
                 .divineShield(m.isDivineShield())
+                .battlecryType(m.getBattlecryType())
+                .battlecryValue(m.getBattlecryValue())
+                .battlecryTarget(m.getBattlecryTarget())
+                .battlecrySummonCardId(m.getBattlecrySummonCardId())
+                .deathrattleType(m.getDeathrattleType())
+                .deathrattleValue(m.getDeathrattleValue())
+                .deathrattleSummonCardId(m.getDeathrattleSummonCardId())
                 .build();
     }
 

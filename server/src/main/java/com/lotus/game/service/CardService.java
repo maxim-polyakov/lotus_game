@@ -68,6 +68,13 @@ public class CardService {
         if (req.getTaunt() != null) m.setTaunt(req.getTaunt());
         if (req.getCharge() != null) m.setCharge(req.getCharge());
         if (req.getDivineShield() != null) m.setDivineShield(req.getDivineShield());
+        if (req.getBattlecryType() != null) m.setBattlecryType(req.getBattlecryType().isBlank() ? null : req.getBattlecryType());
+        if (req.getBattlecryValue() != null) m.setBattlecryValue(req.getBattlecryValue());
+        if (req.getBattlecryTarget() != null) m.setBattlecryTarget(req.getBattlecryTarget().isBlank() ? null : req.getBattlecryTarget());
+        if (req.getBattlecrySummonCardId() != null) m.setBattlecrySummonCardId(req.getBattlecrySummonCardId());
+        if (req.getDeathrattleType() != null) m.setDeathrattleType(req.getDeathrattleType().isBlank() ? null : req.getDeathrattleType());
+        if (req.getDeathrattleValue() != null) m.setDeathrattleValue(req.getDeathrattleValue());
+        if (req.getDeathrattleSummonCardId() != null) m.setDeathrattleSummonCardId(req.getDeathrattleSummonCardId());
         return CardDto.fromMinion(minionRepository.save(m));
     }
 

@@ -6,7 +6,12 @@ import CardDisplay from '../components/CardDisplay';
 export default function AdminCabinetPage() {
   const [cards, setCards] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', manaCost: 0, attack: 0, health: 0, description: '', damage: 0, taunt: false, charge: false, divineShield: false });
+  const [form, setForm] = useState({
+    name: '', manaCost: 0, attack: 0, health: 0, description: '', damage: 0,
+    taunt: false, charge: false, divineShield: false,
+    battlecryType: '', battlecryValue: 0, battlecryTarget: '', battlecrySummonCardId: '',
+    deathrattleType: '', deathrattleValue: 0, deathrattleSummonCardId: '',
+  });
   const [imageFile, setImageFile] = useState(null);
   const [soundFile, setSoundFile] = useState(null);
   const [attackSoundFile, setAttackSoundFile] = useState(null);
@@ -66,6 +71,13 @@ export default function AdminCabinetPage() {
         taunt: selected.taunt ?? false,
         charge: selected.charge ?? false,
         divineShield: selected.divineShield ?? false,
+        battlecryType: selected.battlecryType || '',
+        battlecryValue: selected.battlecryValue ?? 0,
+        battlecryTarget: selected.battlecryTarget || '',
+        battlecrySummonCardId: selected.battlecrySummonCardId || '',
+        deathrattleType: selected.deathrattleType || '',
+        deathrattleValue: selected.deathrattleValue ?? 0,
+        deathrattleSummonCardId: selected.deathrattleSummonCardId || '',
       });
       setImageFile(null);
       setSoundFile(null);
@@ -83,7 +95,14 @@ export default function AdminCabinetPage() {
     try {
       const isMinion = selected.cardType === 'MINION';
       const payload = isMinion
-        ? { name: form.name, manaCost: form.manaCost, attack: form.attack, health: form.health, description: form.description, taunt: form.taunt, charge: form.charge, divineShield: form.divineShield }
+        ? {
+            name: form.name, manaCost: form.manaCost, attack: form.attack, health: form.health, description: form.description,
+            taunt: form.taunt, charge: form.charge, divineShield: form.divineShield,
+            battlecryType: form.battlecryType === '' ? '' : (form.battlecryType || null), battlecryValue: form.battlecryValue ?? null,
+            battlecryTarget: form.battlecryTarget || null, battlecrySummonCardId: form.battlecrySummonCardId ? +form.battlecrySummonCardId : null,
+            deathrattleType: form.deathrattleType === '' ? '' : (form.deathrattleType || null), deathrattleValue: form.deathrattleValue ?? null,
+            deathrattleSummonCardId: form.deathrattleSummonCardId ? +form.deathrattleSummonCardId : null,
+          }
         : { name: form.name, manaCost: form.manaCost, description: form.description, damage: form.damage };
       const path = isMinion ? `/api/admin/cards/minions/${selected.id}` : `/api/admin/cards/spells/${selected.id}`;
       const { data } = await api.put(path, payload);
@@ -610,6 +629,49 @@ export default function AdminCabinetPage() {
                         <input type="checkbox" checked={form.divineShield} onChange={(e) => setForm((f) => ({ ...f, divineShield: e.target.checked }))} />
                         Divine Shield (Щит)
                       </label>
+                    </div>
+                    <div className="form-group">
+                      <label>Battlecry (эффект при розыгрыше)</label>
+                      <select value={form.battlecryType} onChange={(e) => setForm((f) => ({ ...f, battlecryType: e.target.value }))}>
+                        <option value="">Нет</option>
+                        <option value="DEAL_DAMAGE">Deal Damage (урон цели)</option>
+                        <option value="HEAL">Heal (лечение)</option>
+                        <option value="BUFF_ALLY">Buff Ally (+X/+X союзнику)</option>
+                        <option value="SUMMON">Summon (призвать миньона)</option>
+                      </select>
+                      {form.battlecryType && (
+                        <>
+                          <input type="number" min="0" placeholder="Значение" value={form.battlecryValue} onChange={(e) => setForm((f) => ({ ...f, battlecryValue: +e.target.value }))} style={{ marginTop: 4, width: 80 }} />
+                          {form.battlecryType === 'DEAL_DAMAGE' && (
+                            <select value={form.battlecryTarget} onChange={(e) => setForm((f) => ({ ...f, battlecryTarget: e.target.value }))} style={{ marginLeft: 8 }}>
+                              <option value="">Любая</option>
+                              <option value="ENEMY">Враг</option>
+                              <option value="FRIENDLY">Союзник</option>
+                            </select>
+                          )}
+                          {form.battlecryType === 'SUMMON' && (
+                            <input type="number" min="1" placeholder="ID миньона" value={form.battlecrySummonCardId} onChange={(e) => setForm((f) => ({ ...f, battlecrySummonCardId: e.target.value }))} style={{ marginLeft: 8, width: 100 }} />
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label>Deathrattle (эффект при смерти)</label>
+                      <select value={form.deathrattleType} onChange={(e) => setForm((f) => ({ ...f, deathrattleType: e.target.value }))}>
+                        <option value="">Нет</option>
+                        <option value="DEAL_DAMAGE">Deal Damage (урон случайному врагу)</option>
+                        <option value="SUMMON">Summon (призвать миньона)</option>
+                      </select>
+                      {form.deathrattleType && (
+                        <>
+                          {form.deathrattleType === 'DEAL_DAMAGE' && (
+                            <input type="number" min="0" placeholder="Урон" value={form.deathrattleValue} onChange={(e) => setForm((f) => ({ ...f, deathrattleValue: +e.target.value }))} style={{ marginTop: 4, width: 80 }} />
+                          )}
+                          {form.deathrattleType === 'SUMMON' && (
+                            <input type="number" min="1" placeholder="ID миньона" value={form.deathrattleSummonCardId} onChange={(e) => setForm((f) => ({ ...f, deathrattleSummonCardId: e.target.value }))} style={{ marginLeft: 8, width: 100 }} />
+                          )}
+                        </>
+                      )}
                     </div>
                   </>
                 )}

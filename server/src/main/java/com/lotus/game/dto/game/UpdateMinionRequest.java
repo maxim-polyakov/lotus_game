@@ -25,4 +25,12 @@ public class UpdateMinionRequest {
     private Boolean taunt;
     private Boolean charge;
     private Boolean divineShield;
+
+    private String battlecryType;
+    private Integer battlecryValue;
+    private String battlecryTarget;
+    private Long battlecrySummonCardId;
+    private String deathrattleType;
+    private Integer deathrattleValue;
+    private Long deathrattleSummonCardId;
 }

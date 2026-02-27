@@ -166,7 +166,7 @@ public class MatchService {
                         } else {
                             target.setCurrentHealth(target.getCurrentHealth() - dmg);
                             if (target.getCurrentHealth() <= 0) {
-                                enemy.getBoard().remove(target);
+                                processMinionDeath(match, state, target, enemy, player);
                             }
                         }
                     }
@@ -213,6 +213,8 @@ public class MatchService {
         player.getBoard().add(pos, boardMinion);
         player.setMana(player.getMana() - minion.getManaCost());
         player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
+
+        applyBattlecry(match, state, minion, request, player, enemy, userId);
 
         match.setGameState(state);
         addReplayStep(match, "PLAY", userId, "Minion: " + minion.getName(), state);
@@ -275,10 +277,10 @@ public class MatchService {
             attacker.setCanAttack(false);
             attacker.setExhausted(true);
             if (target.getCurrentHealth() <= 0) {
-                enemy.getBoard().remove(target);
+                processMinionDeath(match, state, target, enemy, player);
             }
             if (attacker.getCurrentHealth() <= 0) {
-                player.getBoard().remove(attacker);
+                processMinionDeath(match, state, attacker, player, enemy);
             }
         }
 
@@ -450,6 +452,130 @@ public class MatchService {
 
     private GameState.PlayerState getEnemyState(GameState state, Long userId, Match match) {
         return match.getPlayer1Id().equals(userId) ? state.getPlayer2() : state.getPlayer1();
+    }
+
+    private void applyBattlecry(Match match, GameState state, Minion minion, PlayCardRequest request,
+                               GameState.PlayerState player, GameState.PlayerState enemy, Long userId) {
+        String type = minion.getBattlecryType();
+        if (type == null || "NONE".equalsIgnoreCase(type)) return;
+        int val = minion.getBattlecryValue() != null ? minion.getBattlecryValue() : 0;
+
+        if ("DEAL_DAMAGE".equalsIgnoreCase(type) && val > 0) {
+            String tid = request.getTargetInstanceId();
+            if (tid == null || tid.isBlank()) {
+                throw new IllegalArgumentException("Battlecry Deal Damage: укажите цель (миньон или герой)");
+            }
+            boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
+            if ("hero".equalsIgnoreCase(tid)) {
+                if (hasTaunt) throw new IllegalArgumentException("Нельзя атаковать героя — есть Taunt");
+                enemy.setHealth(enemy.getHealth() - val);
+                if (enemy.getHealth() <= 0) {
+                    match.setStatus(Match.MatchStatus.FINISHED);
+                    match.setWinnerId(userId);
+                }
+            } else {
+                GameState.BoardMinion target = enemy.getBoard().stream()
+                        .filter(m -> m.getInstanceId().equals(tid))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
+                if (target.isDivineShield()) target.setDivineShield(false);
+                else {
+                    target.setCurrentHealth(target.getCurrentHealth() - val);
+                    if (target.getCurrentHealth() <= 0) processMinionDeath(match, state, target, enemy, player);
+                }
+            }
+        } else if ("HEAL".equalsIgnoreCase(type) && val > 0) {
+            String tid = request.getTargetInstanceId();
+            if (tid == null || tid.isBlank()) {
+                throw new IllegalArgumentException("Battlecry Heal: укажите цель (союзник или hero)");
+            }
+            if ("hero".equalsIgnoreCase(tid)) {
+                player.setHealth(Math.min(player.getHealth() + val, STARTING_HEALTH));
+            } else {
+                GameState.BoardMinion target = player.getBoard().stream()
+                        .filter(m -> m.getInstanceId().equals(tid))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
+                target.setCurrentHealth(Math.min(target.getCurrentHealth() + val, target.getMaxHealth()));
+            }
+        } else if ("BUFF_ALLY".equalsIgnoreCase(type) && val > 0) {
+            String tid = request.getTargetInstanceId();
+            if (tid == null || tid.isBlank()) {
+                throw new IllegalArgumentException("Battlecry Buff: укажите союзного миньона");
+            }
+            GameState.BoardMinion target = player.getBoard().stream()
+                    .filter(m -> m.getInstanceId().equals(tid))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
+            target.setAttack(target.getAttack() + val);
+            target.setCurrentHealth(target.getCurrentHealth() + val);
+            target.setMaxHealth(target.getMaxHealth() + val);
+        } else if ("SUMMON".equalsIgnoreCase(type) && minion.getBattlecrySummonCardId() != null) {
+            if (player.getBoard().size() >= MAX_BOARD_SIZE) return;
+            Minion summon = minionRepository.findById(minion.getBattlecrySummonCardId()).orElse(null);
+            if (summon != null) {
+                GameState.BoardMinion bm = GameState.BoardMinion.builder()
+                        .instanceId(UUID.randomUUID().toString())
+                        .cardId(summon.getId())
+                        .attack(summon.getAttack())
+                        .currentHealth(summon.getHealth())
+                        .maxHealth(summon.getHealth())
+                        .canAttack(false)
+                        .exhausted(true)
+                        .taunt(Boolean.TRUE.equals(summon.getTaunt()))
+                        .divineShield(Boolean.TRUE.equals(summon.getDivineShield()))
+                        .build();
+                player.getBoard().add(bm);
+            }
+        }
+    }
+
+    private void processMinionDeath(Match match, GameState state, GameState.BoardMinion dead,
+                                   GameState.PlayerState owner, GameState.PlayerState enemy) {
+        owner.getBoard().remove(dead);
+        Minion minion = minionRepository.findById(dead.getCardId()).orElse(null);
+        if (minion == null) return;
+        String type = minion.getDeathrattleType();
+        if (type == null || "NONE".equalsIgnoreCase(type)) return;
+
+        if ("DEAL_DAMAGE".equalsIgnoreCase(type)) {
+            int dmg = minion.getDeathrattleValue() != null ? minion.getDeathrattleValue() : 0;
+            if (dmg <= 0) return;
+            List<GameState.BoardMinion> enemies = enemy.getBoard();
+            if (!enemies.isEmpty()) {
+                GameState.BoardMinion target = enemies.get(ThreadLocalRandom.current().nextInt(enemies.size()));
+                if (target.isDivineShield()) target.setDivineShield(false);
+                else {
+                    target.setCurrentHealth(target.getCurrentHealth() - dmg);
+                    if (target.getCurrentHealth() <= 0) {
+                        processMinionDeath(match, state, target, enemy, owner);
+                    }
+                }
+            } else {
+                enemy.setHealth(enemy.getHealth() - dmg);
+                if (enemy.getHealth() <= 0) {
+                    match.setStatus(Match.MatchStatus.FINISHED);
+                    match.setWinnerId(state.getPlayer1() == owner ? match.getPlayer1Id() : match.getPlayer2Id());
+                }
+            }
+        } else if ("SUMMON".equalsIgnoreCase(type) && minion.getDeathrattleSummonCardId() != null) {
+            if (owner.getBoard().size() >= MAX_BOARD_SIZE) return;
+            Minion summon = minionRepository.findById(minion.getDeathrattleSummonCardId()).orElse(null);
+            if (summon != null) {
+                GameState.BoardMinion bm = GameState.BoardMinion.builder()
+                        .instanceId(UUID.randomUUID().toString())
+                        .cardId(summon.getId())
+                        .attack(summon.getAttack())
+                        .currentHealth(summon.getHealth())
+                        .maxHealth(summon.getHealth())
+                        .canAttack(false)
+                        .exhausted(true)
+                        .taunt(Boolean.TRUE.equals(summon.getTaunt()))
+                        .divineShield(Boolean.TRUE.equals(summon.getDivineShield()))
+                        .build();
+                owner.getBoard().add(bm);
+            }
+        }
     }
 
     private void addReplayStep(Match match, String actionType, Long playerId, String description, GameState stateAfter) {
