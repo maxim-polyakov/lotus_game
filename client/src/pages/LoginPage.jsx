@@ -33,6 +33,7 @@ export default function LoginPage() {
     if (oauthHandled.current) return;
     if (code && searchParams.get('oauth') === 'google') {
       oauthHandled.current = true;
+      setError('');
       setLoading(true);
       api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
         .then((res) => {
@@ -59,6 +60,7 @@ export default function LoginPage() {
     }
     if (accessToken && refreshToken) {
       oauthHandled.current = true;
+      setError('');
       setLoading(true);
       login({ accessToken, refreshToken, userId: 0, username: '', roles: [] }, true)
         .then(() => navigate('/', { replace: true }))
@@ -119,11 +121,15 @@ export default function LoginPage() {
         </div>
         <div className="auth-card">
           <h1>Вход</h1>
+          {error && <div className="auth-error-top">{error}</div>}
+          {loading && <div className="auth-loading">Вход...</div>}
           <div className="auth-google-section">
             <a
-              href={`${API_BASE}/oauth2/authorization/google`}
-              className="btn btn-google"
+              href={loading ? '#' : `${API_BASE}/oauth2/authorization/google`}
+              className={`btn btn-google ${loading ? 'disabled' : ''}`}
               type="button"
+              onClick={(e) => loading && e.preventDefault()}
+              aria-disabled={loading}
             >
               <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
@@ -136,22 +142,21 @@ export default function LoginPage() {
           </div>
           <div className="auth-divider">или</div>
           <form onSubmit={handleSubmit}>
-            {error && <div className="error">{error}</div>}
             <div className="form-group">
-              <label>Username <span className="required">*</span></label>
+              <label>Имя пользователя <span className="required">*</span></label>
               <input
                 type="text"
-                placeholder="Enter your Username"
+                placeholder="Введите имя пользователя"
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
                 required
               />
             </div>
             <div className="form-group">
-              <label>Password <span className="required">*</span></label>
+              <label>Пароль <span className="required">*</span></label>
               <input
                 type="password"
-                placeholder="Enter your Password"
+                placeholder="Введите пароль"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -163,7 +168,7 @@ export default function LoginPage() {
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
               />
-              Remember me
+              Запомнить меня
             </label>
             <button type="submit" disabled={loading}>
               {loading ? 'Вход...' : 'Авторизоваться'}

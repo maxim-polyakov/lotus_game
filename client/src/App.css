@@ -79,6 +79,11 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0;
   background: #f8f8f8;
   border-color: #ccc;
 }
+.auth-page .btn-google.disabled {
+  pointer-events: none;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 .auth-page .auth-divider {
   text-align: center;
   margin: 1rem 0;
@@ -160,13 +165,27 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0;
   opacity: 0.6;
   cursor: not-allowed;
 }
-.auth-page .error {
+.auth-page .error,
+.auth-page .auth-error-top {
   padding: 0.75rem 1rem;
   background: #fde8e8;
   border: 1px solid #f5c6cb;
   border-radius: 8px;
   color: #c0392b;
   font-size: 0.9rem;
+}
+.auth-page .auth-error-top {
+  margin-bottom: 1rem;
+}
+.auth-page .auth-loading {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #f0f7ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  color: #1976d2;
+  font-size: 0.95rem;
+  text-align: center;
 }
 .auth-page .success {
   padding: 0.75rem 1rem;
