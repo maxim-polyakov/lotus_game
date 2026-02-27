@@ -21,7 +21,14 @@ export default function HomePage() {
               Lotus Game
             </h1>
             <div className="header-actions">
+              <span className="header-user">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="header-avatar" />
+              ) : (
+                <span className="header-avatar-placeholder">{user.username?.charAt(0)?.toUpperCase() || '?'}</span>
+              )}
               <span className="header-username">{user.username}</span>
+            </span>
             <Link to="/decks" className="btn btn-primary">Колоды</Link>
             <Link to="/play" className="btn btn-primary">Играть</Link>
             <Link to="/replays" className="btn btn-outline">Реплеи</Link>

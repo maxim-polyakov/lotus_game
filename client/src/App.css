@@ -409,10 +409,33 @@ header .header-logo img {
   width: auto;
   border-radius: 6px;
 }
+header .header-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 0.5rem;
+}
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.header-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #4a90d9;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
 header .header-username {
   font-weight: 500;
-  color: #666;
-  margin-right: 0.25rem;
+  color: var(--text-muted, #666);
 }
 .welcome {
   text-align: center;
