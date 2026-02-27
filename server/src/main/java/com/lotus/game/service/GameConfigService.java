@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,7 +34,7 @@ public class GameConfigService {
     }
 
     @Transactional
-    public String uploadGameSound(String key, MultipartFile file) {
+    public String uploadGameSound(String key, MultipartFile file) throws IOException {
         if (!KEY_VICTORY_SOUND.equals(key) && !KEY_DEFEAT_SOUND.equals(key) && !KEY_DRAW_SOUND.equals(key)) {
             throw new IllegalArgumentException("Invalid sound key: " + key);
         }
