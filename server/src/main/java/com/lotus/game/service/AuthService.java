@@ -87,6 +87,9 @@ public class AuthService {
                 .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid username/email or password"));
 
+        if (user.getPasswordHash() == null) {
+            throw new IllegalArgumentException("Войдите через Google");
+        }
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid username/email or password");
         }

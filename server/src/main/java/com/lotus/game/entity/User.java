@@ -36,9 +36,12 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @NotBlank
-    @Column(nullable = false)
+    /** Null для пользователей, вошедших через Google OAuth */
+    @Column(name = "password_hash")
     private String passwordHash;
+
+    @Column(name = "google_id", unique = true, length = 100)
+    private String googleId;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/client';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import api, { API_BASE } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -10,7 +10,29 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { login } = useAuth();
+
+  useEffect(() => {
+    const oauthError = searchParams.get('oauth_error');
+    if (oauthError) {
+      setError(decodeURIComponent(oauthError));
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    const accessToken = searchParams.get('accessToken');
+    const refreshToken = searchParams.get('refreshToken');
+    if (accessToken && refreshToken) {
+      setLoading(true);
+      login({ accessToken, refreshToken, userId: 0, username: '', roles: [] }, true)
+        .then(() => navigate('/', { replace: true }))
+        .catch(() => setError('Ошибка входа через Google'))
+        .finally(() => {
+          setLoading(false);
+          setSearchParams({}, { replace: true });
+        });
+    }
+  }, [searchParams, login, navigate, setSearchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,6 +79,22 @@ export default function LoginPage() {
         </div>
         <div className="auth-card">
           <h1>Вход</h1>
+          <div className="auth-google-section">
+            <a
+              href={`${API_BASE}/oauth2/authorization/google`}
+              className="btn btn-google"
+              type="button"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 6.168-2.172l-2.908-2.258c-.806.54-1.837.86-3.26.86-2.513 0-4.646-1.697-5.696-4.03H.276v2.33C1.98 15.983 5.316 18 9 18z"/>
+                <path fill="#FBBC05" d="M3.304 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V6.29H.276C-.23 7.174-.5 8.068-.5 9c0 .932.27 1.826.744 2.62l2.56-1.97z"/>
+                <path fill="#EA4335" d="M9 3.58c1.414 0 2.69.486 3.696 1.418l2.76-2.764C13.463.696 11.426 0 9 0 5.316 0 1.98 2.017.276 4.83L3.304 7.1C4.354 4.767 6.487 3.07 9 3.07z"/>
+              </svg>
+              Войти через Google
+            </a>
+          </div>
+          <div className="auth-divider">или</div>
           <form onSubmit={handleSubmit}>
             {error && <div className="error">{error}</div>}
             <div className="form-group">
