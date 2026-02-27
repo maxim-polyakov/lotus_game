@@ -548,6 +548,7 @@ public class MatchService {
         owner.getBoard().remove(dead);
         Minion minion = minionRepository.findById(dead.getCardId()).orElse(null);
         if (minion == null) return;
+        if (dead.isSummonedByDeathrattle()) return; // призванный deathrattle не вызывает свой deathrattle
         String type = minion.getDeathrattleType();
         if (type == null || "NONE".equalsIgnoreCase(type)) return;
 
@@ -575,7 +576,7 @@ public class MatchService {
             if (owner.getBoard().size() >= MAX_BOARD_SIZE) return;
             Minion summon = minionRepository.findById(minion.getDeathrattleSummonCardId()).orElse(null);
             if (summon != null) {
-                GameState.BoardMinion bm = buildBoardMinion(summon, false, true, true);
+                GameState.BoardMinion bm = buildBoardMinion(summon, false, true, true, true);
                 owner.getBoard().add(bm);
             }
         }
@@ -599,6 +600,10 @@ public class MatchService {
     }
 
     private GameState.BoardMinion buildBoardMinion(Minion minion, boolean canAttack, boolean exhausted, boolean canAttackHero) {
+        return buildBoardMinion(minion, canAttack, exhausted, canAttackHero, false);
+    }
+
+    private GameState.BoardMinion buildBoardMinion(Minion minion, boolean canAttack, boolean exhausted, boolean canAttackHero, boolean summonedByDeathrattle) {
         int atk = minion.getAttack() != null ? minion.getAttack() : 0;
         int hp = minion.getHealth() != null ? minion.getHealth() : 0;
         return GameState.BoardMinion.builder()
@@ -618,6 +623,7 @@ public class MatchService {
                 .lifesteal(Boolean.TRUE.equals(minion.getLifesteal()))
                 .rush(Boolean.TRUE.equals(minion.getRush()))
                 .attacksThisTurn(0)
+                .summonedByDeathrattle(summonedByDeathrattle)
                 .build();
     }
 

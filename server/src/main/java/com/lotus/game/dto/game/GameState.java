@@ -92,5 +92,8 @@ public class GameState {
         private boolean rush = false;
         @Builder.Default
         private int attacksThisTurn = 0;
+        /** Миньон призван deathrattle — его deathrattle не срабатывает при смерти (предотвращает бесконечную цепочку) */
+        @Builder.Default
+        private boolean summonedByDeathrattle = false;
     }
 }
