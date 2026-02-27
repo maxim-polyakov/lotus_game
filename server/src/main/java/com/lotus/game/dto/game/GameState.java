@@ -33,6 +33,8 @@ public class GameState {
         @Builder.Default
         private int maxMana = 0;
         @Builder.Default
+        private int fatigueCounter = 0;
+        @Builder.Default
         private List<CardRef> deck = new ArrayList<>();
         @Builder.Default
         private List<CardInHand> hand = new ArrayList<>();

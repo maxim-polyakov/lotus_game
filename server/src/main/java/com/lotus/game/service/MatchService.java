@@ -229,17 +229,23 @@ public class MatchService {
         nextState.getBoard().forEach(m -> m.setExhausted(false));
 
         int cardsToDraw = ThreadLocalRandom.current().nextInt(1, 4);
-        drawCards(nextState, cardsToDraw);
-
-        boolean bothDecksEmpty = state.getPlayer1().getDeck().isEmpty() && state.getPlayer2().getDeck().isEmpty();
-        boolean bothBoardsEmpty = state.getPlayer1().getBoard().isEmpty() && state.getPlayer2().getBoard().isEmpty();
-        if (bothDecksEmpty && bothBoardsEmpty) {
+        boolean diedFromFatigue = drawCardsWithFatigue(nextState, cardsToDraw);
+        if (diedFromFatigue) {
             match.setStatus(Match.MatchStatus.FINISHED);
-            match.setWinnerId(null);
+            match.setWinnerId(userId);
         } else {
-            match.setCurrentTurnPlayerId(nextPlayer);
-            state.setTurnNumber(state.getTurnNumber() + 1);
-            state.setCurrentTurnPlayerId(nextPlayer);
+            boolean bothDecksEmpty = state.getPlayer1().getDeck().isEmpty() && state.getPlayer2().getDeck().isEmpty();
+            boolean bothBoardsEmpty = state.getPlayer1().getBoard().isEmpty() && state.getPlayer2().getBoard().isEmpty();
+            if (bothDecksEmpty && bothBoardsEmpty) {
+                match.setStatus(Match.MatchStatus.FINISHED);
+                int p1Hp = state.getPlayer1().getHealth();
+                int p2Hp = state.getPlayer2().getHealth();
+                match.setWinnerId(p1Hp > p2Hp ? match.getPlayer1Id() : p2Hp > p1Hp ? match.getPlayer2Id() : null);
+            } else {
+                match.setCurrentTurnPlayerId(nextPlayer);
+                state.setTurnNumber(state.getTurnNumber() + 1);
+                state.setCurrentTurnPlayerId(nextPlayer);
+            }
         }
         match.setGameState(state);
         matchRepository.save(match);
@@ -304,6 +310,30 @@ public class MatchService {
             }
         }
         return result;
+    }
+
+    /**
+     * Розыгрыш карт с учётом урона от усталости (fatigue).
+     * Когда колода пуста и игрок должен взять карту — он получает урон (1, 2, 3... за каждую «пропущенную» карту).
+     * @return true если игрок умер от усталости
+     */
+    private boolean drawCardsWithFatigue(GameState.PlayerState player, int count) {
+        for (int i = 0; i < count && player.getHand().size() < MAX_HAND_SIZE; i++) {
+            if (player.getDeck().isEmpty()) {
+                int fatigue = player.getFatigueCounter() + 1;
+                player.setFatigueCounter(fatigue);
+                player.setHealth(player.getHealth() - fatigue);
+                if (player.getHealth() <= 0) return true;
+            } else {
+                GameState.CardRef ref = player.getDeck().remove(0);
+                GameState.CardInHand inHand = new GameState.CardInHand();
+                inHand.setInstanceId(UUID.randomUUID().toString());
+                inHand.setCardType(ref.getCardType());
+                inHand.setCardId(ref.getCardId());
+                player.getHand().add(inHand);
+            }
+        }
+        return false;
     }
 
     private void drawCards(GameState.PlayerState player, int count) {
