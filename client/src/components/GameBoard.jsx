@@ -387,16 +387,19 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             const card = getCard(c.cardType, c.cardId);
             const hasMana = card && me.mana >= (card.manaCost ?? 0);
             const boardFull = (me.board?.length ?? 0) >= 7;
-            const canPlay = isMyTurn && card && hasMana && (c.cardType === 'SPELL' || !boardFull);
             const spellNeedsTarget = c.cardType === 'SPELL' && card?.damage > 0;
-            const battlecryNeedsTarget = c.cardType === 'MINION' && ['DEAL_DAMAGE', 'HEAL', 'BUFF_ALLY'].includes(card?.battlecryType);
+            const battlecryNeedsTarget = c.cardType === 'MINION' && ['DEAL_DAMAGE', 'HEAL', 'BUFF_ALLY'].includes(card?.battlecryType) && (card?.battlecryValue ?? 0) > 0;
+            const buffAllyNoTargets = battlecryNeedsTarget && card?.battlecryType === 'BUFF_ALLY' && (me.board?.length ?? 0) === 0;
+            const canPlay = isMyTurn && card && hasMana && (c.cardType === 'SPELL' || !boardFull) && !buffAllyNoTargets;
             const playHandler = () => {
               if (c.cardType === 'MINION') {
                 setSelectedSpell(null);
+                setSelectedAttacker(null);
                 if (battlecryNeedsTarget) setSelectedBattlecry({ instanceId: c.instanceId, card });
                 else playCard(c.instanceId, me.board?.length || 0);
               } else if (c.cardType === 'SPELL') {
                 setSelectedBattlecry(null);
+                setSelectedAttacker(null);
                 if (spellNeedsTarget) setSelectedSpell({ instanceId: c.instanceId, card });
                 else playCard(c.instanceId, null, null);
               }
