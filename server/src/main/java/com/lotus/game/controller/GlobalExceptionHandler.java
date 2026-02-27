@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 
 import java.time.Instant;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,6 +53,20 @@ public class GlobalExceptionHandler {
                 .error("Bad Request")
                 .message("Файл слишком большой (макс. 10MB)")
                 .build());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorBody> handleGeneric(Exception ex) {
+        log.log(Level.SEVERE, "Unexpected error", ex);
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Внутренняя ошибка сервера";
+        return ResponseEntity
+                .status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorBody.builder()
+                        .timestamp(Instant.now().toString())
+                        .status(500)
+                        .error("Internal Server Error")
+                        .message(msg)
+                        .build());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -401,10 +401,16 @@ public class MatchService {
 
     private List<GameState.CardRef> flattenDeck(Deck deck) {
         List<GameState.CardRef> result = new ArrayList<>();
-        for (DeckCard dc : deck.getCards()) {
-            String type = dc.getMinion() != null ? "MINION" : "SPELL";
-            Long id = dc.getMinion() != null ? dc.getMinion().getId() : dc.getSpell().getId();
-            for (int i = 0; i < dc.getCount(); i++) {
+        List<DeckCard> cards = deck.getCards();
+        if (cards == null) return result;
+        for (DeckCard dc : cards) {
+            Minion m = dc.getMinion();
+            Spell s = dc.getSpell();
+            String type = m != null ? "MINION" : "SPELL";
+            Long id = m != null ? m.getId() : (s != null ? s.getId() : null);
+            if (id == null) continue;
+            int count = dc.getCount() != null ? dc.getCount() : 0;
+            for (int i = 0; i < count; i++) {
                 result.add(GameState.CardRef.builder().cardType(type).cardId(id).build());
             }
         }

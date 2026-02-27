@@ -68,7 +68,9 @@ export default function PlayPage() {
       const { data } = await api.post(`/api/matches/find?deckId=${selectedDeck}&mode=${matchMode}`);
       setMatch(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка');
+      const msg = err.response?.data?.message || 'Ошибка при поиске матча';
+      setError(msg);
+      console.error('Ошибка при поиске матча:', msg, err);
     } finally {
       setLoading(false);
     }
