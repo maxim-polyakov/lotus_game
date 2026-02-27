@@ -96,6 +96,14 @@ export default function ProfilePage() {
             <p>Загрузка...</p>
           ) : (
             <div className="stats-grid">
+              <div className="stat-item stat-rating">
+                <span className="stat-value">{stats?.rating ?? 1000}</span>
+                <span className="stat-label">Рейтинг (ELO)</span>
+              </div>
+              <div className="stat-item stat-rank">
+                <span className="stat-value">{stats?.rank ?? 'Новичок'}</span>
+                <span className="stat-label">Ранг</span>
+              </div>
               <div className="stat-item stat-wins">
                 <span className="stat-value">{stats?.wins ?? 0}</span>
                 <span className="stat-label">Побед</span>

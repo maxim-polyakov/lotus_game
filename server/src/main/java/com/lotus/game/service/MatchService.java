@@ -9,6 +9,7 @@ import com.lotus.game.entity.Spell;
 import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.repository.DeckRepository;
 import com.lotus.game.repository.MatchRepository;
+import com.lotus.game.repository.UserRepository;
 import com.lotus.game.repository.MinionRepository;
 import com.lotus.game.repository.SpellRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +30,12 @@ public class MatchService {
     private static final int MAX_MANA = 10;
     private static final int MAX_BOARD_SIZE = 7;
     private static final int MAX_HAND_SIZE = 10;
+    private static final int MATCHMAKING_RATING_RANGE = 200;
 
     private final MatchRepository matchRepository;
     private final DeckRepository deckRepository;
+    private final UserRepository userRepository;
+    private final RatingService ratingService;
     private final MinionRepository minionRepository;
     private final SpellRepository spellRepository;
     private final MatchBroadcastService broadcastService;
@@ -45,13 +49,20 @@ public class MatchService {
             throw new IllegalArgumentException("Access denied to deck");
         }
 
-        List<Match> waitingList = matchRepository.findByStatus(Match.MatchStatus.WAITING).stream()
+        int myRating = userRepository.findById(userId)
+                .map(u -> u.getRating())
+                .orElse(1000);
+        int minRating = Math.max(0, myRating - MATCHMAKING_RATING_RANGE);
+        int maxRating = myRating + MATCHMAKING_RATING_RANGE;
+
+        List<Match> waitingList = matchRepository.findWaitingByRatingRange(minRating, maxRating).stream()
                 .filter(m -> !m.getPlayer1Id().equals(userId))
                 .toList();
         if (!waitingList.isEmpty()) {
             Match match = waitingList.get(ThreadLocalRandom.current().nextInt(waitingList.size()));
             match.setPlayer2Id(userId);
             match.setDeck2Id(deckId);
+            match.setPlayer2Rating(myRating);
             match.setStatus(Match.MatchStatus.IN_PROGRESS);
             match.setCurrentTurnPlayerId(match.getPlayer1Id());
             match.setGameState(initGameState(match));
@@ -65,6 +76,7 @@ public class MatchService {
         Match match = Match.builder()
                 .player1Id(userId)
                 .deck1Id(deckId)
+                .player1Rating(myRating)
                 .status(Match.MatchStatus.WAITING)
                 .build();
         match = matchRepository.save(match);
@@ -144,6 +156,7 @@ public class MatchService {
                 player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
                 match.setGameState(state);
                 matchRepository.save(match);
+                applyRatingUpdateIfFinished(match);
                 evictMatchCacheForPlayers(match);
                 MatchDto dto = MatchDto.from(match);
                 broadcastService.broadcastMatchUpdate(matchId, dto);
@@ -238,6 +251,7 @@ public class MatchService {
 
         match.setGameState(state);
         matchRepository.save(match);
+        applyRatingUpdateIfFinished(match);
         evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
@@ -284,10 +298,21 @@ public class MatchService {
         }
         match.setGameState(state);
         matchRepository.save(match);
+        applyRatingUpdateIfFinished(match);
         evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
         return dto;
+    }
+
+    private void applyRatingUpdateIfFinished(Match match) {
+        if (match.getStatus() == Match.MatchStatus.FINISHED && match.getPlayer2Id() != null) {
+            ratingService.updateRatingsAfterMatch(
+                    match.getPlayer1Id(),
+                    match.getPlayer2Id(),
+                    match.getWinnerId()
+            );
+        }
     }
 
     private Match loadMatch(Long matchId, Long userId) {

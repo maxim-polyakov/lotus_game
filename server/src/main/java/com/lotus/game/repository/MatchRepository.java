@@ -4,6 +4,7 @@ import com.lotus.game.entity.Match;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,6 +16,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     Optional<Match> findFirstByStatusOrderByCreatedAtAsc(Match.MatchStatus status);
 
     List<Match> findByStatus(Match.MatchStatus status);
+
+    @Query("SELECT m FROM Match m WHERE m.status = 'WAITING' AND m.player1Rating BETWEEN :minRating AND :maxRating")
+    List<Match> findWaitingByRatingRange(@Param("minRating") int minRating, @Param("maxRating") int maxRating);
 
     List<Match> findByPlayer1IdOrPlayer2IdOrderByCreatedAtDesc(Long player1Id, Long player2Id);
 

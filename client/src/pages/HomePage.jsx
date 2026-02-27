@@ -28,6 +28,7 @@ export default function HomePage() {
             {user.roles?.includes('ROLE_ADMIN') && (
               <Link to="/admin" className="btn btn-outline">Админ</Link>
             )}
+            <Link to="/leaderboard" className="btn btn-outline">Рейтинг</Link>
             <button onClick={() => setTutorialOpen(true)} className="btn btn-outline">Правила</button>
             <button onClick={toggleTheme} className="btn btn-outline btn-sm" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">
               {theme === 'dark' ? '☀' : '🌙'}
@@ -45,6 +46,7 @@ export default function HomePage() {
               Lotus Game
             </h1>
             <div className="header-actions">
+              <Link to="/leaderboard" className="btn btn-outline">Рейтинг</Link>
               <button onClick={() => setTutorialOpen(true)} className="btn btn-outline">Правила</button>
               <button onClick={toggleTheme} className="btn btn-outline btn-sm" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">
                 {theme === 'dark' ? '☀' : '🌙'}

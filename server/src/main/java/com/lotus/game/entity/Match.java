@@ -31,6 +31,12 @@ public class Match {
     @Column(name = "deck2_id")
     private Long deck2Id;
 
+    @Column(name = "player1_rating")
+    private Integer player1Rating;
+
+    @Column(name = "player2_rating")
+    private Integer player2Rating;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

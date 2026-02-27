@@ -28,11 +28,13 @@ public class MeController {
         if (user == null) {
             return ResponseEntity.status(401).build();
         }
+        User dbUser = userRepository.findById(user.getId()).orElse(null);
         Map<String, Object> body = new HashMap<>();
         body.put("id", user.getId());
         body.put("username", user.getUsername());
         body.put("email", user.getEmail());
         body.put("avatarUrl", user.getAvatarUrl());
+        body.put("rating", dbUser != null ? dbUser.getRating() : 1000);
         body.put("roles", user.getAuthorities().stream()
                 .map(a -> a.getAuthority())
                 .collect(Collectors.toList()));
@@ -45,15 +47,20 @@ public class MeController {
             return ResponseEntity.status(401).build();
         }
         Long userId = user.getId();
+        User dbUser = userRepository.findById(userId).orElse(null);
+        int rating = dbUser != null ? dbUser.getRating() : 1000;
+        String rank = RatingService.getRankName(rating);
         long wins = matchRepository.countWins(userId);
         long draws = matchRepository.countDraws(userId);
         long losses = matchRepository.countLosses(userId);
-        return ResponseEntity.ok(Map.of(
-                "wins", wins,
-                "losses", losses,
-                "draws", draws,
-                "totalMatches", wins + draws + losses
-        ));
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("wins", wins);
+        stats.put("losses", losses);
+        stats.put("draws", draws);
+        stats.put("totalMatches", wins + draws + losses);
+        stats.put("rating", rating);
+        stats.put("rank", rank);
+        return ResponseEntity.ok(stats);
     }
 
     @PutMapping

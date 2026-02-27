@@ -61,6 +61,10 @@ public class User {
     private String passwordResetCode;
     private Instant passwordResetCodeExpiresAt;
 
+    @Column(nullable = false, columnDefinition = "int default 1000")
+    @Builder.Default
+    private int rating = 1000;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -68,6 +72,9 @@ public class User {
         }
         if (roles.isEmpty()) {
             roles.add("ROLE_USER");
+        }
+        if (rating == 0) {
+            rating = 1000;
         }
     }
 }

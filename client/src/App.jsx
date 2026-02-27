@@ -14,6 +14,7 @@ import DeckDetailPage from './pages/DeckDetailPage';
 import PlayPage from './pages/PlayPage';
 import AdminCabinetPage from './pages/AdminCabinetPage';
 import ProfilePage from './pages/ProfilePage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/play" element={<PrivateRoute><PlayPage /></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
         </Routes>
       </BrowserRouter>
         </AuthProvider>
