@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = Logger.getLogger(GlobalExceptionHandler.class.getName());
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorBody> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity
