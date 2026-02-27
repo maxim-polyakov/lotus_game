@@ -3,6 +3,7 @@ package com.lotus.game.controller;
 import com.lotus.game.dto.user.UpdateProfileRequest;
 import com.lotus.game.entity.User;
 import com.lotus.game.repository.MatchRepository;
+import com.lotus.game.service.RatingService;
 import com.lotus.game.repository.UserRepository;
 import com.lotus.game.security.GameUserDetails;
 import jakarta.validation.Valid;
