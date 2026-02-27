@@ -58,6 +58,9 @@ public class User {
     private String verificationCode;
     private Instant verificationCodeExpiresAt;
 
+    private String passwordResetCode;
+    private Instant passwordResetCodeExpiresAt;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

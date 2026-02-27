@@ -103,6 +103,39 @@ public class AuthService {
         return buildLoginResponse(user);
     }
 
+    @Transactional
+    public void requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return;
+        }
+        String code = MailService.generateSixDigitCode();
+        Instant expiresAt = Instant.now().plus(VERIFICATION_CODE_VALID_MINUTES, ChronoUnit.MINUTES);
+        user.setPasswordResetCode(code);
+        user.setPasswordResetCodeExpiresAt(expiresAt);
+        userRepository.save(user);
+        mailService.sendPasswordResetCode(user.getEmail(), code);
+    }
+
+    @Transactional
+    public void resetPassword(String email, String code, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь с таким email не найден"));
+        if (user.getPasswordResetCode() == null || user.getPasswordResetCodeExpiresAt() == null) {
+            throw new IllegalArgumentException("Код сброса не найден или истёк. Запросите новый код.");
+        }
+        if (!user.getPasswordResetCode().equals(code)) {
+            throw new IllegalArgumentException("Неверный код");
+        }
+        if (Instant.now().isAfter(user.getPasswordResetCodeExpiresAt())) {
+            throw new IllegalArgumentException("Срок действия кода истёк. Запросите новый код.");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordResetCode(null);
+        user.setPasswordResetCodeExpiresAt(null);
+        userRepository.save(user);
+    }
+
     public AuthResponse refresh(RefreshRequest request) {
         try {
             Claims claims = jwtService.parseToken(request.getRefreshToken());
