@@ -47,5 +47,13 @@ public class CardDataInitializer {
             spellRepository.saveAll(spells);
             log.info("Initialized {} spells", spells.size());
         }
+
+        spellRepository.findAll().stream()
+                .filter(s -> s.getDamage() == null)
+                .forEach(s -> {
+                    s.setDamage(6);
+                    spellRepository.save(s);
+                    log.info("Updated spell '{}' with damage=6", s.getName());
+                });
     }
 }
