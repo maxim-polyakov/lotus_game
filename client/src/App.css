@@ -719,6 +719,17 @@ header .header-username {
   box-shadow: 0 0 0 3px #f39c12;
   border-color: #f39c12;
 }
+/* Союзный миньон — цель для Battlecry (бафф/лечение) */
+.my-minion.battlecry-target {
+  cursor: pointer;
+  box-shadow: 0 0 0 3px #27ae60;
+  border-color: #27ae60;
+}
+.my-minion.battlecry-target:hover {
+  box-shadow: 0 0 0 4px #2ecc71;
+  border-color: #2ecc71;
+  transform: scale(1.02);
+}
 .enemy-minion.attack-target {
   cursor: pointer;
   box-shadow: 0 0 0 2px #e74c3c;
