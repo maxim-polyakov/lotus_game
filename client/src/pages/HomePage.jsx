@@ -24,6 +24,7 @@ export default function HomePage() {
               <span className="header-username">{user.username}</span>
             <Link to="/decks" className="btn btn-primary">Колоды</Link>
             <Link to="/play" className="btn btn-primary">Играть</Link>
+            <Link to="/replays" className="btn btn-outline">Реплеи</Link>
             <Link to="/profile" className="btn btn-outline">Профиль</Link>
             {user.roles?.includes('ROLE_ADMIN') && (
               <Link to="/admin" className="btn btn-outline">Админ</Link>

@@ -16,6 +16,7 @@ import AdminCabinetPage from './pages/AdminCabinetPage';
 import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ReplayPage from './pages/ReplayPage';
+import ReplaysListPage from './pages/ReplaysListPage';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/replays" element={<PrivateRoute><ReplaysListPage /></PrivateRoute>} />
           <Route path="/replay/:matchId" element={<PrivateRoute><ReplayPage /></PrivateRoute>} />
         </Routes>
       </BrowserRouter>

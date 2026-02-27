@@ -1353,6 +1353,101 @@ header .header-username {
   color: var(--text-muted);
 }
 
+/* Страница списка реплеев */
+.replays-list-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+}
+.replays-page-header {
+  flex-shrink: 0;
+  padding: 1rem 2rem;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.replays-page-header h1 { margin: 0; font-size: 1.25rem; }
+.replays-content {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  overflow: auto;
+}
+.replays-empty {
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+.replays-loading {
+  padding: 2rem;
+  text-align: center;
+}
+.replays-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.replay-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.replay-card:hover {
+  border-color: #e74c3c;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+}
+.replay-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.replay-card-id {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.replay-card-result {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+.replay-result-win { color: #27ae60; background: rgba(39, 174, 96, 0.15); }
+.replay-result-loss { color: #e74c3c; background: rgba(231, 76, 60, 0.15); }
+.replay-result-draw { color: #7f8c8d; background: rgba(127, 140, 141, 0.15); }
+.replay-card-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.replay-card-watch {
+  font-size: 0.9rem;
+  color: #e74c3c;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .replays-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .replays-content {
+    padding: 1rem;
+  }
+  .replays-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Колоды — адаптив для мобильных */
 @media (max-width: 768px) {
   .decks-page-header {
