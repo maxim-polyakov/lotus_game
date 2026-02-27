@@ -198,7 +198,7 @@ public class MatchService {
             throw new IllegalArgumentException("Invalid board position");
         }
 
-        boolean canAttackNow = minion.isCharge();
+        boolean canAttackNow = Boolean.TRUE.equals(minion.getCharge());
         GameState.BoardMinion boardMinion = GameState.BoardMinion.builder()
                 .instanceId(UUID.randomUUID().toString())
                 .cardId(minion.getId())
@@ -207,8 +207,8 @@ public class MatchService {
                 .maxHealth(minion.getHealth())
                 .canAttack(canAttackNow)
                 .exhausted(!canAttackNow)
-                .taunt(minion.isTaunt())
-                .divineShield(minion.isDivineShield())
+                .taunt(Boolean.TRUE.equals(minion.getTaunt()))
+                .divineShield(Boolean.TRUE.equals(minion.getDivineShield()))
                 .build();
         player.getBoard().add(pos, boardMinion);
         player.setMana(player.getMana() - minion.getManaCost());
@@ -522,8 +522,8 @@ public class MatchService {
                         .maxHealth(summon.getHealth())
                         .canAttack(false)
                         .exhausted(true)
-                        .taunt(summon.isTaunt())
-                        .divineShield(summon.isDivineShield())
+                        .taunt(Boolean.TRUE.equals(summon.getTaunt()))
+                        .divineShield(Boolean.TRUE.equals(summon.getDivineShield()))
                         .build();
                 player.getBoard().add(bm);
             }
@@ -570,8 +570,8 @@ public class MatchService {
                         .maxHealth(summon.getHealth())
                         .canAttack(false)
                         .exhausted(true)
-                        .taunt(summon.isTaunt())
-                        .divineShield(summon.isDivineShield())
+                        .taunt(Boolean.TRUE.equals(summon.getTaunt()))
+                        .divineShield(Boolean.TRUE.equals(summon.getDivineShield()))
                         .build();
                 owner.getBoard().add(bm);
             }

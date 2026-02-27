@@ -58,15 +58,15 @@ public class Minion {
 
     @Column(name = "taunt")
     @Builder.Default
-    private boolean taunt = false;
+    private Boolean taunt = false;
 
     @Column(name = "charge")
     @Builder.Default
-    private boolean charge = false;
+    private Boolean charge = false;
 
     @Column(name = "divine_shield")
     @Builder.Default
-    private boolean divineShield = false;
+    private Boolean divineShield = false;
 
     /** Battlecry: NONE, DEAL_DAMAGE, HEAL, BUFF_ALLY, SUMMON */
     @Column(name = "battlecry_type", length = 20)
