@@ -1,5 +1,6 @@
 package com.lotus.game.controller;
 
+import com.lotus.game.config.OAuthCodeStore;
 import com.lotus.game.dto.auth.*;
 import com.lotus.game.service.AuthService;
 import jakarta.validation.Valid;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final OAuthCodeStore oauthCodeStore;
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -51,5 +53,19 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Пароль успешно изменён. Войдите с новым паролем."));
+    }
+
+    @GetMapping("/oauth-tokens")
+    public ResponseEntity<AuthResponse> getOAuthTokens(@RequestParam String code) {
+        Map<String, Object> data = oauthCodeStore.getAndRemove(code);
+        if (data == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(AuthResponse.builder()
+                .accessToken((String) data.get("accessToken"))
+                .refreshToken((String) data.get("refreshToken"))
+                .tokenType("Bearer")
+                .expiresInSeconds(((Number) data.get("expiresIn")).longValue())
+                .build());
     }
 }

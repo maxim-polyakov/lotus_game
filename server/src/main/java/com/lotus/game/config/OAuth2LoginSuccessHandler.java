@@ -26,6 +26,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final OAuthCodeStore oauthCodeStore;
 
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
@@ -64,12 +65,13 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
             String accessToken = jwtService.buildAccessToken(user);
             String refreshToken = jwtService.buildRefreshToken(user);
+            long expiresIn = jwtService.getAccessTokenExpirationSeconds();
+
+            String code = oauthCodeStore.put(accessToken, refreshToken, expiresIn);
 
             String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
                     .queryParam("oauth", "google")
-                    .queryParam("accessToken", accessToken)
-                    .queryParam("refreshToken", refreshToken)
-                    .queryParam("expiresIn", jwtService.getAccessTokenExpirationSeconds())
+                    .queryParam("code", code)
                     .build().toUriString();
 
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
