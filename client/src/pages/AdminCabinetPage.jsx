@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import CardDisplay from '../components/CardDisplay';
@@ -59,6 +60,15 @@ export default function AdminCabinetPage() {
       .then(({ data }) => setGameSounds(data || {}))
       .catch(() => setGameSounds({}));
   }, []);
+
+  useEffect(() => {
+    if (selected) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selected]);
 
   useEffect(() => {
     if (selected) {
@@ -571,7 +581,7 @@ export default function AdminCabinetPage() {
           </div>
         </div>
       </div>
-      {selected && (
+      {selected && createPortal(
         <div className="admin-edit-overlay" onClick={() => setSelected(null)}>
           <div className="admin-edit-panel" onClick={(e) => e.stopPropagation()}>
             <div className="admin-edit-panel-header">
@@ -913,7 +923,8 @@ export default function AdminCabinetPage() {
                 </div>
               )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
