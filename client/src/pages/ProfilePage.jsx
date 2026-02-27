@@ -44,8 +44,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarUpload = async (e) => {
-    e.preventDefault();
+  const handleAvatarUpload = async () => {
     if (!avatarFile) return;
     setError('');
     setAvatarUploading(true);
@@ -101,13 +100,13 @@ export default function ProfilePage() {
               />
             </div>
             <div className="form-group">
-              <label>Загрузить аватар (S3)</label>
-              <form onSubmit={handleAvatarUpload} className="avatar-upload-form">
+              <label>Загрузить аватар</label>
+              <div className="avatar-upload-form">
                 <div className="avatar-upload-row">
                   <label className="btn btn-secondary avatar-file-label">
                     Выбрать файл
                     <input
-                      key={avatarUrl}
+                      key={avatarUrl || 'empty'}
                       type="file"
                       accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
                       onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
@@ -115,20 +114,11 @@ export default function ProfilePage() {
                     />
                   </label>
                   {avatarFile && <span className="avatar-file-name">{avatarFile.name}</span>}
-                  <button type="submit" className="btn btn-primary" disabled={!avatarFile || avatarUploading}>
+                  <button type="button" onClick={handleAvatarUpload} className="btn btn-primary" disabled={!avatarFile || avatarUploading}>
                     {avatarUploading ? 'Загрузка...' : 'Загрузить'}
                   </button>
                 </div>
-              </form>
-            </div>
-            <div className="form-group">
-              <label>URL аватара (альтернатива)</label>
-              <input
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              </div>
             </div>
             {error && <div className="error">{error}</div>}
             <button type="submit" className="btn btn-primary" disabled={saving}>
