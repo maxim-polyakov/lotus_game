@@ -68,6 +68,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             long expiresIn = jwtService.getAccessTokenExpirationSeconds();
 
             String code = oauthCodeStore.put(accessToken, refreshToken, expiresIn);
+            log.info("Google OAuth2: success for user {} ({}), code stored, redirecting to frontend", user.getUsername(), email);
 
             String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
                     .queryParam("oauth", "google")

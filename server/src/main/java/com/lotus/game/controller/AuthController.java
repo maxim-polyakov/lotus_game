@@ -5,6 +5,7 @@ import com.lotus.game.dto.auth.*;
 import com.lotus.game.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final AuthService authService;
@@ -57,10 +59,13 @@ public class AuthController {
 
     @GetMapping("/oauth-tokens")
     public ResponseEntity<AuthResponse> getOAuthTokens(@RequestParam String code) {
+        log.info("OAuth tokens request: code={}", code != null ? code.substring(0, Math.min(8, code.length())) + "..." : "null");
         Map<String, Object> data = oauthCodeStore.getAndRemove(code);
         if (data == null) {
+            log.warn("OAuth tokens: code not found or expired");
             return ResponseEntity.badRequest().build();
         }
+        log.info("OAuth tokens: success");
         return ResponseEntity.ok(AuthResponse.builder()
                 .accessToken((String) data.get("accessToken"))
                 .refreshToken((String) data.get("refreshToken"))

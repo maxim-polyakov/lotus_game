@@ -52,6 +52,7 @@ public class OAuthCodeStore {
         } else {
             memoryStore.put(code, new Entry(System.currentTimeMillis(), payload));
         }
+        log.debug("OAuthCodeStore: put code {} (mode={}, memorySize={})", code.substring(0, 8) + "...", mode, memoryStore.size());
         return code;
     }
 
@@ -60,8 +61,12 @@ public class OAuthCodeStore {
             try {
                 String key = REDIS_PREFIX + code;
                 String json = redisTemplate.opsForValue().get(key);
-                if (json == null) return null;
+                if (json == null) {
+                    log.warn("OAuthCodeStore: code not found in Redis");
+                    return null;
+                }
                 redisTemplate.delete(key);
+                log.debug("OAuthCodeStore: code found in Redis");
                 return objectMapper.readValue(json, new TypeReference<>() {});
             } catch (Exception e) {
                 log.warn("Redis OAuth get failed: {}", e.getMessage());
@@ -69,8 +74,15 @@ public class OAuthCodeStore {
             }
         }
         Entry entry = memoryStore.remove(code);
-        if (entry == null) return null;
-        if (System.currentTimeMillis() - entry.createdAt > TTL.toMillis()) return null;
+        if (entry == null) {
+            log.warn("OAuthCodeStore: code not found (mode={}, memorySize={})", mode, memoryStore.size());
+            return null;
+        }
+        if (System.currentTimeMillis() - entry.createdAt > TTL.toMillis()) {
+            log.warn("OAuthCodeStore: code expired");
+            return null;
+        }
+        log.debug("OAuthCodeStore: code found and removed");
         return entry.payload;
     }
 
