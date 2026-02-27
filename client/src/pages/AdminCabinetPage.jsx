@@ -570,10 +570,14 @@ export default function AdminCabinetPage() {
             ))}
           </div>
         </div>
-        <div className="admin-edit-panel">
-          {selected ? (
-            <>
+      </div>
+      {selected && (
+        <div className="admin-edit-overlay" onClick={() => setSelected(null)}>
+          <div className="admin-edit-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-edit-panel-header">
               <h3>Редактирование: {selected.name}</h3>
+              <button type="button" onClick={() => setSelected(null)} className="btn btn-secondary btn-sm admin-edit-close" aria-label="Закрыть">&times;</button>
+            </div>
               <form onSubmit={handleSave} className="admin-form">
                 <div className="form-group">
                   <label>Название</label>
@@ -908,12 +912,9 @@ export default function AdminCabinetPage() {
                   )}
                 </div>
               )}
-            </>
-          ) : (
-            <p className="admin-hint">Выберите карту для редактирования</p>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
