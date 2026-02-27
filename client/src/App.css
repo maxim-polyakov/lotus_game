@@ -1200,6 +1200,16 @@ header .header-username {
 .profile-form .error {
   margin-bottom: 1rem;
 }
+.avatar-upload-form { margin-bottom: 0.5rem; }
+.avatar-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.avatar-file-label { cursor: pointer; margin: 0; }
+.avatar-file-input { display: none; }
+.avatar-file-name { font-size: 0.9rem; color: var(--text-muted); }
 .profile-stats {
   background: var(--card-bg);
   border-radius: 12px;

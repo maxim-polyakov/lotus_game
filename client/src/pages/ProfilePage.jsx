@@ -7,6 +7,8 @@ export default function ProfilePage() {
   const { user, updateUser } = useAuth();
   const [username, setUsername] = useState(user?.username || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [stats, setStats] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,25 @@ export default function ProfilePage() {
       setError(err.response?.data?.message || 'Ошибка сохранения');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    e.preventDefault();
+    if (!avatarFile) return;
+    setError('');
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+      const { data } = await api.post('/api/me/avatar', formData);
+      updateUser(data);
+      setAvatarUrl(data.avatarUrl || '');
+      setAvatarFile(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка загрузки аватара');
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -80,7 +101,28 @@ export default function ProfilePage() {
               />
             </div>
             <div className="form-group">
-              <label>URL аватара</label>
+              <label>Загрузить аватар (S3)</label>
+              <form onSubmit={handleAvatarUpload} className="avatar-upload-form">
+                <div className="avatar-upload-row">
+                  <label className="btn btn-secondary avatar-file-label">
+                    Выбрать файл
+                    <input
+                      key={avatarUrl}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+                      className="avatar-file-input"
+                    />
+                  </label>
+                  {avatarFile && <span className="avatar-file-name">{avatarFile.name}</span>}
+                  <button type="submit" className="btn btn-primary" disabled={!avatarFile || avatarUploading}>
+                    {avatarUploading ? 'Загрузка...' : 'Загрузить'}
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div className="form-group">
+              <label>URL аватара (альтернатива)</label>
               <input
                 type="url"
                 value={avatarUrl}

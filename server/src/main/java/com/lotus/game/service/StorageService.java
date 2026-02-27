@@ -21,6 +21,7 @@ import java.util.UUID;
 public class StorageService {
 
     private static final String CARDS_PREFIX = "cards/";
+    private static final String AVATARS_PREFIX = "avatars/";
     private static final String SOUNDS_PREFIX = "sounds/";
     private static final String GAME_SOUNDS_PREFIX = "game-sounds/";
     private static final String ANIMATIONS_PREFIX = "animations/";
@@ -52,6 +53,27 @@ public class StorageService {
 
     public String uploadCardImage(byte[] bytes, String contentType, String originalFilename) {
         return uploadCardImage(new ByteArrayInputStream(bytes), bytes.length, contentType, originalFilename);
+    }
+
+    /**
+     * Загружает аватар пользователя в S3 и возвращает публичный URL.
+     */
+    public String uploadAvatar(byte[] bytes, String contentType, String originalFilename) {
+        String ext = getExtension(originalFilename);
+        String lower = ext != null ? ext.toLowerCase() : "";
+        if (!lower.equals(".png") && !lower.equals(".jpg") && !lower.equals(".jpeg") && !lower.equals(".gif") && !lower.equals(".webp")) {
+            ext = ".png";
+        }
+        String key = AVATARS_PREFIX + UUID.randomUUID() + ext;
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(props.getBucketName())
+                .key(key)
+                .contentType(contentType != null ? contentType : "image/png")
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        String url = buildPublicUrl(key);
+        log.info("Uploaded avatar: {}", url);
+        return url;
     }
 
     /**
