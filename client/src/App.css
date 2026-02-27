@@ -371,6 +371,52 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0;
   opacity: 0.6;
   cursor: not-allowed;
 }
+.play-page .mode-selection {
+  margin-bottom: 1rem;
+}
+.play-page .mode-selection > label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+.play-page .mode-selection-options {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+.play-page .mode-option {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border, #e8e8e8);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.play-page .mode-option:hover {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.04);
+}
+.play-page .mode-option:has(input:checked) {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+}
+.play-page .mode-option input {
+  margin-right: 0.5rem;
+  accent-color: #e74c3c;
+}
+.play-page .mode-option span {
+  font-weight: 600;
+}
+.play-page .mode-option small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
 .home-page a:not(.btn) { color: #e74c3c; }
 header .btn-primary { color: #fff; }
 .welcome .btn-primary { color: #fff; }
@@ -1073,9 +1119,9 @@ header .header-username {
 .selected-deck-cards {
   margin: 1.5rem 0;
   padding: 1.5rem;
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 12px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border, #e8e8e8);
   width: 100%;
 }
 .selected-deck-cards h3 {
@@ -1868,6 +1914,50 @@ header .header-username {
   .decks-page-actions {
     flex-wrap: wrap;
   }
+  /* Play page — поиск матча */
+  .play-page .mode-selection-options {
+    flex-direction: column;
+  }
+  .play-page .mode-option {
+    min-width: 0;
+    width: 100%;
+  }
+  .play-page .deck-selection {
+    margin: 1rem 0;
+  }
+  .play-page .decks-cards-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .play-page .deck-card {
+    min-width: 0;
+    width: 100%;
+    padding: 1rem;
+  }
+  .play-page .deck-card h3 {
+    font-size: 1rem;
+  }
+  .play-page .deck-cards-preview {
+    gap: 0.35rem;
+    min-height: 80px;
+  }
+  .play-page .selected-deck-cards {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+  .play-page .selected-deck-cards .cards-grid {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+  .play-page .selected-deck-cards .card-display--lg {
+    width: 100px;
+    min-height: 136px;
+    font-size: 12px;
+  }
+  .play-page .btn-primary {
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1877,6 +1967,56 @@ header .header-username {
   }
   .play-page select {
     width: 100%;
+  }
+  /* Play page — поиск матча (малые экраны) */
+  .play-page h1 {
+    font-size: 1.1rem;
+  }
+  .play-page .mode-option {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.95rem;
+  }
+  .play-page .mode-option small {
+    font-size: 0.75rem;
+  }
+  .play-page .deck-card {
+    padding: 0.85rem;
+  }
+  .play-page .deck-card .deck-cards-preview .card-display {
+    width: 44px !important;
+    min-height: 60px !important;
+  }
+  .play-page .deck-card .deck-cards-preview .card-display-mana {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 8px !important;
+  }
+  .play-page .deck-card .deck-cards-preview .card-display-name {
+    font-size: 7px !important;
+  }
+  .play-page .deck-card-count {
+    font-size: 0.8rem;
+  }
+  .play-page .selected-deck-cards {
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+  }
+  .play-page .selected-deck-cards h3 {
+    font-size: 0.95rem;
+  }
+  .play-page .selected-deck-cards .cards-grid {
+    padding: 0.75rem;
+    gap: 0.4rem;
+  }
+  .play-page .selected-deck-cards .card-display--lg {
+    width: 88px;
+    min-height: 120px;
+    font-size: 11px;
+  }
+  .play-page .selected-deck-cards .card-display--lg .card-display-mana {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
   }
 }
 

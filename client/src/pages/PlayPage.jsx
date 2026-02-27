@@ -96,9 +96,9 @@ export default function PlayPage() {
       <h1>Найти матч</h1>
       <Link to="/" className="btn btn-secondary">Назад</Link>
       {error && <div className="error">{error}</div>}
-      <div className="mode-selection" style={{ marginBottom: '1rem' }}>
+      <div className="mode-selection">
         <label>Режим игры:</label>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+        <div className="mode-selection-options">
           <label className="mode-option">
             <input
               type="radio"
@@ -108,7 +108,7 @@ export default function PlayPage() {
               onChange={(e) => setMatchMode(e.target.value)}
             />
             <span>Ранговый</span>
-            <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Влияет на рейтинг</small>
+            <small>Влияет на рейтинг</small>
           </label>
           <label className="mode-option">
             <input
@@ -119,7 +119,7 @@ export default function PlayPage() {
               onChange={(e) => setMatchMode(e.target.value)}
             />
             <span>Обычный</span>
-            <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Без изменения рейтинга</small>
+            <small>Без изменения рейтинга</small>
           </label>
         </div>
       </div>
