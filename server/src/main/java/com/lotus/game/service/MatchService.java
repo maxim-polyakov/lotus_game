@@ -147,9 +147,8 @@ public class MatchService {
                         throw new IllegalArgumentException("Укажите цель для заклинания (миньон или герой соперника)");
                     }
                     if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
-                        boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
-                        if (hasTaunt) {
-                            throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньон с Провокацией (Taunt)");
+                        if (!enemy.getBoard().isEmpty()) {
+                            throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
                         }
                         enemy.setHealth(enemy.getHealth() - dmg);
                         if (enemy.getHealth() <= 0) {
@@ -248,9 +247,8 @@ public class MatchService {
         }
 
         if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
-            boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
-            if (hasTaunt) {
-                throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньон с Провокацией (Taunt)");
+            if (!enemy.getBoard().isEmpty()) {
+                throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
             }
             enemy.setHealth(enemy.getHealth() - attacker.getAttack());
             attacker.setCanAttack(false);
@@ -471,9 +469,8 @@ public class MatchService {
             if (tid == null || tid.isBlank()) {
                 throw new IllegalArgumentException("Battlecry Deal Damage: укажите цель (миньон или герой)");
             }
-            boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
             if ("hero".equalsIgnoreCase(tid)) {
-                if (hasTaunt) throw new IllegalArgumentException("Нельзя атаковать героя — есть Taunt");
+                if (!enemy.getBoard().isEmpty()) throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
                 enemy.setHealth(enemy.getHealth() - val);
                 if (enemy.getHealth() <= 0) {
                     match.setStatus(Match.MatchStatus.FINISHED);

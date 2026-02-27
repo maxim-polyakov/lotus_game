@@ -288,9 +288,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
       <div className="enemy-area">
         <div className="enemy-header">
           <div
-            className={`enemy-hero ${(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.some((m) => m.taunt) ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
-            onClick={() => (selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.some((m) => m.taunt) && handleTargetClick('hero')}
-            title={(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.some((m) => m.taunt) ? 'Нажмите для атаки/заклинания/Battlecry' : ''}
+            className={`enemy-hero ${(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
+            onClick={() => (selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && handleTargetClick('hero')}
+            title={(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length ? 'Нажмите для атаки/заклинания/Battlecry' : ''}
           >
             Соперник: HP {enemy.health}
           </div>
