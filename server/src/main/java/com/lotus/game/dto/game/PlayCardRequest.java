@@ -12,4 +12,7 @@ public class PlayCardRequest {
 
     /** Target position on board (0-6) for minions, null for spells */
     private Integer targetPosition;
+
+    /** Target for damage spells: minion instanceId or "hero" for enemy hero */
+    private String targetInstanceId;
 }

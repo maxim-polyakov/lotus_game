@@ -41,8 +41,8 @@ public class CardDataInitializer {
 
         if (spellRepository.count() == 0) {
             List<Spell> spells = List.of(
-                    Spell.builder().name("Огненный шар").manaCost(4).description("Наносит 6 урона").build(),
-                    Spell.builder().name("Молния").manaCost(1).description("Наносит 6 урона").build()
+                    Spell.builder().name("Огненный шар").manaCost(4).damage(6).description("Наносит 6 урона").build(),
+                    Spell.builder().name("Молния").manaCost(1).damage(6).description("Наносит 6 урона").build()
             );
             spellRepository.saveAll(spells);
             log.info("Initialized {} spells", spells.size());

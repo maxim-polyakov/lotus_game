@@ -108,6 +108,31 @@ public class MatchService {
                 if (player.getMana() < spell.getManaCost()) {
                     throw new IllegalArgumentException("Not enough mana");
                 }
+                int dmg = spell.getDamage() != null ? spell.getDamage() : 0;
+                if (dmg > 0) {
+                    if (request.getTargetInstanceId() == null || request.getTargetInstanceId().isBlank()) {
+                        throw new IllegalArgumentException("Укажите цель для заклинания (миньон или герой соперника)");
+                    }
+                    if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
+                        if (!enemy.getBoard().isEmpty()) {
+                            throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
+                        }
+                        enemy.setHealth(enemy.getHealth() - dmg);
+                        if (enemy.getHealth() <= 0) {
+                            match.setStatus(Match.MatchStatus.FINISHED);
+                            match.setWinnerId(userId);
+                        }
+                    } else {
+                        GameState.BoardMinion target = enemy.getBoard().stream()
+                                .filter(m -> m.getInstanceId().equals(request.getTargetInstanceId()))
+                                .findFirst()
+                                .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
+                        target.setCurrentHealth(target.getCurrentHealth() - dmg);
+                        if (target.getCurrentHealth() <= 0) {
+                            enemy.getBoard().remove(target);
+                        }
+                    }
+                }
                 player.setMana(player.getMana() - spell.getManaCost());
                 player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
                 match.setGameState(state);

@@ -15,4 +15,7 @@ public class UpdateSpellRequest {
 
     @Size(max = 500)
     private String description;
+
+    @Min(0)
+    private Integer damage;
 }

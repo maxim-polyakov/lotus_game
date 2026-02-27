@@ -6,7 +6,7 @@ import CardDisplay from '../components/CardDisplay';
 export default function AdminCabinetPage() {
   const [cards, setCards] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', manaCost: 0, attack: 0, health: 0, description: '' });
+  const [form, setForm] = useState({ name: '', manaCost: 0, attack: 0, health: 0, description: '', damage: 0 });
   const [imageFile, setImageFile] = useState(null);
   const [soundFile, setSoundFile] = useState(null);
   const [attackSoundFile, setAttackSoundFile] = useState(null);
@@ -46,6 +46,7 @@ export default function AdminCabinetPage() {
         attack: selected.attack ?? 0,
         health: selected.health ?? 0,
         description: selected.description || '',
+        damage: selected.damage ?? 0,
       });
       setImageFile(null);
       setSoundFile(null);
@@ -64,7 +65,7 @@ export default function AdminCabinetPage() {
       const isMinion = selected.cardType === 'MINION';
       const payload = isMinion
         ? { name: form.name, manaCost: form.manaCost, attack: form.attack, health: form.health, description: form.description }
-        : { name: form.name, manaCost: form.manaCost, description: form.description };
+        : { name: form.name, manaCost: form.manaCost, description: form.description, damage: form.damage };
       const path = isMinion ? `/api/admin/cards/minions/${selected.id}` : `/api/admin/cards/spells/${selected.id}`;
       const { data } = await api.put(path, payload);
       setCards((prev) => prev.map((c) => (c.id === data.id && c.cardType === data.cardType ? data : c)));
@@ -430,6 +431,17 @@ export default function AdminCabinetPage() {
                     onChange={(e) => setForm((f) => ({ ...f, manaCost: +e.target.value }))}
                   />
                 </div>
+                {selected.cardType === 'SPELL' && (
+                  <div className="form-group">
+                    <label>Урон (0 = без урона)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.damage}
+                      onChange={(e) => setForm((f) => ({ ...f, damage: +e.target.value }))}
+                    />
+                  </div>
+                )}
                 {selected.cardType === 'MINION' && (
                   <>
                     <div className="form-group">

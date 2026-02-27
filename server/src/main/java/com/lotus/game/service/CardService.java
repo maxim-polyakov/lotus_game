@@ -70,6 +70,7 @@ public class CardService {
         if (req.getName() != null) s.setName(req.getName());
         if (req.getManaCost() != null) s.setManaCost(req.getManaCost());
         if (req.getDescription() != null) s.setDescription(req.getDescription());
+        if (req.getDamage() != null) s.setDamage(req.getDamage());
         return CardDto.fromSpell(spellRepository.save(s));
     }
 }

@@ -16,6 +16,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const [allCardsState, setAllCardsState] = useState([]);
   const allCards = allCardsProp?.length ? allCardsProp : allCardsState;
   const [selectedAttacker, setSelectedAttacker] = useState(null);
+  const [selectedSpell, setSelectedSpell] = useState(null);
   const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
   const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
   const [effectOverlay, setEffectOverlay] = useState(null);
@@ -99,14 +100,15 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   useEffect(() => {
     if (match?.gameState && match.currentTurnPlayerId !== user?.id) {
       setSelectedAttacker(null);
+      setSelectedSpell(null);
     }
   }, [match?.gameState, match?.currentTurnPlayerId, user?.id]);
 
-  const playCard = async (instanceId, targetPosition) => {
+  const playCard = async (instanceId, targetPosition, targetInstanceId) => {
     try {
       const cardInHand = me.hand?.find((c) => c.instanceId === instanceId);
       const card = cardInHand ? getCard(cardInHand.cardType, cardInHand.cardId) : null;
-      await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition });
+      await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition, targetInstanceId });
       const { data } = await api.get(`/api/matches/${matchId}`);
       setMatch(data);
       setLastPlayedBoardIndex(targetPosition);
@@ -160,8 +162,14 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   };
 
   const handleTargetClick = (targetId) => {
-    if (!selectedAttacker) return;
-    attack(selectedAttacker, targetId);
+    if (selectedAttacker) {
+      attack(selectedAttacker, targetId);
+      return;
+    }
+    if (selectedSpell) {
+      playCard(selectedSpell.instanceId, null, targetId);
+      setSelectedSpell(null);
+    }
   };
 
   const endTurn = async () => {
@@ -240,15 +248,18 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             {selectedAttacker && (
               <p className="attack-hint">Выберите цель для атаки (миньон или герой соперника)</p>
             )}
+            {selectedSpell && (
+              <p className="attack-hint">Выберите цель для заклинания (миньон или герой соперника)</p>
+            )}
           </>
         )}
       </div>
       <div className="enemy-area">
         <div className="enemy-header">
           <div
-            className={`enemy-hero ${selectedAttacker && !enemy.board?.length ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
-            onClick={() => selectedAttacker && !enemy.board?.length && handleTargetClick('hero')}
-            title={selectedAttacker && !enemy.board?.length ? 'Нажмите, чтобы атаковать героя' : ''}
+            className={`enemy-hero ${(selectedAttacker || selectedSpell) && !enemy.board?.length ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
+            onClick={() => (selectedAttacker || selectedSpell) && !enemy.board?.length && handleTargetClick('hero')}
+            title={(selectedAttacker || selectedSpell) && !enemy.board?.length ? 'Нажмите для атаки/заклинания' : ''}
           >
             Соперник: HP {enemy.health}
           </div>
@@ -256,14 +267,14 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         <div className="board">
           {enemy.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
-            const isTarget = !!selectedAttacker;
+            const isTarget = !!(selectedAttacker || selectedSpell);
             const justHit = lastAttackedTargetId === m.instanceId;
             return card ? (
               <div
                 key={m.instanceId}
                 className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''}`}
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
-                title={isTarget ? `Атаковать (${m.attack}/${m.currentHealth})` : ''}
+                title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : ''}
               >
                 <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth }} size="sm" />
               </div>
@@ -272,7 +283,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                 key={m.instanceId}
                 className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''}`}
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
-                title={isTarget ? `Атаковать (${m.attack}/${m.currentHealth})` : ''}
+                title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : ''}
               >
                 {m.attack}/{m.currentHealth}
               </div>
@@ -320,20 +331,29 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
             const hasMana = card && me.mana >= (card.manaCost ?? 0);
             const boardFull = (me.board?.length ?? 0) >= 7;
             const canPlay = isMyTurn && card && hasMana && (c.cardType === 'SPELL' || !boardFull);
+            const spellNeedsTarget = c.cardType === 'SPELL' && card?.damage > 0;
             const playHandler = () => {
               if (c.cardType === 'MINION') playCard(c.instanceId, me.board?.length || 0);
-              else if (c.cardType === 'SPELL') playCard(c.instanceId, null);
+              else if (c.cardType === 'SPELL') {
+                if (spellNeedsTarget) setSelectedSpell({ instanceId: c.instanceId, card });
+                else playCard(c.instanceId, null, null);
+              }
             };
             return card ? (
               <div key={c.instanceId} className="card-in-hand">
                 <CardDisplay card={card} size="sm" />
                 {isMyTurn && (c.cardType === 'MINION' || c.cardType === 'SPELL') && (
                   <button
-                    onClick={playHandler}
-                    disabled={!canPlay}
-                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      if (selectedSpell?.instanceId === c.instanceId) setSelectedSpell(null);
+                      else playHandler();
+                    }}
+                    disabled={!canPlay || (selectedSpell && selectedSpell.instanceId !== c.instanceId)}
+                    className={`btn btn-primary btn-sm ${selectedSpell?.instanceId === c.instanceId ? 'btn-secondary' : ''}`}
                   >
-                    {c.cardType === 'SPELL' ? 'Применить' : 'Сыграть'}
+                    {c.cardType === 'SPELL'
+                      ? (selectedSpell?.instanceId === c.instanceId ? 'Отмена' : spellNeedsTarget ? 'Выбрать цель' : 'Применить')
+                      : 'Сыграть'}
                   </button>
                 )}
               </div>

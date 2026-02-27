@@ -22,6 +22,7 @@ public class CardDto {
     private String soundUrl;
     private String playEffectUrl;
     private String attackEffectUrl;
+    private Integer damage;
     private String attackSoundUrl;
 
     public static CardDto fromMinion(Minion m) {
@@ -53,6 +54,7 @@ public class CardDto {
                 .imageUrl(s.getImageUrl())
                 .soundUrl(s.getSoundUrl())
                 .playEffectUrl(s.getPlayEffectUrl())
+                .damage(s.getDamage())
                 .build();
     }
 }

@@ -31,6 +31,9 @@ public class Spell {
     @Column(length = 500)
     private String description;
 
+    @Column(nullable = true)
+    private Integer damage;
+
     @Column(length = 255)
     private String imageUrl;
 
