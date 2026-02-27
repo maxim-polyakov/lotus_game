@@ -27,6 +27,11 @@ public class CardDto {
     private Boolean taunt;
     private Boolean charge;
     private Boolean divineShield;
+    private Boolean windfury;
+    private Boolean stealth;
+    private Boolean poisonous;
+    private Boolean lifesteal;
+    private Boolean rush;
     private String battlecryType;
     private Integer battlecryValue;
     private String battlecryTarget;
@@ -52,6 +57,11 @@ public class CardDto {
                 .taunt(m.getTaunt())
                 .charge(m.getCharge())
                 .divineShield(m.getDivineShield())
+                .windfury(m.getWindfury())
+                .stealth(m.getStealth())
+                .poisonous(m.getPoisonous())
+                .lifesteal(m.getLifesteal())
+                .rush(m.getRush())
                 .battlecryType(m.getBattlecryType())
                 .battlecryValue(m.getBattlecryValue())
                 .battlecryTarget(m.getBattlecryTarget())

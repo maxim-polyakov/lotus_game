@@ -68,6 +68,26 @@ public class Minion {
     @Builder.Default
     private Boolean divineShield = false;
 
+    @Column(name = "windfury")
+    @Builder.Default
+    private Boolean windfury = false;
+
+    @Column(name = "stealth")
+    @Builder.Default
+    private Boolean stealth = false;
+
+    @Column(name = "poisonous")
+    @Builder.Default
+    private Boolean poisonous = false;
+
+    @Column(name = "lifesteal")
+    @Builder.Default
+    private Boolean lifesteal = false;
+
+    @Column(name = "rush")
+    @Builder.Default
+    private Boolean rush = false;
+
     /** Battlecry: NONE, DEAL_DAMAGE, HEAL, BUFF_ALLY, SUMMON */
     @Column(name = "battlecry_type", length = 20)
     private String battlecryType;

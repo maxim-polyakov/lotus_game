@@ -110,7 +110,7 @@ export default function ReplayPage() {
               const card = getCard('MINION', m.cardId);
               return card ? (
                 <div key={m.instanceId} className="minion enemy-minion">
-                  <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
+                  <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield, windfury: m.windfury, stealth: m.stealth, poisonous: m.poisonous, lifesteal: m.lifesteal, rush: m.rush }} size="sm" />
                 </div>
               ) : (
                 <div key={m.instanceId} className="minion enemy-minion">{m.attack}/{m.currentHealth}</div>
@@ -124,7 +124,7 @@ export default function ReplayPage() {
               const card = getCard('MINION', m.cardId);
               return card ? (
                 <div key={m.instanceId} className="minion my-minion">
-                  <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
+                  <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield, windfury: m.windfury, stealth: m.stealth, poisonous: m.poisonous, lifesteal: m.lifesteal, rush: m.rush }} size="sm" />
                 </div>
               ) : (
                 <div key={m.instanceId} className="minion my-minion">{m.attack}/{m.currentHealth}</div>

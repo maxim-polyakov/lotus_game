@@ -9,6 +9,7 @@ export default function AdminCabinetPage() {
   const [form, setForm] = useState({
     name: '', manaCost: 0, attack: 0, health: 0, description: '', damage: 0,
     taunt: false, charge: false, divineShield: false,
+    windfury: false, stealth: false, poisonous: false, lifesteal: false, rush: false,
     battlecryType: '', battlecryValue: 0, battlecryTarget: '', battlecrySummonCardId: '',
     deathrattleType: '', deathrattleValue: 0, deathrattleSummonCardId: '',
   });
@@ -71,6 +72,11 @@ export default function AdminCabinetPage() {
         taunt: selected.taunt ?? false,
         charge: selected.charge ?? false,
         divineShield: selected.divineShield ?? false,
+        windfury: selected.windfury ?? false,
+        stealth: selected.stealth ?? false,
+        poisonous: selected.poisonous ?? false,
+        lifesteal: selected.lifesteal ?? false,
+        rush: selected.rush ?? false,
         battlecryType: selected.battlecryType || '',
         battlecryValue: selected.battlecryValue ?? 0,
         battlecryTarget: selected.battlecryTarget || '',
@@ -98,6 +104,7 @@ export default function AdminCabinetPage() {
         ? {
             name: form.name, manaCost: form.manaCost, attack: form.attack, health: form.health, description: form.description,
             taunt: form.taunt, charge: form.charge, divineShield: form.divineShield,
+            windfury: form.windfury, stealth: form.stealth, poisonous: form.poisonous, lifesteal: form.lifesteal, rush: form.rush,
             battlecryType: form.battlecryType === '' ? '' : (form.battlecryType || null), battlecryValue: form.battlecryValue ?? null,
             battlecryTarget: form.battlecryTarget || null, battlecrySummonCardId: form.battlecrySummonCardId ? +form.battlecrySummonCardId : null,
             deathrattleType: form.deathrattleType === '' ? '' : (form.deathrattleType || null), deathrattleValue: form.deathrattleValue ?? null,
@@ -628,6 +635,26 @@ export default function AdminCabinetPage() {
                       <label className="checkbox-label">
                         <input type="checkbox" checked={form.divineShield} onChange={(e) => setForm((f) => ({ ...f, divineShield: e.target.checked }))} />
                         Divine Shield (Щит)
+                      </label>
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked={form.windfury} onChange={(e) => setForm((f) => ({ ...f, windfury: e.target.checked }))} />
+                        Windfury (Двойная атака)
+                      </label>
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked={form.stealth} onChange={(e) => setForm((f) => ({ ...f, stealth: e.target.checked }))} />
+                        Stealth (Скрытность)
+                      </label>
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked={form.poisonous} onChange={(e) => setForm((f) => ({ ...f, poisonous: e.target.checked }))} />
+                        Poisonous (Яд)
+                      </label>
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked={form.lifesteal} onChange={(e) => setForm((f) => ({ ...f, lifesteal: e.target.checked }))} />
+                        Lifesteal (Вампиризм)
+                      </label>
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked={form.rush} onChange={(e) => setForm((f) => ({ ...f, rush: e.target.checked }))} />
+                        Rush (Рывок по миньонам)
                       </label>
                     </div>
                     <div className="form-group">

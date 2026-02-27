@@ -25,11 +25,16 @@ export default function CardDisplay({ card, size = 'md', count }) {
       <div className="card-display-mana">{card.manaCost}</div>
       {!isMinion && <div className="card-display-type">Заклинание</div>}
       <div className="card-display-name">{card.name}</div>
-      {(card.taunt || card.charge || card.divineShield || card.battlecryType || card.deathrattleType) && (
+      {(card.taunt || card.charge || card.divineShield || card.windfury || card.stealth || card.poisonous || card.lifesteal || card.rush || card.battlecryType || card.deathrattleType) && (
         <div className="card-display-keywords">
           {card.taunt && <span className="keyword keyword-taunt">Taunt</span>}
           {card.charge && <span className="keyword keyword-charge">Charge</span>}
           {card.divineShield && <span className="keyword keyword-divine">Shield</span>}
+          {card.windfury && <span className="keyword keyword-windfury">Windfury</span>}
+          {card.stealth && <span className="keyword keyword-stealth">Stealth</span>}
+          {card.poisonous && <span className="keyword keyword-poisonous">Poisonous</span>}
+          {card.lifesteal && <span className="keyword keyword-lifesteal">Lifesteal</span>}
+          {card.rush && <span className="keyword keyword-rush">Rush</span>}
           {card.battlecryType && <span className="keyword keyword-battlecry">Battlecry</span>}
           {card.deathrattleType && <span className="keyword keyword-deathrattle">Deathrattle</span>}
         </div>

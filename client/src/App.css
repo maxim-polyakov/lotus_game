@@ -807,6 +807,29 @@ header .header-username {
   justify-content: center;
 }
 .card-display--sm .card-display-count { width: 14px; height: 14px; font-size: 9px; }
+.card-display-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+.keyword {
+  font-size: 0.65em;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.keyword-taunt { background: #95a5a6; color: #fff; }
+.keyword-charge { background: #f39c12; color: #fff; }
+.keyword-divine { background: #3498db; color: #fff; }
+.keyword-windfury { background: #9b59b6; color: #fff; }
+.keyword-stealth { background: #2c3e50; color: #fff; }
+.keyword-poisonous { background: #27ae60; color: #fff; }
+.keyword-lifesteal { background: #e74c3c; color: #fff; }
+.keyword-rush { background: #e67e22; color: #fff; }
+.keyword-battlecry { background: #1abc9c; color: #fff; }
+.keyword-deathrattle { background: #34495e; color: #fff; }
+.minion-stealth { opacity: 0.85; filter: brightness(0.9); }
 .cards-grid {
   display: flex;
   flex-wrap: wrap;

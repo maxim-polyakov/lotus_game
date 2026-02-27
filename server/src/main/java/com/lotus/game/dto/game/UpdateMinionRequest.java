@@ -25,6 +25,11 @@ public class UpdateMinionRequest {
     private Boolean taunt;
     private Boolean charge;
     private Boolean divineShield;
+    private Boolean windfury;
+    private Boolean stealth;
+    private Boolean poisonous;
+    private Boolean lifesteal;
+    private Boolean rush;
 
     private String battlecryType;
     private Integer battlecryValue;

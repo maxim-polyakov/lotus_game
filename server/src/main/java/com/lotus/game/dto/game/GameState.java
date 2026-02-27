@@ -73,9 +73,22 @@ public class GameState {
         private int maxHealth;
         private boolean canAttack;
         private boolean exhausted;
+        /** If false, minion can only attack other minions (Rush on play turn) */
+        private boolean canAttackHero = true;
         @Builder.Default
         private boolean taunt = false;
         @Builder.Default
         private boolean divineShield = false;
+        @Builder.Default
+        private boolean windfury = false;
+        @Builder.Default
+        private boolean stealth = false;
+        @Builder.Default
+        private boolean poisonous = false;
+        @Builder.Default
+        private boolean lifesteal = false;
+        @Builder.Default
+        private boolean rush = false;
+        private int attacksThisTurn;
     }
 }

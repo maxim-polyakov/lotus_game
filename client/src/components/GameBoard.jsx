@@ -229,6 +229,8 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const me = isPlayer1 ? gs.player1 : gs.player2;
   const enemy = isPlayer1 ? gs.player2 : gs.player1;
   const isMyTurn = match.currentTurnPlayerId === user?.id;
+  const attackerMinion = selectedAttacker ? me.board?.find((m) => m.instanceId === selectedAttacker) : null;
+  const canAttackHero = !selectedAttacker || (attackerMinion?.canAttackHero !== false);
 
   return (
     <div className="game-board">
@@ -268,7 +270,11 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
           <>
             <p>{isMyTurn ? 'Ваш ход' : 'Ход соперника'}</p>
             {selectedAttacker && (
-              <p className="attack-hint">Выберите цель для атаки (миньон или герой соперника)</p>
+              <p className="attack-hint">
+                {attackerMinion?.canAttackHero === false
+                  ? 'Rush: выберите миньона соперника (героя атаковать нельзя)'
+                  : 'Выберите цель для атаки (миньон или герой соперника)'}
+              </p>
             )}
             {selectedSpell && (
               <p className="attack-hint">Выберите цель для заклинания (миньон или герой соперника)</p>
@@ -288,9 +294,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
       <div className="enemy-area">
         <div className="enemy-header">
           <div
-            className={`enemy-hero ${(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
-            onClick={() => (selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && handleTargetClick('hero')}
-            title={(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length ? 'Нажмите для атаки/заклинания/Battlecry' : ''}
+            className={`enemy-hero ${(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && canAttackHero ? 'attack-target' : ''} ${lastAttackedTargetId === 'hero' ? 'attack-hit' : ''}`}
+            onClick={() => (selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && canAttackHero && handleTargetClick('hero')}
+            title={(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && canAttackHero ? 'Нажмите для атаки/заклинания/Battlecry' : ''}
           >
             Соперник: HP {enemy.health}
           </div>
@@ -298,23 +304,26 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         <div className="board">
           {enemy.board?.map((m) => {
             const card = getCard('MINION', m.cardId);
-            const isTarget = !!(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE');
+            const hasTaunt = enemy.board?.some((b) => b.taunt);
+            const isAttack = !!selectedAttacker;
+            const canTarget = !m.stealth && (isAttack ? (!hasTaunt || m.taunt) : true);
+            const isTarget = !!(selectedAttacker || selectedSpell || selectedBattlecry?.battlecryType === 'DEAL_DAMAGE') && canTarget;
             const justHit = lastAttackedTargetId === m.instanceId;
             return card ? (
               <div
                 key={m.instanceId}
-                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''}`}
+                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''} ${m.stealth ? 'minion-stealth' : ''}`}
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
-                title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : ''}
+                title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : m.stealth ? 'Stealth: нельзя выбрать' : ''}
               >
-                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
+                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield, windfury: m.windfury, stealth: m.stealth, poisonous: m.poisonous, lifesteal: m.lifesteal, rush: m.rush }} size="sm" />
               </div>
             ) : (
               <div
                 key={m.instanceId}
-                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''}`}
+                className={`minion enemy-minion ${isTarget ? 'attack-target' : ''} ${justHit ? 'attack-hit' : ''} ${m.stealth ? 'minion-stealth' : ''}`}
                 onClick={() => isTarget && handleTargetClick(m.instanceId)}
-                title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : ''}
+                title={isTarget ? (selectedSpell ? `Заклинание (${m.attack}/${m.currentHealth})` : `Атаковать (${m.attack}/${m.currentHealth})`) : m.stealth ? 'Stealth' : ''}
               >
                 {m.attack}/{m.currentHealth}
               </div>
@@ -341,7 +350,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
                 onClick={handleMyMinionClick}
                 title={canAttack ? 'Выберите миньона для атаки, затем цель' : isBattlecryTarget ? 'Выберите для Battlecry' : ''}
               >
-                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield }} size="sm" />
+                <CardDisplay card={{ ...card, attack: m.attack, health: m.currentHealth, taunt: m.taunt, divineShield: m.divineShield, windfury: m.windfury, stealth: m.stealth, poisonous: m.poisonous, lifesteal: m.lifesteal, rush: m.rush }} size="sm" />
                 {canAttack && (
                   <span className="minion-attack-badge">Может атаковать</span>
                 )}

@@ -68,6 +68,11 @@ public class CardService {
         if (req.getTaunt() != null) m.setTaunt(req.getTaunt());
         if (req.getCharge() != null) m.setCharge(req.getCharge());
         if (req.getDivineShield() != null) m.setDivineShield(req.getDivineShield());
+        if (req.getWindfury() != null) m.setWindfury(req.getWindfury());
+        if (req.getStealth() != null) m.setStealth(req.getStealth());
+        if (req.getPoisonous() != null) m.setPoisonous(req.getPoisonous());
+        if (req.getLifesteal() != null) m.setLifesteal(req.getLifesteal());
+        if (req.getRush() != null) m.setRush(req.getRush());
         if (req.getBattlecryType() != null) m.setBattlecryType(req.getBattlecryType().isBlank() ? null : req.getBattlecryType());
         if (req.getBattlecryValue() != null) m.setBattlecryValue(req.getBattlecryValue());
         if (req.getBattlecryTarget() != null) m.setBattlecryTarget(req.getBattlecryTarget().isBlank() ? null : req.getBattlecryTarget());

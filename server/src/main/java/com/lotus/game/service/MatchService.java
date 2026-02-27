@@ -156,13 +156,16 @@ public class MatchService {
                             match.setWinnerId(userId);
                         }
                     } else {
-                        GameState.BoardMinion target = enemy.getBoard().stream()
-                                .filter(m -> m.getInstanceId().equals(request.getTargetInstanceId()))
-                                .findFirst()
-                                .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
-                        if (target.isDivineShield()) {
-                            target.setDivineShield(false);
-                        } else {
+                    GameState.BoardMinion target = enemy.getBoard().stream()
+                            .filter(m -> m.getInstanceId().equals(request.getTargetInstanceId()))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
+                    if (target.isStealth()) {
+                        throw new IllegalArgumentException("Нельзя выбрать цель со Stealth");
+                    }
+                    if (target.isDivineShield()) {
+                        target.setDivineShield(false);
+                    } else {
                             target.setCurrentHealth(target.getCurrentHealth() - dmg);
                             if (target.getCurrentHealth() <= 0) {
                                 processMinionDeath(match, state, target, enemy, player);
@@ -197,18 +200,11 @@ public class MatchService {
             throw new IllegalArgumentException("Invalid board position");
         }
 
-        boolean canAttackNow = Boolean.TRUE.equals(minion.getCharge());
-        GameState.BoardMinion boardMinion = GameState.BoardMinion.builder()
-                .instanceId(UUID.randomUUID().toString())
-                .cardId(minion.getId())
-                .attack(minion.getAttack())
-                .currentHealth(minion.getHealth())
-                .maxHealth(minion.getHealth())
-                .canAttack(canAttackNow)
-                .exhausted(!canAttackNow)
-                .taunt(Boolean.TRUE.equals(minion.getTaunt()))
-                .divineShield(Boolean.TRUE.equals(minion.getDivineShield()))
-                .build();
+        boolean hasCharge = Boolean.TRUE.equals(minion.getCharge());
+        boolean hasRush = Boolean.TRUE.equals(minion.getRush());
+        boolean canAttackNow = hasCharge || hasRush;
+        boolean canAttackHeroNow = hasCharge; // Rush can only attack minions on play turn
+        GameState.BoardMinion boardMinion = buildBoardMinion(minion, canAttackNow, !canAttackNow, canAttackHeroNow);
         player.getBoard().add(pos, boardMinion);
         player.setMana(player.getMana() - minion.getManaCost());
         player.getHand().removeIf(c -> c.getInstanceId().equals(request.getInstanceId()));
@@ -247,12 +243,18 @@ public class MatchService {
         }
 
         if ("hero".equalsIgnoreCase(request.getTargetInstanceId())) {
+            if (!attacker.isCanAttackHero()) {
+                throw new IllegalArgumentException("Миньон с Rush не может атаковать героя в первый ход");
+            }
             if (!enemy.getBoard().isEmpty()) {
                 throw new IllegalArgumentException("Нельзя атаковать героя, пока на столе соперника есть миньоны");
             }
-            enemy.setHealth(enemy.getHealth() - attacker.getAttack());
-            attacker.setCanAttack(false);
-            attacker.setExhausted(true);
+            int dmg = attacker.getAttack();
+            enemy.setHealth(enemy.getHealth() - dmg);
+            if (attacker.isLifesteal() && dmg > 0) {
+                player.setHealth(Math.min(player.getHealth() + dmg, STARTING_HEALTH));
+            }
+            applyAttackExhaust(attacker);
             if (enemy.getHealth() <= 0) {
                 match.setStatus(Match.MatchStatus.FINISHED);
                 match.setWinnerId(userId);
@@ -262,18 +264,31 @@ public class MatchService {
                     .filter(m -> m.getInstanceId().equals(request.getTargetInstanceId()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Target not found"));
+            if (target.isStealth()) {
+                throw new IllegalArgumentException("Нельзя атаковать миньона со Stealth");
+            }
+            boolean hasTaunt = enemy.getBoard().stream().anyMatch(GameState.BoardMinion::isTaunt);
+            if (hasTaunt && !target.isTaunt()) {
+                throw new IllegalArgumentException("Сначала нужно атаковать миньона с Taunt");
+            }
+            int dmg = attacker.getAttack();
+            boolean poisonousKill = attacker.isPoisonous();
             if (target.isDivineShield()) {
                 target.setDivineShield(false);
             } else {
-                target.setCurrentHealth(target.getCurrentHealth() - attacker.getAttack());
+                target.setCurrentHealth(poisonousKill ? 0 : target.getCurrentHealth() - dmg);
+            }
+            int lifestealHeal = (attacker.isLifesteal() && (dmg > 0 || poisonousKill)) ? dmg : 0;
+            if (lifestealHeal > 0) {
+                player.setHealth(Math.min(player.getHealth() + lifestealHeal, STARTING_HEALTH));
             }
             if (attacker.isDivineShield()) {
                 attacker.setDivineShield(false);
             } else {
                 attacker.setCurrentHealth(attacker.getCurrentHealth() - target.getAttack());
             }
-            attacker.setCanAttack(false);
-            attacker.setExhausted(true);
+            if (attacker.isStealth()) attacker.setStealth(false);
+            applyAttackExhaust(attacker);
             if (target.getCurrentHealth() <= 0) {
                 processMinionDeath(match, state, target, enemy, player);
             }
@@ -308,8 +323,12 @@ public class MatchService {
 
         nextState.setMana(Math.min(nextState.getMaxMana() + 1, MAX_MANA));
         nextState.setMaxMana(Math.min(nextState.getMaxMana() + 1, MAX_MANA));
-        nextState.getBoard().forEach(m -> m.setCanAttack(true));
-        nextState.getBoard().forEach(m -> m.setExhausted(false));
+        nextState.getBoard().forEach(m -> {
+            m.setCanAttack(true);
+            m.setExhausted(false);
+            m.setCanAttackHero(true);
+            m.setAttacksThisTurn(0);
+        });
 
         int cardsToDraw = ThreadLocalRandom.current().nextInt(1, 4);
         boolean diedFromFatigue = drawCardsWithFatigue(nextState, cardsToDraw);
@@ -481,6 +500,7 @@ public class MatchService {
                         .filter(m -> m.getInstanceId().equals(tid))
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException("Цель не найдена"));
+                if (target.isStealth()) throw new IllegalArgumentException("Нельзя выбрать цель со Stealth");
                 if (target.isDivineShield()) target.setDivineShield(false);
                 else {
                     target.setCurrentHealth(target.getCurrentHealth() - val);
@@ -517,17 +537,7 @@ public class MatchService {
             if (player.getBoard().size() >= MAX_BOARD_SIZE) return;
             Minion summon = minionRepository.findById(minion.getBattlecrySummonCardId()).orElse(null);
             if (summon != null) {
-                GameState.BoardMinion bm = GameState.BoardMinion.builder()
-                        .instanceId(UUID.randomUUID().toString())
-                        .cardId(summon.getId())
-                        .attack(summon.getAttack())
-                        .currentHealth(summon.getHealth())
-                        .maxHealth(summon.getHealth())
-                        .canAttack(false)
-                        .exhausted(true)
-                        .taunt(Boolean.TRUE.equals(summon.getTaunt()))
-                        .divineShield(Boolean.TRUE.equals(summon.getDivineShield()))
-                        .build();
+                GameState.BoardMinion bm = buildBoardMinion(summon, false, true, true);
                 player.getBoard().add(bm);
             }
         }
@@ -565,17 +575,7 @@ public class MatchService {
             if (owner.getBoard().size() >= MAX_BOARD_SIZE) return;
             Minion summon = minionRepository.findById(minion.getDeathrattleSummonCardId()).orElse(null);
             if (summon != null) {
-                GameState.BoardMinion bm = GameState.BoardMinion.builder()
-                        .instanceId(UUID.randomUUID().toString())
-                        .cardId(summon.getId())
-                        .attack(summon.getAttack())
-                        .currentHealth(summon.getHealth())
-                        .maxHealth(summon.getHealth())
-                        .canAttack(false)
-                        .exhausted(true)
-                        .taunt(Boolean.TRUE.equals(summon.getTaunt()))
-                        .divineShield(Boolean.TRUE.equals(summon.getDivineShield()))
-                        .build();
+                GameState.BoardMinion bm = buildBoardMinion(summon, false, true, true);
                 owner.getBoard().add(bm);
             }
         }
@@ -596,6 +596,35 @@ public class MatchService {
                 .build();
         steps.add(step);
         match.setReplaySteps(steps);
+    }
+
+    private GameState.BoardMinion buildBoardMinion(Minion minion, boolean canAttack, boolean exhausted, boolean canAttackHero) {
+        return GameState.BoardMinion.builder()
+                .instanceId(UUID.randomUUID().toString())
+                .cardId(minion.getId())
+                .attack(minion.getAttack())
+                .currentHealth(minion.getHealth())
+                .maxHealth(minion.getHealth())
+                .canAttack(canAttack)
+                .exhausted(exhausted)
+                .canAttackHero(canAttackHero)
+                .taunt(Boolean.TRUE.equals(minion.getTaunt()))
+                .divineShield(Boolean.TRUE.equals(minion.getDivineShield()))
+                .windfury(Boolean.TRUE.equals(minion.getWindfury()))
+                .stealth(Boolean.TRUE.equals(minion.getStealth()))
+                .poisonous(Boolean.TRUE.equals(minion.getPoisonous()))
+                .lifesteal(Boolean.TRUE.equals(minion.getLifesteal()))
+                .rush(Boolean.TRUE.equals(minion.getRush()))
+                .attacksThisTurn(0)
+                .build();
+    }
+
+    private void applyAttackExhaust(GameState.BoardMinion attacker) {
+        int next = attacker.getAttacksThisTurn() + 1;
+        attacker.setAttacksThisTurn(next);
+        boolean canAttackAgain = attacker.isWindfury() && next < 2;
+        attacker.setCanAttack(canAttackAgain);
+        attacker.setExhausted(!canAttackAgain);
     }
 
     private void evictMatchCacheForPlayers(Match match) {
