@@ -24,7 +24,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   async (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status;
+    if (status === 401 || status === 403) {
       const refresh = getRefreshToken();
       if (refresh) {
         try {
@@ -37,6 +38,9 @@ api.interceptors.response.use(
           clearTokens();
           window.location.href = '/login';
         }
+      } else {
+        clearTokens();
+        window.location.href = '/login';
       }
     }
     return Promise.reject(err);
