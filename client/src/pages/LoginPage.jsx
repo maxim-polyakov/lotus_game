@@ -18,7 +18,10 @@ export default function LoginPage() {
     const oauthError = searchParams.get('oauth_error');
     const authError = searchParams.get('auth_error');
     if (oauthError) {
-      setError(decodeURIComponent(oauthError));
+      const msg = oauthError === 'UNREGISTERED_GOOGLE_ACCOUNT'
+        ? 'Аккаунт не зарегистрирован. Зарегистрируйтесь сначала через форму регистрации.'
+        : decodeURIComponent(oauthError);
+      setError(msg);
       setSearchParams({}, { replace: true });
       return;
     }

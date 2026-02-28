@@ -17,7 +17,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -51,7 +50,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
             User user = userRepository.findByGoogleId(googleId)
                     .or(() -> userRepository.findByEmail(email))
-                    .orElseGet(() -> createGoogleUser(googleId, email, name, picture));
+                    .orElse(null);
+
+            if (user == null) {
+                redirectToFrontendWithError(response, "UNREGISTERED_GOOGLE_ACCOUNT");
+                return;
+            }
 
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleId);
@@ -80,32 +84,6 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             log.error("Google OAuth2: error during authentication success", e);
             redirectToFrontendWithError(response, "Ошибка авторизации. Попробуйте позже.");
         }
-    }
-
-    private User createGoogleUser(String googleId, String email, String name, String picture) {
-        String username = makeUniqueUsername(name != null ? name : email.split("@")[0]);
-        User user = User.builder()
-                .username(username)
-                .email(email)
-                .passwordHash(null)
-                .googleId(googleId)
-                .emailVerified(true)
-                .avatarUrl(picture)
-                .build();
-        return userRepository.save(user);
-    }
-
-    private String makeUniqueUsername(String base) {
-        String candidate = base.replaceAll("[^a-zA-Z0-9_]", "").toLowerCase();
-        if (candidate.isEmpty()) candidate = "user";
-        if (candidate.length() > 45) candidate = candidate.substring(0, 45);
-        String username = candidate;
-        int suffix = 0;
-        while (userRepository.existsByUsername(username)) {
-            username = candidate + (suffix++);
-            if (username.length() > 50) username = "user" + UUID.randomUUID().toString().substring(0, 8);
-        }
-        return username;
     }
 
     private void redirectToFrontendWithError(HttpServletResponse response, String error) throws IOException {
