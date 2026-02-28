@@ -13,11 +13,13 @@ export function AuthProvider({ children }) {
     const access = getAccessToken();
 
     if (!refresh && !access) {
+      console.log('[Auth] initAuth: нет токенов, пропуск');
       setLoading(false);
       return;
     }
 
     const initAuth = async () => {
+      console.log('[Auth] initAuth: есть токены, запрос /api/me (или refresh)');
       try {
         if (refresh) {
           const { data } = await api.post('/api/auth/refresh', { refreshToken: refresh });
@@ -40,6 +42,7 @@ export function AuthProvider({ children }) {
     if (!data?.accessToken || !data?.refreshToken) {
       throw new Error('Токены не переданы');
     }
+    console.log('[Auth] login() вызван, сохраняю токены, запрос /api/me');
     setTokens(data.accessToken, data.refreshToken, rememberMe);
     try {
       const { data: me } = await api.get('/api/me');
