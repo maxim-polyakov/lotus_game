@@ -54,11 +54,9 @@ export default function LoginPage() {
           oauthHandled.current = false;
           console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
           setError(err?.message || err?.response?.data?.message || 'Ошибка входа через Google');
-        })
-        .finally(() => {
-          setLoading(false);
           setSearchParams({}, { replace: true });
-        });
+        })
+        .finally(() => setLoading(false));
       return;
     }
     if (accessToken && refreshToken) {
@@ -71,11 +69,9 @@ export default function LoginPage() {
           oauthHandled.current = false;
           console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
           setError(err?.message || err?.response?.data?.message || 'Ошибка входа через Google');
-        })
-        .finally(() => {
-          setLoading(false);
           setSearchParams({}, { replace: true });
-        });
+        })
+        .finally(() => setLoading(false));
     }
   }, [searchParams, login, navigate, setSearchParams]);
 
