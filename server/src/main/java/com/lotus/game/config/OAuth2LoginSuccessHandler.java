@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
@@ -51,6 +53,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
             User user = userRepository.findByGoogleId(googleId)
                     .or(() -> userRepository.findByEmail(email))
+                    .or(() -> userRepository.findByEmailIgnoreCase(email))
                     .orElseGet(() -> createGoogleUser(googleId, email, name, picture));
 
             if (user.getGoogleId() == null) {
@@ -77,34 +80,46 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
         } catch (Exception e) {
-            log.error("Google OAuth2: error during authentication success", e);
+            log.error("Google OAuth2: error during authentication success: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
             redirectToFrontendWithError(response, "OAUTH_AUTH_ERROR");
         }
     }
 
     private User createGoogleUser(String googleId, String email, String name, String picture) {
-        String baseName = (name != null && !name.isBlank()) ? name : email.split("@")[0];
-        String username = makeUniqueUsername(baseName);
-        User user = User.builder()
-                .username(username)
-                .email(email)
-                .passwordHash(null)
-                .googleId(googleId)
-                .emailVerified(true)
-                .avatarUrl(picture)
-                .build();
-        return userRepository.save(user);
+        try {
+            String baseName = (name != null && !name.isBlank()) ? name : email.split("@")[0];
+            String username = makeUniqueUsername(baseName);
+            User user = User.builder()
+                    .username(username)
+                    .email(email)
+                    .passwordHash(null)
+                    .googleId(googleId)
+                    .emailVerified(true)
+                    .avatarUrl(picture)
+                    .build();
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Google OAuth2: create failed (likely duplicate email), retrying findByEmailIgnoreCase: {}", e.getMessage());
+            return userRepository.findByEmailIgnoreCase(email)
+                    .map(u -> {
+                        u.setGoogleId(googleId);
+                        u.setEmailVerified(true);
+                        if (picture != null) u.setAvatarUrl(picture);
+                        return userRepository.save(u);
+                    })
+                    .orElseThrow(() -> e);
+        }
     }
 
     private String makeUniqueUsername(String base) {
-        String candidate = base.replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9_\\p{L}]", "");
-        if (candidate.isEmpty()) candidate = "user";
+        String candidate = base.replaceAll("\\s+", " ").replaceAll("[^a-zA-Z0-9_\\p{L}\\s]", "").trim();
+        if (candidate.isEmpty() || candidate.length() < 2) candidate = "user";
         if (candidate.length() > 45) candidate = candidate.substring(0, 45);
         String username = candidate;
-        int suffix = 0;
+        int suffix = 1;
         while (userRepository.existsByUsername(username)) {
-            username = candidate + suffix++;
-            if (username.length() > 50) username = "user" + UUID.randomUUID().toString().substring(0, 8);
+            username = candidate + " " + suffix++;
+            if (username.length() > 50) username = "user " + UUID.randomUUID().toString().substring(0, 8);
         }
         return username;
     }
