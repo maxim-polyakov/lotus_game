@@ -18,9 +18,19 @@ export default function LoginPage() {
     const oauthError = searchParams.get('oauth_error');
     const authError = searchParams.get('auth_error');
     if (oauthError) {
-      const msg = oauthError === 'UNREGISTERED_GOOGLE_ACCOUNT'
-        ? 'Аккаунт не зарегистрирован. Зарегистрируйтесь сначала через форму регистрации.'
-        : decodeURIComponent(oauthError);
+      const messages = {
+        UNREGISTERED_GOOGLE_ACCOUNT: 'Аккаунт не зарегистрирован. Зарегистрируйтесь сначала через форму регистрации.',
+        OAUTH_MISSING_DATA: 'Не удалось получить данные от Google.',
+        OAUTH_AUTH_ERROR: 'Ошибка авторизации. Попробуйте позже.',
+      };
+      let msg = messages[oauthError];
+      if (!msg) {
+        try {
+          msg = oauthError.startsWith('OAUTH_') ? 'Ошибка входа через Google.' : decodeURIComponent(oauthError);
+        } catch {
+          msg = 'Ошибка входа через Google.';
+        }
+      }
       setError(msg);
       setSearchParams({}, { replace: true });
       return;

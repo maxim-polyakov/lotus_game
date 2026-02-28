@@ -45,7 +45,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
             if (googleId == null || email == null) {
                 log.warn("Google OAuth2: missing sub or email in attributes");
-                redirectToFrontendWithError(response, "Не удалось получить данные от Google");
+                redirectToFrontendWithError(response, "OAUTH_MISSING_DATA");
                 return;
             }
 
@@ -78,7 +78,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
         } catch (Exception e) {
             log.error("Google OAuth2: error during authentication success", e);
-            redirectToFrontendWithError(response, "Ошибка авторизации. Попробуйте позже.");
+            redirectToFrontendWithError(response, "OAUTH_AUTH_ERROR");
         }
     }
 
