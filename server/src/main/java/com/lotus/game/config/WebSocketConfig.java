@@ -18,7 +18,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
 
     @Value("${app.frontend.url}")
-    private String allowedOrigin;
+ц    private String allowedOrigin;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
