@@ -31,7 +31,7 @@ export default function LoginPage() {
           msg = 'Ошибка входа через Google.';
         }
       }
-      setError(msg);
+      setError(oauthError.startsWith('OAUTH_') ? `${oauthError}: ${msg}` : msg);
       setSearchParams({}, { replace: true });
       return;
     }
