@@ -38,15 +38,12 @@ export default function LoginPage() {
       oauthHandled.current = true;
       setError('');
       setLoading(true);
-      console.log('[OAuth] 1. Вызов oauth-tokens, code:', code?.substring(0, 8) + '...');
       api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
         .then((res) => {
           const data = res?.data;
-          console.log('[OAuth] 2. oauth-tokens ответ:', !!data?.accessToken, !!data?.refreshToken);
           if (!data?.accessToken || !data?.refreshToken) {
             throw new Error('Токены не получены от сервера');
           }
-          console.log('[OAuth] 3. Вызов login()');
           return login(
             { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] },
             true
