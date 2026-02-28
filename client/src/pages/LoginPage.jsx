@@ -16,6 +16,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     const oauthError = searchParams.get('oauth_error');
+    const oauthErrorType = searchParams.get('oauth_error_type');
+    const oauthErrorMsg = searchParams.get('oauth_error_msg');
     const authError = searchParams.get('auth_error');
     if (oauthError) {
       const messages = {
@@ -31,7 +33,19 @@ export default function LoginPage() {
           msg = 'Ошибка входа через Google.';
         }
       }
-      setError(oauthError.startsWith('OAUTH_') ? `${oauthError}: ${msg}` : msg);
+      if (oauthErrorType || oauthErrorMsg) {
+        let detailMsg = oauthErrorMsg || '';
+        try {
+          detailMsg = oauthErrorMsg ? decodeURIComponent(oauthErrorMsg) : '';
+        } catch {
+          /* use raw */
+        }
+        const detail = [oauthErrorType, detailMsg].filter(Boolean).join(': ');
+        msg = `${msg} (${detail})`;
+      } else if (oauthError.startsWith('OAUTH_')) {
+        msg = `${oauthError}: ${msg}`;
+      }
+      setError(msg);
       setSearchParams({}, { replace: true });
       return;
     }

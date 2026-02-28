@@ -81,7 +81,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
         } catch (Exception e) {
             log.error("Google OAuth2: error during authentication success: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
-            redirectToFrontendWithError(response, "OAUTH_AUTH_ERROR");
+            redirectToFrontendWithError(response, "OAUTH_AUTH_ERROR", e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
@@ -125,9 +125,18 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     }
 
     private void redirectToFrontendWithError(HttpServletResponse response, String error) throws IOException {
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
-                .queryParam("oauth_error", error)
-                .build().toUriString();
-        response.sendRedirect(redirectUrl);
+        redirectToFrontendWithError(response, error, null, null);
+    }
+
+    private void redirectToFrontendWithError(HttpServletResponse response, String error, String errorType, String errorMsg) throws IOException {
+        var builder = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
+                .queryParam("oauth_error", error);
+        if (errorType != null && !errorType.isBlank()) {
+            builder.queryParam("oauth_error_type", errorType);
+        }
+        if (errorMsg != null && !errorMsg.isBlank() && errorMsg.length() < 200) {
+            builder.queryParam("oauth_error_msg", errorMsg);
+        }
+        response.sendRedirect(builder.build().toUriString());
     }
 }
