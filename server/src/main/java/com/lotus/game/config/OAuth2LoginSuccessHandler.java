@@ -59,10 +59,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleId);
                 user.setEmailVerified(true);
-                if (picture != null) user.setAvatarUrl(picture);
                 userRepository.save(user);
             }
-
+            if (picture != null) {
+                user.setAvatarUrl(picture);
+            }
             user.setLastLoginAt(Instant.now());
             userRepository.save(user);
 
