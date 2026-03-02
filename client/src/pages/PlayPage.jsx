@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { useMatchWebSocket } from '../context/MatchWebSocketContext';
 import GameBoard from '../components/GameBoard';
 import WaitingMatch from '../components/WaitingMatch';
 import CardDisplay from '../components/CardDisplay';
@@ -17,6 +18,7 @@ function enrichDeckWithCards(deck, allCards) {
 const ACTIVE_MATCH_KEY = 'lotus_active_match_id';
 
 export default function PlayPage() {
+  const { findMatch: wsFindMatch, getMatch: wsGetMatch, connected } = useMatchWebSocket();
   const [decks, setDecks] = useState([]);
   const [allCards, setAllCards] = useState([]);
   const [selectedDeck, setSelectedDeck] = useState(null);
@@ -40,11 +42,17 @@ export default function PlayPage() {
   useEffect(() => {
     const savedId = sessionStorage.getItem(ACTIVE_MATCH_KEY);
     if (savedId && !match) {
-      api.get(`/api/matches/${savedId}`)
-        .then(({ data }) => setMatch(data))
-        .catch(() => sessionStorage.removeItem(ACTIVE_MATCH_KEY));
+      if (connected) {
+        wsGetMatch(Number(savedId))
+          .then(setMatch)
+          .catch(() => sessionStorage.removeItem(ACTIVE_MATCH_KEY));
+      } else {
+        api.get(`/api/matches/${savedId}`)
+          .then(({ data }) => setMatch(data))
+          .catch(() => sessionStorage.removeItem(ACTIVE_MATCH_KEY));
+      }
     }
-  }, [match]);
+  }, [match, connected, wsGetMatch]);
 
   useEffect(() => {
     if (match?.id && ['WAITING', 'IN_PROGRESS', 'FINISHED'].includes(match.status)) {
@@ -65,10 +73,10 @@ export default function PlayPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post(`/api/matches/find?deckId=${selectedDeck}&mode=${matchMode}`);
+      const data = await wsFindMatch(selectedDeck, matchMode);
       setMatch(data);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Ошибка при поиске матча';
+      const msg = err?.message || 'Ошибка при поиске матча';
       setError(msg);
       console.error('Ошибка при поиске матча:', msg, err);
     } finally {
@@ -77,11 +85,11 @@ export default function PlayPage() {
   };
 
   if (match && match.status === 'IN_PROGRESS') {
-    return <GameBoard matchId={match.id} onExit={clearActiveMatch} allCards={allCards} />;
+    return <GameBoard matchId={match.id} initialMatch={match} onExit={clearActiveMatch} allCards={allCards} />;
   }
 
   if (match && match.status === 'FINISHED') {
-    return <GameBoard matchId={match.id} onExit={clearActiveMatch} allCards={allCards} />;
+    return <GameBoard matchId={match.id} initialMatch={match} onExit={clearActiveMatch} allCards={allCards} />;
   }
 
   if (match && match.status === 'WAITING') {
@@ -153,8 +161,8 @@ export default function PlayPage() {
           </div>
         </div>
       )}
-      <button onClick={findMatch} disabled={loading || !selectedDeck} className="btn btn-primary">
-        {loading ? 'Поиск...' : 'Найти матч'}
+      <button onClick={findMatch} disabled={loading || !selectedDeck || !connected} className="btn btn-primary">
+        {!connected ? 'Подключение...' : loading ? 'Поиск...' : 'Найти матч'}
       </button>
     </div>
   );

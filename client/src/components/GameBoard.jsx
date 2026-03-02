@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import api from '../api/client';
-import { API_BASE } from '../api/client';
-import { getAccessToken } from '../utils/tokenStorage';
 import { useAuth } from '../context/AuthContext';
+import { useMatchWebSocket } from '../context/MatchWebSocketContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { playSound, playSoundFromUrl } from '../utils/sound';
@@ -13,8 +10,8 @@ import CardDisplay from './CardDisplay';
 import EffectOverlay from './EffectOverlay';
 import ErrorDetail from './ErrorDetail';
 
-export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
-  const [match, setMatch] = useState(null);
+export default function GameBoard({ matchId, initialMatch, onExit, allCards: allCardsProp }) {
+  const [match, setMatch] = useState(initialMatch ?? null);
   const [allCardsState, setAllCardsState] = useState([]);
   const allCards = allCardsProp?.length ? allCardsProp : allCardsState;
   const [selectedAttacker, setSelectedAttacker] = useState(null);
@@ -23,8 +20,8 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   const [lastAttackedTargetId, setLastAttackedTargetId] = useState(null);
   const [lastPlayedBoardIndex, setLastPlayedBoardIndex] = useState(null);
   const [effectOverlay, setEffectOverlay] = useState(null);
-  const [wsConnected, setWsConnected] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const { playCard: wsPlayCard, attack: wsAttack, endTurn: wsEndTurn, subscribeToMatch, subscribeToErrors, connected: wsConnected } = useMatchWebSocket();
   const [gameError, setGameError] = useState(null);
   const [gameErrorContext, setGameErrorContext] = useState('');
   const [gameSounds, setGameSounds] = useState({});
@@ -51,8 +48,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   }, [matchId]);
 
   useEffect(() => {
-    loadMatch();
-  }, [loadMatch]);
+    if (initialMatch) setMatch(initialMatch);
+    else loadMatch();
+  }, [loadMatch, initialMatch]);
 
   useEffect(() => {
     if (allCardsProp?.length) return;
@@ -76,26 +74,19 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
   }, [matchId, match?.status, wsConnected, loadMatch]);
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token || !matchId) return;
-    const c = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE}/ws`),
-      connectHeaders: { token },
-      reconnectDelay: 3000,
-      heartbeatIncoming: 10000,
-      heartbeatOutgoing: 10000,
-      onConnect: () => {
-        setWsConnected(true);
-        c.subscribe(`/topic/match/${matchId}`, (msg) => setMatch(JSON.parse(msg.body)));
-      },
-      onDisconnect: () => setWsConnected(false),
-      onStompError: () => setWsConnected(false),
-      onWebSocketError: () => setWsConnected(false),
-      onWebSocketClose: () => setWsConnected(false),
+    if (!matchId) return;
+    return subscribeToMatch(matchId, setMatch);
+  }, [matchId, subscribeToMatch]);
+
+  useEffect(() => {
+    if (!wsConnected) return;
+    const unsub = subscribeToErrors((err, context) => {
+      setGameError(err);
+      setGameErrorContext(context || 'Действие в матче');
+      loadMatch();
     });
-    c.activate();
-    return () => c.deactivate();
-  }, [matchId]);
+    return unsub;
+  }, [subscribeToErrors, wsConnected]);
 
   useEffect(() => {
     if (match?.status === 'FINISHED' && soundEnabled) {
@@ -128,9 +119,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
     try {
       const cardInHand = me.hand?.find((c) => c.instanceId === instanceId);
       const card = cardInHand ? getCard(cardInHand.cardType, cardInHand.cardId) : null;
-      await api.post(`/api/matches/${matchId}/play`, { instanceId, targetPosition, targetInstanceId });
-      const { data } = await api.get(`/api/matches/${matchId}`);
-      setMatch(data);
+      wsPlayCard(matchId, instanceId, targetPosition, targetInstanceId);
       setLastPlayedBoardIndex(targetPosition);
       setTimeout(() => setLastPlayedBoardIndex(null), 450);
       if (soundEnabled) {
@@ -142,7 +131,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         setTimeout(() => setEffectOverlay(null), 2500);
       }
     } catch (e) {
-      console.error('playCard error:', e.response?.data || e);
+      console.error('playCard error:', e?.message || e);
       setGameError(e);
       setGameErrorContext('Розыгрыш карты');
       loadMatch();
@@ -153,12 +142,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
     try {
       const attackerMinion = me.board?.find((m) => m.instanceId === attackerId);
       const attackerCard = attackerMinion ? getCard('MINION', attackerMinion.cardId) : null;
-      await api.post(`/api/matches/${matchId}/attack`, {
-        attackerInstanceId: attackerId,
-        targetInstanceId: targetId,
-      });
-      const { data } = await api.get(`/api/matches/${matchId}`);
-      setMatch(data);
+      wsAttack(matchId, attackerId, targetId);
       setSelectedAttacker(null);
       setLastAttackedTargetId(targetId);
       setTimeout(() => setLastAttackedTargetId(null), 400);
@@ -171,7 +155,7 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
         setTimeout(() => setEffectOverlay(null), 2500);
       }
     } catch (e) {
-      console.error('attack error:', e.response?.data || e);
+      console.error('attack error:', e?.message || e);
       setGameError(e);
       setGameErrorContext('Атака');
       loadMatch();
@@ -201,11 +185,9 @@ export default function GameBoard({ matchId, onExit, allCards: allCardsProp }) {
 
   const endTurn = async () => {
     try {
-      await api.post(`/api/matches/${matchId}/end-turn`);
-      const { data } = await api.get(`/api/matches/${matchId}`);
-      setMatch(data);
+      wsEndTurn(matchId);
     } catch (e) {
-      console.error('endTurn error:', e.response?.data || e);
+      console.error('endTurn error:', e?.message || e);
       setGameError(e);
       setGameErrorContext('Завершение хода');
       loadMatch();

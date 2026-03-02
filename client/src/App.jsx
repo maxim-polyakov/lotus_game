@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ReplayPage from './pages/ReplayPage';
 import ReplaysListPage from './pages/ReplaysListPage';
+import { MatchWebSocketProvider } from './context/MatchWebSocketContext';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -47,7 +48,7 @@ export default function App() {
           <Route path="/decks" element={<PrivateRoute><DecksPage /></PrivateRoute>} />
           <Route path="/decks/new" element={<PrivateRoute><DeckCreatePage /></PrivateRoute>} />
           <Route path="/decks/:id" element={<PrivateRoute><DeckDetailPage /></PrivateRoute>} />
-          <Route path="/play" element={<PrivateRoute><PlayPage /></PrivateRoute>} />
+          <Route path="/play" element={<PrivateRoute><MatchWebSocketProvider><PlayPage /></MatchWebSocketProvider></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />

@@ -3,6 +3,13 @@ import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../util
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
+/** WebSocket URL. В production с nginx: /ws на том же домене. Локально: API_BASE/ws */
+const WS_URL = process.env.REACT_APP_WS_URL || (() => {
+  if (typeof window === 'undefined') return `${API_BASE}/ws`;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  return isLocalhost ? `${API_BASE}/ws` : `${window.location.origin}/ws`;
+})();
+
 const api = axios.create({
   baseURL: API_BASE,
 });
@@ -50,4 +57,4 @@ api.interceptors.response.use(
 );
 
 export default api;
-export { API_BASE };
+export { API_BASE, WS_URL };
