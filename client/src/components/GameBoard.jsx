@@ -418,7 +418,7 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
           })}
         </div>
         <div className="my-hero-row">
-          <span>Мана: {me.mana} | HP: {me.health}</span>
+          <span>Мана: {me.mana} | HP: {me.health} | В колоде: {me.deck?.length ?? 0}</span>
           {selectedBattlecry?.card?.battlecryType === 'HEAL' && (
             <button type="button" className="btn btn-outline btn-sm" onClick={() => handleTargetClick('hero')}>
               Лечить себя
