@@ -1,8 +1,20 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useHeroPreference } from '../context/HeroPreferenceContext';
 
+/** Только внутренние пути (без open-redirect). */
+function safeReturnPath(state) {
+  const p = state?.returnTo;
+  if (typeof p !== 'string' || !p.startsWith('/') || p.startsWith('//') || p.includes('://')) {
+    return null;
+  }
+  return p;
+}
+
 export default function HeroesPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnTo = safeReturnPath(location.state);
   const { heroes, loading, selectedHeroId, setSelectedHeroId } = useHeroPreference();
 
   if (loading && heroes.length === 0) {
@@ -47,6 +59,7 @@ export default function HeroesPage() {
                     onClick={() => {
                       if (locked) return;
                       setSelectedHeroId(h.id);
+                      if (returnTo) navigate(returnTo, { replace: true });
                     }}
                   >
                     <div className={`hero-card-portrait hero-card-portrait--${h.id}`}>

@@ -145,6 +145,7 @@ export default function PlayPage() {
         <div className="play-page-hero-label">Ваш герой</div>
         <Link
           to="/heroes"
+          state={{ returnTo: '/play' }}
           className={`play-page-hero-card${heroesLoading && !selectedHero ? ' play-page-hero-card--loading' : ''}`}
         >
           <div
