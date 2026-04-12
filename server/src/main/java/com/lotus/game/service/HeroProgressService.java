@@ -123,7 +123,8 @@ public class HeroProgressService {
                 }
                 trimmed.add(id);
             }
-            unlocked = trimmed;
+            unlocked.clear();
+            unlocked.addAll(trimmed);
         }
         while (unlocked.size() < target) {
             List<String> locked = all.stream().filter(id -> !unlocked.contains(id)).toList();
