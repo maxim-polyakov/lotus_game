@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { HeroPreferenceProvider } from './context/HeroPreferenceContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -38,24 +39,26 @@ export default function App() {
     <ThemeProvider>
       <SettingsProvider>
         <AuthProvider>
-          <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/decks" element={<PrivateRoute><DecksPage /></PrivateRoute>} />
-          <Route path="/decks/new" element={<PrivateRoute><DeckCreatePage /></PrivateRoute>} />
-          <Route path="/decks/:id" element={<PrivateRoute><DeckDetailPage /></PrivateRoute>} />
-          <Route path="/play" element={<PrivateRoute><MatchWebSocketProvider><PlayPage /></MatchWebSocketProvider></PrivateRoute>} />
-          <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
-          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
-          <Route path="/replays" element={<PrivateRoute><ReplaysListPage /></PrivateRoute>} />
-          <Route path="/replay/:matchId" element={<PrivateRoute><ReplayPage /></PrivateRoute>} />
-        </Routes>
-      </BrowserRouter>
+          <HeroPreferenceProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/decks" element={<PrivateRoute><DecksPage /></PrivateRoute>} />
+                <Route path="/decks/new" element={<PrivateRoute><DeckCreatePage /></PrivateRoute>} />
+                <Route path="/decks/:id" element={<PrivateRoute><DeckDetailPage /></PrivateRoute>} />
+                <Route path="/play" element={<PrivateRoute><MatchWebSocketProvider><PlayPage /></MatchWebSocketProvider></PrivateRoute>} />
+                <Route path="/admin" element={<AdminRoute><AdminCabinetPage /></AdminRoute>} />
+                <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/replays" element={<PrivateRoute><ReplaysListPage /></PrivateRoute>} />
+                <Route path="/replay/:matchId" element={<PrivateRoute><ReplayPage /></PrivateRoute>} />
+              </Routes>
+            </BrowserRouter>
+          </HeroPreferenceProvider>
         </AuthProvider>
       </SettingsProvider>
     </ThemeProvider>

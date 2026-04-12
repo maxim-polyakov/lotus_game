@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import CardDisplay from '../components/CardDisplay';
+import NavBarHeroSelect from '../components/NavBarHeroSelect';
 
 function enrichDeckWithCards(deck, allCards) {
   if (!deck?.cards) return { ...deck, cardsResolved: [] };
@@ -43,6 +44,7 @@ export default function DecksPage() {
       <div className="decks-page-header">
         <h1>Мои колоды</h1>
         <div className="decks-page-actions">
+          <NavBarHeroSelect />
           <Link to="/" className="btn btn-secondary">Назад</Link>
           <Link to="/profile" className="btn btn-outline">Профиль</Link>
           <Link to="/decks/new" className="btn btn-primary">Создать колоду</Link>

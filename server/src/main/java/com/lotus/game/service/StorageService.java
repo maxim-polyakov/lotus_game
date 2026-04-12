@@ -25,6 +25,7 @@ public class StorageService {
     private static final String SOUNDS_PREFIX = "sounds/";
     private static final String GAME_SOUNDS_PREFIX = "game-sounds/";
     private static final String ANIMATIONS_PREFIX = "animations/";
+    private static final String HEROES_PREFIX = "heroes/";
 
     private final S3Client s3Client;
     private final YandexStorageProperties props;
@@ -53,6 +54,25 @@ public class StorageService {
 
     public String uploadCardImage(byte[] bytes, String contentType, String originalFilename) {
         return uploadCardImage(new ByteArrayInputStream(bytes), bytes.length, contentType, originalFilename);
+    }
+
+    /** Портрет героя (квадратное изображение для шапки и доски) */
+    public String uploadHeroPortrait(byte[] bytes, String contentType, String originalFilename) {
+        String ext = getExtension(originalFilename);
+        String lower = ext != null ? ext.toLowerCase() : "";
+        if (!lower.equals(".png") && !lower.equals(".jpg") && !lower.equals(".jpeg") && !lower.equals(".gif") && !lower.equals(".webp")) {
+            ext = ".png";
+        }
+        String key = HEROES_PREFIX + UUID.randomUUID() + ext;
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(props.getBucketName())
+                .key(key)
+                .contentType(contentType != null ? contentType : "image/png")
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        String url = buildPublicUrl(key);
+        log.info("Uploaded hero portrait: {}", url);
+        return url;
     }
 
     /**

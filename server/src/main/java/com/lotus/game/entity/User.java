@@ -8,6 +8,7 @@ import lombok.*;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
@@ -67,6 +68,13 @@ public class User {
     @Column(nullable = false, columnDefinition = "int default 1000")
     @Builder.Default
     private int rating = 1000;
+
+    /** Герои, доступные в матчах (у новичка один случайный; админам не используется — им отдаются все в API) */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_unlocked_heroes", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "hero_id", length = 64)
+    @Builder.Default
+    private Set<String> unlockedHeroIds = new LinkedHashSet<>();
 
     @PrePersist
     protected void onCreate() {

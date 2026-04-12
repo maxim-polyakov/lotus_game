@@ -39,6 +39,14 @@ public class HeroCatalog {
         return ordered;
     }
 
+    public List<String> allHeroIds() {
+        return ordered.stream().map(HeroDto::getId).toList();
+    }
+
+    public int heroCount() {
+        return ordered.size();
+    }
+
     public Optional<HeroDto> find(String id) {
         if (id == null || id.isBlank()) return Optional.empty();
         return Optional.ofNullable(byId.get(id.trim()));

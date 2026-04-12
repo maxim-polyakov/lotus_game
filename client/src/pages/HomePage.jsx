@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import TutorialModal from '../components/TutorialModal';
+import NavBarHeroSelect from '../components/NavBarHeroSelect';
 
 export default function HomePage() {
   const { user, logout } = useAuth();
@@ -29,6 +30,7 @@ export default function HomePage() {
                 )}
                 <span className="header-username">{user.username}</span>
               </span>
+              <NavBarHeroSelect />
               <div className="header-buttons">
                 <div className="header-nav-primary">
                   <Link to="/decks" className="btn btn-primary">Колоды</Link>

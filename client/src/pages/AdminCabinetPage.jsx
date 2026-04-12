@@ -48,6 +48,16 @@ export default function AdminCabinetPage() {
   const [victorySoundDeleting, setVictorySoundDeleting] = useState(false);
   const [defeatSoundDeleting, setDefeatSoundDeleting] = useState(false);
   const [drawSoundDeleting, setDrawSoundDeleting] = useState(false);
+  const [heroes, setHeroes] = useState([]);
+  const [heroPortraitFiles, setHeroPortraitFiles] = useState({});
+  const [heroUploadingId, setHeroUploadingId] = useState(null);
+  const [heroDeletingId, setHeroDeletingId] = useState(null);
+
+  const loadHeroes = () => {
+    api.get('/api/heroes')
+      .then(({ data }) => setHeroes(data || []))
+      .catch(() => setHeroes([]));
+  };
 
   useEffect(() => {
     api.get('/api/cards')
@@ -59,6 +69,10 @@ export default function AdminCabinetPage() {
     api.get('/api/settings/game-sounds')
       .then(({ data }) => setGameSounds(data || {}))
       .catch(() => setGameSounds({}));
+  }, []);
+
+  useEffect(() => {
+    loadHeroes();
   }, []);
 
   useEffect(() => {
@@ -463,6 +477,43 @@ export default function AdminCabinetPage() {
     }
   };
 
+  const handleHeroPortraitUpload = async (e, heroId) => {
+    e.preventDefault();
+    const file = heroPortraitFiles[heroId];
+    if (!file) return;
+    setError('');
+    setHeroUploadingId(heroId);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      await api.post(`/api/admin/heroes/${encodeURIComponent(heroId)}/portrait`, fd);
+      setHeroPortraitFiles((prev) => {
+        const next = { ...prev };
+        delete next[heroId];
+        return next;
+      });
+      loadHeroes();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Ошибка загрузки';
+      setError(msg);
+    } finally {
+      setHeroUploadingId(null);
+    }
+  };
+
+  const handleHeroPortraitDelete = async (heroId) => {
+    setError('');
+    setHeroDeletingId(heroId);
+    try {
+      await api.delete(`/api/admin/heroes/${encodeURIComponent(heroId)}/portrait`);
+      loadHeroes();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка удаления портрета');
+    } finally {
+      setHeroDeletingId(null);
+    }
+  };
+
   return (
     <div className="admin-cabinet">
       <div className="admin-header">
@@ -558,6 +609,54 @@ export default function AdminCabinetPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+      <div className="admin-heroes-section">
+        <h3>Портреты героев</h3>
+        <p className="admin-hint-small">Изображение для выбора героя в шапке и на доске (PNG, JPG, WebP). Требуется настроенное облачное хранилище (S3).</p>
+        <div className="admin-heroes-grid">
+          {heroes.map((h) => (
+            <div key={h.id} className="admin-hero-card">
+              <div className={`admin-hero-preview hero-card-portrait--${h.id}`}>
+                {h.portraitUrl ? (
+                  <img src={h.portraitUrl} alt="" className="admin-hero-preview-img" />
+                ) : (
+                  <span className="admin-hero-preview-letter">{(h.name || '?').charAt(0)}</span>
+                )}
+              </div>
+              <div className="admin-hero-meta">
+                <span className="admin-hero-name">{h.name}</span>
+                <span className="admin-hero-id">{h.id}</span>
+              </div>
+              <form className="admin-hero-upload-form" onSubmit={(e) => handleHeroPortraitUpload(e, h.id)}>
+                <div className="admin-file-input-wrap">
+                  <label className="btn btn-secondary admin-file-label">
+                    Файл
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="admin-file-input"
+                      onChange={(e) => setHeroPortraitFiles((prev) => ({ ...prev, [h.id]: e.target.files?.[0] ?? null }))}
+                    />
+                  </label>
+                  {heroPortraitFiles[h.id] && <span className="admin-file-name">{heroPortraitFiles[h.id].name}</span>}
+                </div>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={!heroPortraitFiles[h.id] || heroUploadingId === h.id}>
+                  {heroUploadingId === h.id ? '…' : 'Загрузить'}
+                </button>
+              </form>
+              {h.portraitUrl && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm admin-hero-remove-btn"
+                  disabled={heroDeletingId === h.id}
+                  onClick={() => handleHeroPortraitDelete(h.id)}
+                >
+                  {heroDeletingId === h.id ? '…' : 'Сбросить фото'}
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       </div>
       <div className="admin-content">

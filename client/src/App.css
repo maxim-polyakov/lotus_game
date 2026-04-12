@@ -1056,6 +1056,125 @@ header .header-username {
   margin: 0.5rem 0 1rem;
   color: var(--text-muted);
 }
+
+.navbar-hero-select {
+  position: relative;
+  flex-shrink: 0;
+}
+.navbar-hero-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border: 2px solid var(--border, #ddd);
+  border-radius: 10px;
+  background: var(--card-bg, #fff);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  max-width: 14rem;
+}
+.navbar-hero-select-trigger:hover:not(:disabled) {
+  border-color: #e74c3c;
+}
+.navbar-hero-select-trigger:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+.navbar-hero-select-trigger .hero-portrait-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 0.95rem;
+}
+.navbar-hero-select-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.navbar-hero-select-caret {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.navbar-hero-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  min-width: 220px;
+  max-height: min(70vh, 320px);
+  overflow-y: auto;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 200;
+}
+.navbar-hero-select-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+.navbar-hero-select-option:hover {
+  background: rgba(231, 76, 60, 0.08);
+}
+.navbar-hero-select-option.selected {
+  background: rgba(231, 76, 60, 0.12);
+}
+.navbar-hero-select-option--locked {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.navbar-hero-select-option--locked:hover {
+  background: transparent;
+}
+.navbar-hero-lock-badge {
+  margin-left: 0.35rem;
+  font-size: 0.85rem;
+  vertical-align: middle;
+}
+.navbar-hero-select-option .hero-portrait-sm {
+  width: 36px;
+  height: 36px;
+}
+.navbar-hero-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.navbar-hero-option-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.navbar-hero-option-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.play-page-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.play-page-toolbar-with-hero h1 {
+  flex: 1;
+  min-width: 0;
+}
 .enemy-hero.attack-target {
   cursor: pointer;
   background: rgba(231, 76, 60, 0.2);
@@ -1482,6 +1601,72 @@ header .header-username {
   background: #fafafa;
 }
 .admin-game-sound-item h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+.admin-heroes-section {
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.admin-heroes-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.admin-heroes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.admin-hero-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.admin-hero-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+.admin-hero-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.admin-hero-preview-letter {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+.admin-hero-meta {
+  text-align: center;
+}
+.admin-hero-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.admin-hero-id {
+  display: block;
+  font-size: 0.72rem;
+  color: #888;
+  word-break: break-all;
+}
+.admin-hero-upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.admin-hero-remove-btn {
+  width: 100%;
+}
 .admin-content {
   padding: 1.5rem 2rem;
   max-width: 1400px;
@@ -2219,6 +2404,14 @@ header .header-username {
     order: -1;
     width: 100%;
     margin-bottom: 0.25rem;
+  }
+  header .header-actions .navbar-hero-select {
+    width: 100%;
+  }
+  header .header-actions .navbar-hero-select-trigger {
+    max-width: none;
+    width: 100%;
+    justify-content: flex-start;
   }
   header .header-buttons {
     width: 100%;

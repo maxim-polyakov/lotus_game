@@ -33,4 +33,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("SELECT COUNT(m) FROM Match m WHERE (m.player1Id = :userId OR m.player2Id = :userId) " +
             "AND m.status = 'FINISHED' AND m.winnerId IS NOT NULL AND m.winnerId <> :userId")
     long countLosses(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(m) FROM Match m WHERE m.status = 'FINISHED' AND m.player2Id IS NOT NULL " +
+            "AND (m.player1Id = :userId OR m.player2Id = :userId)")
+    long countFinishedMatchesForUser(@Param("userId") Long userId);
 }

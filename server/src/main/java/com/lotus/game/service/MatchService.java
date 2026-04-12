@@ -41,6 +41,8 @@ public class MatchService {
     private final MatchBroadcastService broadcastService;
     private final CacheManager cacheManager;
     private final HeroCatalog heroCatalog;
+    private final HeroProgressService heroProgressService;
+    private final HeroPortraitService heroPortraitService;
 
     @Transactional
     public MatchDto findOrCreateMatch(Long userId, Long deckId, Match.MatchMode mode, String heroId) {
@@ -48,6 +50,9 @@ public class MatchService {
             throw new IllegalArgumentException("Выберите героя");
         }
         heroCatalog.requireValid(heroId.trim());
+        if (!heroProgressService.canUseHero(userId, heroId.trim())) {
+            throw new IllegalArgumentException("Этот герой ещё не разблокирован. Завершайте матчи, чтобы открывать новых героев.");
+        }
 
         Deck deck = deckRepository.findById(deckId)
                 .orElseThrow(() -> new IllegalArgumentException("Deck not found: " + deckId));
@@ -185,7 +190,7 @@ public class MatchService {
                 match.setGameState(state);
                 addReplayStep(match, "PLAY", userId, "Spell: " + spell.getName(), state);
                 matchRepository.save(match);
-                applyRatingUpdateIfFinished(match);
+                finalizeFinishedMatch(match);
                 evictMatchCacheForPlayers(match);
                 MatchDto dto = MatchDto.from(match);
                 broadcastService.broadcastMatchUpdate(matchId, dto);
@@ -221,6 +226,7 @@ public class MatchService {
         match.setGameState(state);
         addReplayStep(match, "PLAY", userId, "Minion: " + minion.getName(), state);
         matchRepository.save(match);
+        finalizeFinishedMatch(match);
         evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
@@ -307,7 +313,7 @@ public class MatchService {
         match.setGameState(state);
         addReplayStep(match, "ATTACK", userId, "Attack " + request.getAttackerInstanceId() + " -> " + request.getTargetInstanceId(), state);
         matchRepository.save(match);
-        applyRatingUpdateIfFinished(match);
+        finalizeFinishedMatch(match);
         evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
@@ -359,11 +365,16 @@ public class MatchService {
         match.setGameState(state);
         addReplayStep(match, "END_TURN", userId, "End turn", state);
         matchRepository.save(match);
-        applyRatingUpdateIfFinished(match);
+        finalizeFinishedMatch(match);
         evictMatchCacheForPlayers(match);
         MatchDto dto = MatchDto.from(match);
         broadcastService.broadcastMatchUpdate(matchId, dto);
         return dto;
+    }
+
+    private void finalizeFinishedMatch(Match match) {
+        applyRatingUpdateIfFinished(match);
+        heroProgressService.onMatchFinishedForPlayers(match);
     }
 
     private void applyRatingUpdateIfFinished(Match match) {
@@ -405,8 +416,14 @@ public class MatchService {
         HeroDto h2 = heroCatalog.resolveForMatch(match.getHero2Id());
         int hp1 = h1.getStartingHealth();
         int hp2 = h2.getStartingHealth();
-        String portrait1 = h1.getPortraitUrl() != null ? h1.getPortraitUrl() : "";
-        String portrait2 = h2.getPortraitUrl() != null ? h2.getPortraitUrl() : "";
+        String portrait1 = heroPortraitService.resolvePortraitUrl(h1.getId());
+        if (portrait1.isBlank()) {
+            portrait1 = h1.getPortraitUrl() != null ? h1.getPortraitUrl() : "";
+        }
+        String portrait2 = heroPortraitService.resolvePortraitUrl(h2.getId());
+        if (portrait2.isBlank()) {
+            portrait2 = h2.getPortraitUrl() != null ? h2.getPortraitUrl() : "";
+        }
 
         GameState.PlayerState p1 = GameState.PlayerState.builder()
                 .heroId(h1.getId())

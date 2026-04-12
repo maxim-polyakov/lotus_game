@@ -16,4 +16,9 @@ public class HeroDto {
     private String portraitUrl;
     private int startingHealth;
     private String title;
+    /** Для обычных игроков: можно ли выбрать в матче */
+    @Builder.Default
+    private boolean unlocked = true;
+    /** Сколько завершённых матчей осталось до следующей разблокировки (только если unlocked=false) */
+    private Integer gamesUntilUnlock;
 }
