@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import CardDisplay from '../components/CardDisplay';
+import { useHeroPreference } from '../context/HeroPreferenceContext';
+
+const DEFAULT_DECK_HERO_ID = 'lotus_guardian';
 function enrichDeckWithCards(deck, allCards) {
   if (!deck?.cards) return { ...deck, cardsResolved: [] };
   const slots = (allCards || []).length
@@ -14,6 +17,7 @@ function enrichDeckWithCards(deck, allCards) {
 }
 
 export default function DecksPage() {
+  const { heroes, selectedHeroId } = useHeroPreference();
   const [decks, setDecks] = useState([]);
   const [allCards, setAllCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +49,12 @@ export default function DecksPage() {
           <Link to="/heroes" className="btn btn-outline">Герои</Link>
           <Link to="/" className="btn btn-secondary">Назад</Link>
           <Link to="/profile" className="btn btn-outline">Профиль</Link>
-          <Link to="/decks/new" className="btn btn-primary">Создать колоду</Link>
+          <Link
+            to={selectedHeroId ? `/decks/new?heroId=${encodeURIComponent(selectedHeroId)}` : '/decks/new'}
+            className="btn btn-primary"
+          >
+            Создать колоду
+          </Link>
         </div>
       </div>
       {error && <div className="error" style={{ margin: '1rem 2rem' }}>{error}</div>}
@@ -56,9 +65,12 @@ export default function DecksPage() {
         {decks.map((d) => {
           const enriched = enrichDeckWithCards(d, allCards);
           const cardsToShow = (enriched.cardsResolved || []).slice(0, 10);
+          const hid = d.heroId || DEFAULT_DECK_HERO_ID;
+          const heroName = heroes.find((h) => h.id === hid)?.name;
           return (
             <Link key={d.id} to={`/decks/${d.id}`} className="deck-card deck-card-link">
               <h3>{d.name}</h3>
+              <span className="deck-card-hero-badge">{heroName || hid}</span>
               <div className="deck-cards-preview">
                 {cardsToShow.map(({ card, count }, i) => (
                   <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="sm" />

@@ -2,6 +2,7 @@ package com.lotus.game.dto.game;
 
 import com.lotus.game.entity.Deck;
 import com.lotus.game.entity.DeckCard;
+import com.lotus.game.service.HeroCatalog;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,6 +15,8 @@ public class DeckDto {
 
     private Long id;
     private String name;
+    /** id героя из каталога; для старых колод без поля — дефолтный герой */
+    private String heroId;
     private List<DeckCardSlotDto> cards;
 
     public static DeckDto from(Deck deck) {
@@ -31,9 +34,14 @@ public class DeckDto {
                     return dto;
                 })
                 .collect(Collectors.toList());
+        String hid = deck.getHeroId();
+        if (hid == null || hid.isBlank()) {
+            hid = HeroCatalog.DEFAULT_HERO_ID;
+        }
         return DeckDto.builder()
                 .id(deck.getId())
                 .name(deck.getName())
+                .heroId(hid)
                 .cards(slots)
                 .build();
     }

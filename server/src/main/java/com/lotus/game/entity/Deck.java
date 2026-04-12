@@ -29,6 +29,10 @@ public class Deck {
     @Column(nullable = false, length = 50)
     private String name;
 
+    /** Герой, к которому привязана колода (старые записи могут быть null — тогда считается {@link com.lotus.game.service.HeroCatalog#DEFAULT_HERO_ID}) */
+    @Column(name = "hero_id", length = 64)
+    private String heroId;
+
     @OneToMany(mappedBy = "deck", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<DeckCard> cards = new ArrayList<>();

@@ -24,6 +24,8 @@ public class DeckService {
     private final DeckRepository deckRepository;
     private final MinionRepository minionRepository;
     private final SpellRepository spellRepository;
+    private final HeroCatalog heroCatalog;
+    private final HeroProgressService heroProgressService;
 
     @Transactional(readOnly = true)
     public List<DeckDto> getDecksByUserId(Long userId) {
@@ -45,9 +47,15 @@ public class DeckService {
     @Transactional
     public DeckDto createDeck(Long userId, CreateDeckRequest request) {
         validateDeckSize(request.getCards());
+        String hid = request.getHeroId().trim();
+        heroCatalog.requireValid(hid);
+        if (!heroProgressService.canUseHero(userId, hid)) {
+            throw new IllegalArgumentException("Этот герой ещё не разблокирован.");
+        }
         Deck deck = new Deck();
         deck.setUserId(userId);
         deck.setName(request.getName());
+        deck.setHeroId(hid);
         deck.setCards(new ArrayList<>());
         deck = deckRepository.save(deck);
 
@@ -78,6 +86,14 @@ public class DeckService {
             throw new IllegalArgumentException("Access denied");
         }
         if (request.getName() != null) deck.setName(request.getName());
+        if (request.getHeroId() != null && !request.getHeroId().isBlank()) {
+            String hid = request.getHeroId().trim();
+            heroCatalog.requireValid(hid);
+            if (!heroProgressService.canUseHero(userId, hid)) {
+                throw new IllegalArgumentException("Этот герой ещё не разблокирован.");
+            }
+            deck.setHeroId(hid);
+        }
         if (request.getCards() != null) {
             validateDeckSize(request.getCards());
             deck.getCards().clear();

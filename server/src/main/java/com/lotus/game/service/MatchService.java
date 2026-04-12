@@ -59,6 +59,13 @@ public class MatchService {
         if (!deck.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Access denied to deck");
         }
+        String deckHeroId = deck.getHeroId();
+        if (deckHeroId == null || deckHeroId.isBlank()) {
+            deckHeroId = HeroCatalog.DEFAULT_HERO_ID;
+        }
+        if (!deckHeroId.equals(heroId.trim())) {
+            throw new IllegalArgumentException("Эта колода привязана к другому герою. Выберите колоду для текущего героя.");
+        }
 
         int myRating = userRepository.findById(userId)
                 .map(u -> u.getRating())

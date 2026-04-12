@@ -2,14 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import CardDisplay from '../components/CardDisplay';
+import { useHeroPreference } from '../context/HeroPreferenceContext';
 
 const DECK_SIZE = 30;
+const DEFAULT_DECK_HERO_ID = 'lotus_guardian';
 
 export default function DeckDetailPage() {
   const { id } = useParams();
+  const { heroes, loading: heroesLoading } = useHeroPreference();
   const [deck, setDeck] = useState(null);
   const [allCards, setAllCards] = useState([]);
   const [name, setName] = useState('');
+  const [heroId, setHeroId] = useState('');
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,6 +30,7 @@ export default function DeckDetailPage() {
         setDeck(deckData);
         setAllCards(cardsData || []);
         setName(deckData?.name || '');
+        setHeroId(deckData?.heroId || DEFAULT_DECK_HERO_ID);
         setSlots((deckData?.cards || []).map((c) => ({
           cardType: c.cardType,
           cardId: c.cardId,
@@ -81,10 +86,15 @@ export default function DeckDetailPage() {
       setError('Введите название колоды');
       return;
     }
+    if (!heroId) {
+      setError('Выберите героя');
+      return;
+    }
     setSaving(true);
     try {
       const { data } = await api.put(`/api/decks/${id}`, {
         name: name.trim(),
+        heroId,
         cards: slots.map((s) => ({
           cardType: s.cardType,
           cardId: s.cardId,
@@ -92,6 +102,7 @@ export default function DeckDetailPage() {
         })),
       });
       setDeck(data);
+      if (data?.heroId) setHeroId(data.heroId);
       setError('');
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка сохранения');
@@ -111,6 +122,30 @@ export default function DeckDetailPage() {
       </div>
       {error && <div className="error">{error}</div>}
       <form onSubmit={handleSave} className="deck-create-form">
+        <div className="form-group">
+          <label htmlFor="deck-edit-hero">Герой *</label>
+          <select
+            id="deck-edit-hero"
+            value={heroId}
+            onChange={(e) => setHeroId(e.target.value)}
+            disabled={heroesLoading}
+            required
+          >
+            {(heroes || []).length === 0 ? (
+              <option value={heroId || ''}>{heroId ? 'Загрузка списка героев…' : '—'}</option>
+            ) : (
+              (heroes || [])
+                .filter((h) => h.unlocked === true || h.id === heroId)
+                .map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                    {h.unlocked !== true ? ' (недоступен)' : ''}
+                  </option>
+                ))
+            )}
+          </select>
+          <p className="form-hint-muted">В матче можно использовать колоду только с этим героем.</p>
+        </div>
         <div className="form-group">
           <label>Название колоды *</label>
           <input

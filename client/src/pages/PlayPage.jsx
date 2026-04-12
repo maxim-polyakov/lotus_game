@@ -17,6 +17,11 @@ function enrichDeckWithCards(deck, allCards) {
 }
 
 const ACTIVE_MATCH_KEY = 'lotus_active_match_id';
+const DEFAULT_DECK_HERO_ID = 'lotus_guardian';
+
+function deckBoundHeroId(deck) {
+  return deck?.heroId || DEFAULT_DECK_HERO_ID;
+}
 
 export default function PlayPage() {
   const { findMatch: wsFindMatch, getMatch: wsGetMatch, connected } = useMatchWebSocket();
@@ -61,6 +66,16 @@ export default function PlayPage() {
       sessionStorage.setItem(ACTIVE_MATCH_KEY, String(match.id));
     }
   }, [match?.id, match?.status]);
+
+  const decksForHero = selectedHeroId
+    ? decks.filter((d) => deckBoundHeroId(d) === selectedHeroId)
+    : [];
+
+  useEffect(() => {
+    if (!selectedHeroId || selectedDeck == null) return;
+    const ok = decks.some((d) => d.id === selectedDeck && deckBoundHeroId(d) === selectedHeroId);
+    if (!ok) setSelectedDeck(null);
+  }, [selectedHeroId, decks, selectedDeck]);
 
   const clearActiveMatch = () => {
     setMatch(null);
@@ -176,25 +191,45 @@ export default function PlayPage() {
           <span className="play-page-hero-change">Изменить</span>
         </Link>
       </div>
-      <div className="deck-selection">
+           <div className="deck-selection">
         <label>Выберите колоду:</label>
-        <div className="decks-cards-row">
-          {decks.map((d) => (
-            <div
-              key={d.id}
-              className={`deck-card ${selectedDeck === d.id ? 'selected' : ''}`}
-              onClick={() => setSelectedDeck(d.id)}
-            >
-              <h3>{d.name}</h3>
-              <div className="deck-cards-preview">
-                {(enrichDeckWithCards(d, allCards).cardsResolved || []).slice(0, 8).map(({ card, count }, i) => (
-                  <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="sm" />
-                ))}
+        {!selectedHeroId ? (
+          <p className="play-page-deck-hint">Сначала выберите героя выше.</p>
+        ) : decksForHero.length === 0 ? (
+          <p className="play-page-deck-hint">
+            Нет колод для этого героя.
+            {' '}
+            <Link to={`/decks/new?heroId=${encodeURIComponent(selectedHeroId)}`} className="play-page-deck-hint-link">
+              Создать колоду
+            </Link>
+          </p>
+        ) : (
+          <div className="decks-cards-row">
+            {decksForHero.map((d) => (
+              <div
+                key={d.id}
+                className={`deck-card ${selectedDeck === d.id ? 'selected' : ''}`}
+                onClick={() => setSelectedDeck(d.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedDeck(d.id);
+                  }
+                }}
+              >
+                <h3>{d.name}</h3>
+                <div className="deck-cards-preview">
+                  {(enrichDeckWithCards(d, allCards).cardsResolved || []).slice(0, 8).map(({ card, count }, i) => (
+                    <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="sm" />
+                  ))}
+                </div>
+                <span className="deck-card-count">{d.cards?.reduce((s, x) => s + (x.count || 0), 0) || 0} карт</span>
               </div>
-              <span className="deck-card-count">{d.cards?.reduce((s, x) => s + (x.count || 0), 0) || 0} карт</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
       {selectedDeckEnriched?.cardsResolved && (
         <div className="selected-deck-cards">
@@ -207,7 +242,7 @@ export default function PlayPage() {
         </div>
       )}
       <div className="play-page-cta">
-        <button type="button" onClick={findMatch} disabled={loading || heroesLoading || !selectedDeck || !selectedHeroId || !connected} className="btn btn-primary">
+        <button type="button" onClick={findMatch} disabled={loading || heroesLoading || !selectedDeck || !selectedHeroId || decksForHero.length === 0 || !connected} className="btn btn-primary">
           {!connected ? 'Подключение...' : loading ? 'Поиск...' : 'Найти матч'}
         </button>
       </div>

@@ -14,6 +14,10 @@ public class CreateDeckRequest {
     @Size(min = 1, max = 50)
     private String name;
 
+    @NotBlank
+    @Size(max = 64)
+    private String heroId;
+
     @Valid
     @Size(min = 1, max = 30)
     private List<DeckCardSlotDto> cards;

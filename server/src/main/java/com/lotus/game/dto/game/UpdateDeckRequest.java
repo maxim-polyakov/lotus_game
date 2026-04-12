@@ -12,6 +12,9 @@ public class UpdateDeckRequest {
     @Size(min = 1, max = 50)
     private String name;
 
+    @Size(max = 64)
+    private String heroId;
+
     @Valid
     @Size(min = 1, max = 30)
     private List<DeckCardSlotDto> cards;

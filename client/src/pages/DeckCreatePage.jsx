@@ -1,17 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import CardDisplay from '../components/CardDisplay';
+import { useHeroPreference } from '../context/HeroPreferenceContext';
 
 const DECK_SIZE = 30;
 
 export default function DeckCreatePage() {
+  const [searchParams] = useSearchParams();
+  const { heroes, loading: heroesLoading } = useHeroPreference();
   const [name, setName] = useState('');
   const [cards, setCards] = useState([]);
   const [slots, setSlots] = useState([]); // { cardType, cardId, count }
+  const [heroId, setHeroId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unlocked = (heroes || []).filter((h) => h.unlocked === true);
+    if (unlocked.length === 0) return;
+    const q = searchParams.get('heroId');
+    if (q && unlocked.some((h) => h.id === q)) {
+      setHeroId(q);
+      return;
+    }
+    setHeroId((prev) => (prev && unlocked.some((h) => h.id === prev) ? prev : unlocked[0].id));
+  }, [searchParams, heroes]);
 
   const loadCards = useCallback(() => {
     setError('');
@@ -78,10 +93,15 @@ export default function DeckCreatePage() {
       setError('Введите название колоды');
       return;
     }
+    if (!heroId) {
+      setError('Выберите героя для колоды');
+      return;
+    }
     setLoading(true);
     try {
       await api.post('/api/decks', {
         name: name.trim(),
+        heroId,
         cards: slots.map((s) => ({
           cardType: s.cardType,
           cardId: s.cardId,
@@ -111,6 +131,29 @@ export default function DeckCreatePage() {
         </div>
       )}
       <form onSubmit={handleSubmit} className="deck-create-form">
+        <div className="form-group">
+          <label htmlFor="deck-create-hero">Герой *</label>
+          <select
+            id="deck-create-hero"
+            value={heroId}
+            onChange={(e) => setHeroId(e.target.value)}
+            disabled={heroesLoading || (heroes || []).filter((h) => h.unlocked === true).length === 0}
+            required
+          >
+            {(heroes || []).filter((h) => h.unlocked === true).length === 0 ? (
+              <option value="">Нет разблокированных героев</option>
+            ) : (
+              (heroes || [])
+                .filter((h) => h.unlocked === true)
+                .map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))
+            )}
+          </select>
+          <p className="form-hint-muted">Колода будет доступна только с этим героем в матче.</p>
+        </div>
         <div className="form-group">
           <label>Название колоды *</label>
           <input
