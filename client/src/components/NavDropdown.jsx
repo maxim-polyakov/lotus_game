@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 
 /**
@@ -14,12 +15,50 @@ export default function NavDropdown({
   menuAlign = 'right',
 }) {
   const [open, setOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState(null);
   const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    const place = () => {
+      const el = triggerRef.current;
+      if (!el) {
+        setMenuStyle(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const menuWidth = Math.max(r.width, 176);
+      let left = menuAlign === 'right' ? r.right - menuWidth : r.left;
+      left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
+      setMenuStyle({
+        position: 'fixed',
+        top: r.bottom + 6,
+        left,
+        minWidth: menuWidth,
+        zIndex: 500,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, menuAlign]);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+      const t = e.target;
+      if (rootRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
@@ -34,12 +73,38 @@ export default function NavDropdown({
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
+  const menuNode =
+    open &&
+    menuStyle &&
+    createPortal(
+      <div
+        ref={menuRef}
+        className="nav-dropdown-menu nav-dropdown-menu--portal"
+        style={menuStyle}
+        role="menu"
+      >
+        {items.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={`nav-dropdown-item ${item.variant === 'primary' ? 'nav-dropdown-item--primary' : ''}`}
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>,
+      document.body
+    );
+
   return (
     <div
       className={`nav-dropdown ${menuAlign === 'left' ? 'nav-dropdown--menu-left' : ''}`}
       ref={rootRef}
     >
       <button
+        ref={triggerRef}
         type="button"
         className={`nav-dropdown-trigger ${buttonClassName}`}
         aria-expanded={open}
@@ -49,21 +114,7 @@ export default function NavDropdown({
         <span className="nav-dropdown-label">{label}</span>
         <span className="nav-dropdown-caret" aria-hidden>{open ? '\u25B2' : '\u25BC'}</span>
       </button>
-      {open && (
-        <div className="nav-dropdown-menu" role="menu">
-          {items.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`nav-dropdown-item ${item.variant === 'primary' ? 'nav-dropdown-item--primary' : ''}`}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      )}
+      {menuNode}
     </div>
   );
 }

@@ -24,15 +24,15 @@ export default function HomePage() {
               <img src="/lotus.jpg" alt="" />
               <span className="header-logo-text">Lotus Game</span>
             </h1>
+            <span className="header-user">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="header-avatar" />
+              ) : (
+                <span className="header-avatar-placeholder">{user.username?.charAt(0)?.toUpperCase() || '?'}</span>
+              )}
+              <span className="header-username">{user.username}</span>
+            </span>
             <div className="header-actions">
-              <span className="header-user">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="header-avatar" />
-                ) : (
-                  <span className="header-avatar-placeholder">{user.username?.charAt(0)?.toUpperCase() || '?'}</span>
-                )}
-                <span className="header-username">{user.username}</span>
-              </span>
               <div className="header-buttons">
                 <div className="header-nav-primary">
                   <NavDropdown

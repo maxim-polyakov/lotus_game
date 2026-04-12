@@ -629,6 +629,9 @@ header .header-logo {
   margin: 0;
   font-size: 1.25rem;
   min-width: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 header .header-logo-link {
   display: flex;
@@ -654,7 +657,10 @@ header .header-user {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-right: 0.5rem;
+  margin: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 .header-avatar {
   width: 32px;
@@ -719,7 +725,10 @@ header .header-username {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
   z-index: 400;
 }
-.nav-dropdown--menu-left .nav-dropdown-menu {
+.nav-dropdown-menu--portal {
+  position: fixed;
+}
+.nav-dropdown--menu-left .nav-dropdown-menu:not(.nav-dropdown-menu--portal) {
   right: auto;
   left: 0;
 }
@@ -2633,14 +2642,14 @@ header .header-username {
 
 /* ========== АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ УСТРОЙСТВА ========== */
 
-/* Мобильная шапка: одна полоса без скролла — кнопки и значки плавно уменьшаются (clamp) */
+/* Мобильная шапка: логотип и аватар фиксированы; кнопки — в прокручиваемой полосе (меню в портале) */
 @media (max-width: 768px) {
   body { font-size: 15px; }
   header {
     padding: clamp(0.35rem, 0.25rem + 0.6vw, 0.55rem) clamp(0.35rem, 0.2rem + 1vw, 0.65rem);
     padding-left: max(clamp(0.35rem, 0.2rem + 1vw, 0.65rem), env(safe-area-inset-left));
     padding-right: max(clamp(0.35rem, 0.2rem + 1vw, 0.65rem), env(safe-area-inset-right));
-    gap: clamp(0.2rem, 0.1rem + 0.85vw, 0.45rem);
+    gap: clamp(0.25rem, 0.15rem + 0.65vw, 0.45rem);
     flex-wrap: nowrap;
     align-items: center;
     min-width: 0;
@@ -2650,35 +2659,47 @@ header .header-username {
   }
   header .header-logo {
     font-size: clamp(0.78rem, 0.62rem + 0.85vw, 0.95rem);
-    flex: 0 1 auto;
+    flex: 0 0 auto;
+    flex-shrink: 0;
     min-width: 0;
-    max-width: min(36vw, 8.5rem);
+    max-width: min(32vw, 7.5rem);
   }
   header .header-logo img {
     height: clamp(18px, 10px + 3.2vw, 26px);
     width: auto;
   }
+  header .header-user {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-width: 0;
+  }
   header .header-actions {
-    gap: clamp(0.15rem, 0.08rem + 0.75vw, 0.4rem);
+    gap: clamp(0.12rem, 0.06rem + 0.55vw, 0.35rem);
     flex-wrap: nowrap;
     min-width: 0;
     flex: 1 1 0;
-    justify-content: flex-end;
-    overflow-x: visible;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
   header .header-actions-guest {
     flex: 1 1 0;
     min-width: 0;
-    overflow-x: visible;
+    overflow-x: auto;
     flex-wrap: nowrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
   header .header-buttons {
     gap: clamp(0.12rem, 0.06rem + 0.65vw, 0.55rem);
     flex-wrap: nowrap;
-    justify-content: flex-end;
-    flex: 1 1 auto;
-    min-width: 0;
+    justify-content: flex-start;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-width: min-content;
   }
   header .header-nav-primary,
   header .header-nav-secondary {
@@ -2693,7 +2714,7 @@ header .header-username {
     padding: clamp(0.18rem, 0.1rem + 0.65vw, 0.4rem) clamp(0.22rem, 0.12rem + 1.1vw, 0.55rem);
     font-size: clamp(0.56rem, 0.38rem + 1.15vw, 0.82rem);
     min-height: clamp(1.42rem, 0.95rem + 2.4vw, 2.05rem);
-    flex-shrink: 1;
+    flex-shrink: 0;
     white-space: nowrap;
     line-height: 1.15;
   }
@@ -2709,9 +2730,6 @@ header .header-username {
     flex-shrink: 0;
   }
   header .header-user {
-    margin-right: clamp(0.1rem, 0.05rem + 0.4vw, 0.28rem);
-    flex-shrink: 1;
-    min-width: 0;
     margin-bottom: 0;
   }
   header .header-actions .navbar-hero-select {
@@ -2735,11 +2753,10 @@ header .header-username {
     white-space: nowrap;
   }
   header .nav-dropdown {
-    flex-shrink: 1;
-    min-width: 0;
+    flex-shrink: 0;
   }
   header .nav-dropdown-trigger {
-    max-width: min(9.5rem, 46vw);
+    max-width: min(8.5rem, 40vw);
   }
 }
 
