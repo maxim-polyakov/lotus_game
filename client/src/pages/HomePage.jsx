@@ -4,11 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import TutorialModal from '../components/TutorialModal';
+import NavDropdown from '../components/NavDropdown';
+
 export default function HomePage() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { soundEnabled, toggleSound } = useSettings();
   const [tutorialOpen, setTutorialOpen] = useState(false);
+
+  const isAdmin =
+    Array.isArray(user?.roles) && user.roles.some((r) => r === 'ROLE_ADMIN');
 
   return (
     <div className="home-page">
@@ -30,16 +35,26 @@ export default function HomePage() {
               </span>
               <div className="header-buttons">
                 <div className="header-nav-primary">
-                  <Link to="/heroes" className="btn btn-primary">Герои</Link>
-                  <Link to="/decks" className="btn btn-primary">Колоды</Link>
+                  <NavDropdown
+                    label="Герои и колоды"
+                    buttonClassName="btn btn-primary"
+                    items={[
+                      { to: '/heroes', label: 'Герои' },
+                      { to: '/decks', label: 'Колоды' },
+                    ]}
+                  />
                   <Link to="/play" className="btn btn-primary">Играть</Link>
                 </div>
                 <div className="header-nav-secondary">
-                  <Link to="/replays" className="btn btn-outline">Реплеи</Link>
-                  <Link to="/profile" className="btn btn-outline">Профиль</Link>
-                  {user.roles?.includes('ROLE_ADMIN') && (
-                    <Link to="/admin" className="btn btn-outline">Админ</Link>
-                  )}
+                  <NavDropdown
+                    label="Аккаунт"
+                    buttonClassName="btn btn-outline"
+                    items={[
+                      { to: '/profile', label: 'Профиль' },
+                      { to: '/replays', label: 'Реплеи' },
+                      ...(isAdmin ? [{ to: '/admin', label: 'Админ' }] : []),
+                    ]}
+                  />
                   <Link to="/leaderboard" className="btn btn-outline">Рейтинг</Link>
                   <button type="button" onClick={() => setTutorialOpen(true)} className="btn btn-outline">Правила</button>
                 </div>
