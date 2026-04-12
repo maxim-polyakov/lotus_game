@@ -107,12 +107,9 @@ export default function PlayPage() {
 
   return (
     <div className="play-page">
-      <div className="play-page-toolbar play-page-toolbar-with-hero">
+      <div className="play-page-toolbar">
         <h1>Найти матч</h1>
         <div className="play-page-toolbar-right">
-          <Link to="/heroes" className="btn btn-outline play-page-hero-pill">
-            {selectedHero ? `Герой: ${selectedHero.name}` : 'Выбрать героя'}
-          </Link>
           <Link to="/" className="btn btn-secondary">Назад</Link>
         </div>
       </div>
@@ -143,6 +140,40 @@ export default function PlayPage() {
             <small>Без изменения рейтинга</small>
           </label>
         </div>
+      </div>
+      <div className="play-page-hero-section">
+        <div className="play-page-hero-label">Ваш герой</div>
+        <Link
+          to="/heroes"
+          className={`play-page-hero-card${heroesLoading && !selectedHero ? ' play-page-hero-card--loading' : ''}`}
+        >
+          <div
+            className={`play-page-hero-avatar hero-card-portrait hero-card-portrait--${selectedHero?.id || 'default'}`}
+            aria-hidden
+          >
+            {selectedHero?.portraitUrl ? (
+              <img src={selectedHero.portraitUrl} alt="" />
+            ) : (
+              <span>{(selectedHero?.name || (heroesLoading ? '…' : '?')).charAt(0)}</span>
+            )}
+          </div>
+          <div className="play-page-hero-info">
+            {heroesLoading && !selectedHero ? (
+              <span className="play-page-hero-placeholder">Загрузка героев…</span>
+            ) : selectedHero ? (
+              <>
+                <span className="play-page-hero-name">{selectedHero.name}</span>
+                {selectedHero.title ? (
+                  <span className="play-page-hero-title">{selectedHero.title}</span>
+                ) : null}
+                <span className="play-page-hero-meta">{selectedHero.startingHealth} HP</span>
+              </>
+            ) : (
+              <span className="play-page-hero-placeholder">Не выбран — нажмите, чтобы открыть список героев</span>
+            )}
+          </div>
+          <span className="play-page-hero-change">Изменить</span>
+        </Link>
       </div>
       <div className="deck-selection">
         <label>Выберите колоду:</label>

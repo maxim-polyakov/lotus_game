@@ -1044,10 +1044,85 @@ header .header-username {
 .heroes-page-grid {
   margin-top: 0.5rem;
 }
-.play-page-hero-pill {
-  max-width: 16rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.play-page-hero-section {
+  margin: 0.25rem 0 1rem;
+}
+.play-page-hero-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+.play-page-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--border, #e8e8e8);
+  border-radius: 12px;
+  background: var(--card-bg, #fff);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 4.25rem;
+  box-sizing: border-box;
+}
+.play-page-hero-card:hover {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.06);
+}
+.play-page-hero-card:focus-visible {
+  outline: 2px solid #e74c3c;
+  outline-offset: 2px;
+}
+.play-page-hero-card--loading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+.play-page-hero-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  font-size: 1.35rem;
+}
+.play-page-hero-avatar.hero-card-portrait {
+  width: 64px;
+  height: 64px;
+}
+.play-page-hero-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+}
+.play-page-hero-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+.play-page-hero-title {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+.play-page-hero-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.play-page-hero-placeholder {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+.play-page-hero-change {
+  flex-shrink: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e74c3c;
   white-space: nowrap;
 }
 .hero-card-portrait {
@@ -1202,10 +1277,6 @@ header .header-username {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-.play-page-toolbar-with-hero h1 {
-  flex: 1;
-  min-width: 0;
 }
 .enemy-hero.attack-target {
   cursor: pointer;
@@ -2556,6 +2627,9 @@ header .header-username {
   .play-page,
   .decks-page {
     padding: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
   .play-page h1,
   .decks-page h1 {
@@ -2571,6 +2645,37 @@ header .header-username {
   .play-page .mode-option {
     min-width: 0;
     width: 100%;
+  }
+  .play-page > div.play-page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+  .play-page-toolbar-right {
+    width: 100%;
+  }
+  .play-page-toolbar-right .btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  .play-page-hero-card {
+    padding: 0.85rem 0.9rem;
+    gap: 0.75rem;
+    min-height: 4.5rem;
+  }
+  .play-page-hero-avatar,
+  .play-page-hero-avatar.hero-card-portrait {
+    width: 56px;
+    height: 56px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+  }
+  .play-page-hero-name {
+    font-size: 1rem;
+  }
+  .play-page-hero-change {
+    font-size: 0.82rem;
   }
   .play-page .deck-selection {
     margin: 1rem 0;
@@ -2617,6 +2722,9 @@ header .header-username {
   .play-page,
   .decks-page {
     padding: 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
   .play-page select {
     width: 100%;
@@ -2631,6 +2739,23 @@ header .header-username {
   }
   .play-page .mode-option small {
     font-size: 0.75rem;
+  }
+  .play-page-hero-card {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+  .play-page-hero-info {
+    flex: 1 1 calc(100% - 76px);
+    min-width: 8rem;
+  }
+  .play-page-hero-change {
+    flex: 1 1 100%;
+    text-align: right;
+    padding-top: 0.15rem;
+    border-top: 1px solid var(--border, #eee);
+    margin: 0 -0.25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
   }
   .play-page .deck-card {
     padding: 0.85rem;
