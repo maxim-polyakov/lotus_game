@@ -911,10 +911,150 @@ header .header-username {
   }
 }
 .enemy-hero {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-weight: 600;
+}
+.enemy-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-items: flex-start;
+}
+.enemy-hero-name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+.enemy-hero-hp {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted, #666);
+}
+.replay-hero-static.enemy-hero {
+  cursor: default;
+}
+.hero-portrait-sm {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+  flex-shrink: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.hero-portrait-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-portrait-sm--lotus_guardian,
+.hero-card-portrait--lotus_guardian { background: linear-gradient(145deg, #8e44ad, #3498db); }
+.hero-portrait-sm--ember_mage,
+.hero-card-portrait--ember_mage { background: linear-gradient(145deg, #c0392b, #f39c12); }
+.hero-portrait-sm--thorn_ranger,
+.hero-card-portrait--thorn_ranger { background: linear-gradient(145deg, #27ae60, #2ecc71); }
+.hero-portrait-sm--tide_shaman,
+.hero-card-portrait--tide_shaman { background: linear-gradient(145deg, #16a085, #3498db); }
+.hero-portrait-sm--void_rogue,
+.hero-card-portrait--void_rogue { background: linear-gradient(145deg, #2c3e50, #9b59b6); }
+.hero-portrait-sm--sun_paladin,
+.hero-card-portrait--sun_paladin { background: linear-gradient(145deg, #f1c40f, #e67e22); }
+.hero-portrait-sm--default,
+.hero-card-portrait--default { background: linear-gradient(145deg, #7f8c8d, #34495e); }
+
+.my-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+.my-hero-stats {
+  font-size: 0.95rem;
+}
+
+.hero-selection {
+  margin-bottom: 1rem;
+}
+.hero-selection > label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+.hero-selection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.hero-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem;
+  min-width: 6.5rem;
+  max-width: 8.5rem;
+  border: 2px solid var(--border, #ddd);
+  border-radius: 10px;
+  background: var(--card-bg, #fff);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+}
+.hero-card:hover {
+  border-color: #e74c3c;
+}
+.hero-card.selected {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.25);
+}
+.hero-card-portrait {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #fff;
+}
+.hero-card-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-card-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+.hero-card-hp {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.hero-card-title {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+  margin: 0;
+}
+.waiting-hero-picked {
+  margin: 0.5rem 0 1rem;
+  color: var(--text-muted);
 }
 .enemy-hero.attack-target {
   cursor: pointer;

@@ -6,4 +6,5 @@ import lombok.Data;
 public class FindMatchWsRequest {
     private Long deckId;
     private String mode;
+    private String heroId;
 }

@@ -37,7 +37,7 @@ export function MatchWebSocketProvider({ children }) {
     };
   }, []);
 
-  const findMatch = useCallback((deckId, mode) => {
+  const findMatch = useCallback((deckId, mode, heroId) => {
     return new Promise((resolve, reject) => {
       const client = clientRef.current;
       if (!client?.connected) {
@@ -59,7 +59,7 @@ export function MatchWebSocketProvider({ children }) {
 
       client.publish({
         destination: '/app/matches/find',
-        body: JSON.stringify({ deckId, mode: mode || 'RANKED' }),
+        body: JSON.stringify({ deckId, mode: mode || 'RANKED', heroId }),
       });
     });
   }, []);

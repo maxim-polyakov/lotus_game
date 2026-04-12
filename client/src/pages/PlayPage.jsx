@@ -21,6 +21,8 @@ export default function PlayPage() {
   const { findMatch: wsFindMatch, getMatch: wsGetMatch, connected } = useMatchWebSocket();
   const [decks, setDecks] = useState([]);
   const [allCards, setAllCards] = useState([]);
+  const [heroes, setHeroes] = useState([]);
+  const [selectedHeroId, setSelectedHeroId] = useState(null);
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [matchMode, setMatchMode] = useState('RANKED');
   const [match, setMatch] = useState(null);
@@ -31,10 +33,14 @@ export default function PlayPage() {
     Promise.all([
       api.get('/api/decks').then(({ data }) => data),
       api.get('/api/cards').then(({ data }) => data),
+      api.get('/api/heroes').then(({ data }) => data).catch(() => []),
     ])
-      .then(([decksData, cardsData]) => {
+      .then(([decksData, cardsData, heroesData]) => {
         setDecks(decksData);
         setAllCards(cardsData);
+        const list = heroesData || [];
+        setHeroes(list);
+        setSelectedHeroId((prev) => (prev == null && list[0] ? list[0].id : prev));
       })
       .catch(console.error);
   }, []);
@@ -70,10 +76,14 @@ export default function PlayPage() {
       setError('Выберите колоду');
       return;
     }
+    if (!selectedHeroId) {
+      setError('Выберите героя');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
-      const data = await wsFindMatch(selectedDeck, matchMode);
+      const data = await wsFindMatch(selectedDeck, matchMode, selectedHeroId);
       setMatch(data);
     } catch (err) {
       const msg = err?.message || 'Ошибка при поиске матча';
@@ -133,6 +143,26 @@ export default function PlayPage() {
           </label>
         </div>
       </div>
+      <div className="hero-selection">
+        <label>Выберите героя:</label>
+        <div className="hero-selection-grid">
+          {heroes.map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              className={`hero-card ${selectedHeroId === h.id ? 'selected' : ''}`}
+              onClick={() => setSelectedHeroId(h.id)}
+            >
+              <div className={`hero-card-portrait hero-card-portrait--${h.id}`}>
+                {h.portraitUrl ? <img src={h.portraitUrl} alt="" /> : <span>{(h.name || '?').charAt(0)}</span>}
+              </div>
+              <span className="hero-card-name">{h.name}</span>
+              <span className="hero-card-hp">{h.startingHealth} HP</span>
+              {h.title && <small className="hero-card-title">{h.title}</small>}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="deck-selection">
         <label>Выберите колоду:</label>
         <div className="decks-cards-row">
@@ -164,7 +194,7 @@ export default function PlayPage() {
         </div>
       )}
       <div className="play-page-cta">
-        <button type="button" onClick={findMatch} disabled={loading || !selectedDeck || !connected} className="btn btn-primary">
+        <button type="button" onClick={findMatch} disabled={loading || !selectedDeck || !selectedHeroId || !connected} className="btn btn-primary">
           {!connected ? 'Подключение...' : loading ? 'Поиск...' : 'Найти матч'}
         </button>
       </div>

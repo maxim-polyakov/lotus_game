@@ -292,7 +292,13 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
             onClick={() => (selectedAttacker || selectedSpell || selectedBattlecry?.card?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && canAttackHero && handleTargetClick('hero')}
             title={(selectedAttacker || selectedSpell || selectedBattlecry?.card?.battlecryType === 'DEAL_DAMAGE') && !enemy.board?.length && canAttackHero ? 'Нажмите для атаки/заклинания/Battlecry' : ''}
           >
-            Соперник: HP {enemy.health}
+            <div className={`hero-portrait-sm hero-portrait-sm--${enemy.heroId || 'default'}`}>
+              {enemy.portraitUrl ? <img src={enemy.portraitUrl} alt="" /> : <span>{(enemy.heroName || 'С').charAt(0)}</span>}
+            </div>
+            <div className="enemy-hero-text">
+              <span className="enemy-hero-name">{enemy.heroName || 'Соперник'}</span>
+              <span className="enemy-hero-hp">HP {enemy.health}{enemy.maxHeroHealth != null ? ` / ${enemy.maxHeroHealth}` : ''}</span>
+            </div>
           </div>
         </div>
         <div className="board">
@@ -418,7 +424,12 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
           })}
         </div>
         <div className="my-hero-row">
-          <span>Мана: {me.mana} | HP: {me.health} | В колоде: {me.deck?.length ?? 0}</span>
+          <div className={`hero-portrait-sm hero-portrait-sm--${me.heroId || 'default'}`}>
+            {me.portraitUrl ? <img src={me.portraitUrl} alt="" /> : <span>{(me.heroName || 'Я').charAt(0)}</span>}
+          </div>
+          <span className="my-hero-stats">
+            {me.heroName ? `${me.heroName} · ` : ''}Мана: {me.mana} | HP: {me.health}{me.maxHeroHealth != null ? ` / ${me.maxHeroHealth}` : ''} | В колоде: {me.deck?.length ?? 0}
+          </span>
           {selectedBattlecry?.card?.battlecryType === 'HEAL' && (
             <button type="button" className="btn btn-outline btn-sm" onClick={() => handleTargetClick('hero')}>
               Лечить себя

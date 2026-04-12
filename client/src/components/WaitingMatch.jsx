@@ -1,9 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useMatchWebSocket } from '../context/MatchWebSocketContext';
 
 export default function WaitingMatch({ match, onUpdate, onCancel }) {
   const { subscribeToMatch, connected } = useMatchWebSocket();
+  const [myHeroName, setMyHeroName] = useState('');
+
+  useEffect(() => {
+    if (!match?.hero1Id) return;
+    api.get('/api/heroes')
+      .then(({ data }) => {
+        const h = (data || []).find((x) => x.id === match.hero1Id);
+        if (h?.name) setMyHeroName(h.name);
+      })
+      .catch(() => {});
+  }, [match?.hero1Id]);
 
   useEffect(() => {
     if (connected) {
@@ -24,7 +35,10 @@ export default function WaitingMatch({ match, onUpdate, onCancel }) {
     <div className="play-page">
       <h2>Ожидание соперника...</h2>
       <p>Матч #{match.id}</p>
-      <button onClick={onCancel} className="btn btn-secondary">Отмена</button>
+      {myHeroName && (
+        <p className="waiting-hero-picked">Ваш герой: <strong>{myHeroName}</strong></p>
+      )}
+      <button type="button" onClick={onCancel} className="btn btn-secondary">Отмена</button>
     </div>
   );
 }

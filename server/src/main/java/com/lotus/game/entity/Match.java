@@ -32,6 +32,12 @@ public class Match {
     @Column(name = "deck2_id")
     private Long deck2Id;
 
+    @Column(name = "hero1_id", length = 64)
+    private String hero1Id;
+
+    @Column(name = "hero2_id", length = 64)
+    private String hero2Id;
+
     @Column(name = "player1_rating")
     private Integer player1Rating;
 

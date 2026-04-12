@@ -27,7 +27,7 @@ public class MatchWebSocketController {
     public MatchDto findMatch(@Payload FindMatchWsRequest request, Principal principal) {
         GameUserDetails user = (GameUserDetails) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal).getPrincipal();
         Match.MatchMode mode = "CASUAL".equalsIgnoreCase(request.getMode()) ? Match.MatchMode.CASUAL : Match.MatchMode.RANKED;
-        return matchService.findOrCreateMatch(user.getId(), request.getDeckId(), mode);
+        return matchService.findOrCreateMatch(user.getId(), request.getDeckId(), mode, request.getHeroId());
     }
 
     @MessageMapping("/matches/{matchId}/play")

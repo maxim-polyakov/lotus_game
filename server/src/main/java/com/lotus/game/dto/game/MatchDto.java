@@ -13,6 +13,8 @@ public class MatchDto {
     private Long player2Id;
     private Long deck1Id;
     private Long deck2Id;
+    private String hero1Id;
+    private String hero2Id;
     private Match.MatchMode matchMode;
     private Match.MatchStatus status;
     private Long winnerId;
@@ -27,6 +29,8 @@ public class MatchDto {
                 .player2Id(match.getPlayer2Id())
                 .deck1Id(match.getDeck1Id())
                 .deck2Id(match.getDeck2Id())
+                .hero1Id(match.getHero1Id())
+                .hero2Id(match.getHero2Id())
                 .matchMode(match.getMatchMode())
                 .status(match.getStatus())
                 .winnerId(match.getWinnerId())

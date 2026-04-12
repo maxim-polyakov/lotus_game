@@ -27,7 +27,6 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class MatchService {
 
-    private static final int STARTING_HEALTH = 30;
     private static final int MAX_MANA = 10;
     private static final int MAX_BOARD_SIZE = 7;
     private static final int MAX_HAND_SIZE = 10;
@@ -41,9 +40,15 @@ public class MatchService {
     private final SpellRepository spellRepository;
     private final MatchBroadcastService broadcastService;
     private final CacheManager cacheManager;
+    private final HeroCatalog heroCatalog;
 
     @Transactional
-    public MatchDto findOrCreateMatch(Long userId, Long deckId, Match.MatchMode mode) {
+    public MatchDto findOrCreateMatch(Long userId, Long deckId, Match.MatchMode mode, String heroId) {
+        if (heroId == null || heroId.isBlank()) {
+            throw new IllegalArgumentException("Выберите героя");
+        }
+        heroCatalog.requireValid(heroId.trim());
+
         Deck deck = deckRepository.findById(deckId)
                 .orElseThrow(() -> new IllegalArgumentException("Deck not found: " + deckId));
         if (!deck.getUserId().equals(userId)) {
@@ -63,6 +68,7 @@ public class MatchService {
             Match match = waitingList.get(ThreadLocalRandom.current().nextInt(waitingList.size()));
             match.setPlayer2Id(userId);
             match.setDeck2Id(deckId);
+            match.setHero2Id(heroId.trim());
             match.setPlayer2Rating(myRating);
             match.setStatus(Match.MatchStatus.IN_PROGRESS);
             match.setCurrentTurnPlayerId(match.getPlayer1Id());
@@ -78,6 +84,7 @@ public class MatchService {
         Match match = Match.builder()
                 .player1Id(userId)
                 .deck1Id(deckId)
+                .hero1Id(heroId.trim())
                 .player1Rating(myRating)
                 .matchMode(mode)
                 .status(Match.MatchStatus.WAITING)
@@ -252,7 +259,7 @@ public class MatchService {
             int dmg = attacker.getAttack();
             enemy.setHealth(enemy.getHealth() - dmg);
             if (attacker.isLifesteal() && dmg > 0) {
-                player.setHealth(Math.min(player.getHealth() + dmg, STARTING_HEALTH));
+                player.setHealth(Math.min(player.getHealth() + dmg, heroHealthCap(player)));
             }
             applyAttackExhaust(attacker);
             if (enemy.getHealth() <= 0) {
@@ -280,7 +287,7 @@ public class MatchService {
             }
             int lifestealHeal = (attacker.isLifesteal() && (dmg > 0 || poisonousKill)) ? dmg : 0;
             if (lifestealHeal > 0) {
-                player.setHealth(Math.min(player.getHealth() + lifestealHeal, STARTING_HEALTH));
+                player.setHealth(Math.min(player.getHealth() + lifestealHeal, heroHealthCap(player)));
             }
             if (attacker.isDivineShield()) {
                 attacker.setDivineShield(false);
@@ -379,6 +386,12 @@ public class MatchService {
         return match;
     }
 
+    private static int heroHealthCap(GameState.PlayerState p) {
+        Integer m = p.getMaxHeroHealth();
+        if (m != null && m > 0) return m;
+        return 30;
+    }
+
     private GameState initGameState(Match match) {
         Deck deck1 = deckRepository.findById(match.getDeck1Id()).orElseThrow();
         Deck deck2 = deckRepository.findById(match.getDeck2Id()).orElseThrow();
@@ -388,8 +401,19 @@ public class MatchService {
         Collections.shuffle(deck1Refs);
         Collections.shuffle(deck2Refs);
 
+        HeroDto h1 = heroCatalog.resolveForMatch(match.getHero1Id());
+        HeroDto h2 = heroCatalog.resolveForMatch(match.getHero2Id());
+        int hp1 = h1.getStartingHealth();
+        int hp2 = h2.getStartingHealth();
+        String portrait1 = h1.getPortraitUrl() != null ? h1.getPortraitUrl() : "";
+        String portrait2 = h2.getPortraitUrl() != null ? h2.getPortraitUrl() : "";
+
         GameState.PlayerState p1 = GameState.PlayerState.builder()
-                .health(STARTING_HEALTH)
+                .heroId(h1.getId())
+                .heroName(h1.getName())
+                .portraitUrl(portrait1)
+                .maxHeroHealth(hp1)
+                .health(hp1)
                 .mana(1)
                 .maxMana(1)
                 .deck(deck1Refs)
@@ -397,7 +421,11 @@ public class MatchService {
                 .board(new ArrayList<>())
                 .build();
         GameState.PlayerState p2 = GameState.PlayerState.builder()
-                .health(STARTING_HEALTH)
+                .heroId(h2.getId())
+                .heroName(h2.getName())
+                .portraitUrl(portrait2)
+                .maxHeroHealth(hp2)
+                .health(hp2)
                 .mana(0)
                 .maxMana(0)
                 .deck(deck2Refs)
@@ -513,7 +541,7 @@ public class MatchService {
                 throw new IllegalArgumentException("Battlecry Heal: укажите цель (союзник или hero)");
             }
             if ("hero".equalsIgnoreCase(tid)) {
-                player.setHealth(Math.min(player.getHealth() + val, STARTING_HEALTH));
+                player.setHealth(Math.min(player.getHealth() + val, heroHealthCap(player)));
             } else {
                 GameState.BoardMinion target = player.getBoard().stream()
                         .filter(m -> m.getInstanceId().equals(tid))

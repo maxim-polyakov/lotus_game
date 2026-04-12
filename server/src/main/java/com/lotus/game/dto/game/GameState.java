@@ -26,6 +26,12 @@ public class GameState {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PlayerState {
+        /** Герой: id, имя и портрет для UI; maxHeroHealth — потолок лечения (стартовое HP) */
+        private String heroId;
+        private String heroName;
+        private String portraitUrl;
+        @Builder.Default
+        private Integer maxHeroHealth = 30;
         @Builder.Default
         private int health = 30;
         @Builder.Default

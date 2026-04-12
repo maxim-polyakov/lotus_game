@@ -101,8 +101,14 @@ export default function ReplayPage() {
       <div className="replay-board">
         <div className="enemy-area">
           <div className="enemy-header">
-            <div className="enemy-hero">
-              Игрок 2: HP {p2?.health ?? '?'} | Мана: {p2?.mana ?? '?'}
+            <div className="enemy-hero replay-hero-static">
+              <div className={`hero-portrait-sm hero-portrait-sm--${p2?.heroId || 'default'}`}>
+                {p2?.portraitUrl ? <img src={p2.portraitUrl} alt="" /> : <span>{(p2?.heroName || '2').charAt(0)}</span>}
+              </div>
+              <div className="enemy-hero-text">
+                <span className="enemy-hero-name">{p2?.heroName || 'Игрок 2'}</span>
+                <span className="enemy-hero-hp">HP {p2?.health ?? '?'}{p2?.maxHeroHealth != null ? ` / ${p2.maxHeroHealth}` : ''} · Мана: {p2?.mana ?? '?'}</span>
+              </div>
             </div>
           </div>
           <div className="board">
@@ -143,7 +149,14 @@ export default function ReplayPage() {
               );
             })}
           </div>
-          <div>Мана: {p1?.mana ?? '?'} | HP: {p1?.health ?? '?'}</div>
+          <div className="my-hero-row replay-hero-static">
+            <div className={`hero-portrait-sm hero-portrait-sm--${p1?.heroId || 'default'}`}>
+              {p1?.portraitUrl ? <img src={p1.portraitUrl} alt="" /> : <span>{(p1?.heroName || '1').charAt(0)}</span>}
+            </div>
+            <span className="my-hero-stats">
+              {p1?.heroName ? `${p1.heroName} · ` : ''}Мана: {p1?.mana ?? '?'} | HP: {p1?.health ?? '?'}{p1?.maxHeroHealth != null ? ` / ${p1.maxHeroHealth}` : ''}
+            </span>
+          </div>
         </div>
       </div>
     </div>

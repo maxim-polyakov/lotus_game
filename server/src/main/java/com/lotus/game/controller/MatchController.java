@@ -22,10 +22,11 @@ public class MatchController {
     @PostMapping("/find")
     public ResponseEntity<MatchDto> findOrCreateMatch(@RequestParam Long deckId,
                                                        @RequestParam(defaultValue = "RANKED") String mode,
+                                                       @RequestParam String heroId,
                                                        @AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         Match.MatchMode matchMode = "CASUAL".equalsIgnoreCase(mode) ? Match.MatchMode.CASUAL : Match.MatchMode.RANKED;
-        return ResponseEntity.ok(matchService.findOrCreateMatch(user.getId(), deckId, matchMode));
+        return ResponseEntity.ok(matchService.findOrCreateMatch(user.getId(), deckId, matchMode, heroId));
     }
 
     @GetMapping("/{id}")
