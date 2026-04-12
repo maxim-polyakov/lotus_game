@@ -101,8 +101,10 @@ export default function PlayPage() {
 
   return (
     <div className="play-page">
-      <h1>Найти матч</h1>
-      <Link to="/" className="btn btn-secondary">Назад</Link>
+      <div className="play-page-toolbar">
+        <h1>Найти матч</h1>
+        <Link to="/" className="btn btn-secondary">Назад</Link>
+      </div>
       {error && <div className="error">{error}</div>}
       <div className="mode-selection">
         <label>Режим игры:</label>
@@ -161,9 +163,11 @@ export default function PlayPage() {
           </div>
         </div>
       )}
-      <button onClick={findMatch} disabled={loading || !selectedDeck || !connected} className="btn btn-primary">
-        {!connected ? 'Подключение...' : loading ? 'Поиск...' : 'Найти матч'}
-      </button>
+      <div className="play-page-cta">
+        <button type="button" onClick={findMatch} disabled={loading || !selectedDeck || !connected} className="btn btn-primary">
+          {!connected ? 'Подключение...' : loading ? 'Поиск...' : 'Найти матч'}
+        </button>
+      </div>
     </div>
   );
 }
