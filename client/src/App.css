@@ -374,6 +374,53 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0;
   border-radius: 8px;
   font-size: 1rem;
 }
+.deck-create-form select {
+  width: 100%;
+  max-width: 28rem;
+  padding: 0.6rem 2.5rem 0.6rem 0.85rem;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text);
+  background-color: var(--card-bg, #fff);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23c0392b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1.15rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.deck-create-form select:hover:not(:disabled) {
+  border-color: #e74c3c;
+}
+.deck-create-form select:focus {
+  outline: none;
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.22);
+}
+.deck-create-form select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background-color: var(--bg, #f0f0f0);
+}
+[data-theme="dark"] .deck-create-form select {
+  border-color: var(--border);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23e74c3c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .deck-create-form select:disabled {
+  background-color: var(--bg-card);
+}
+@media (max-width: 480px) {
+  .deck-create-form select {
+    max-width: none;
+    font-size: 16px; /* iOS: без авто-зума при фокусе */
+  }
+}
 .deck-total {
   font-weight: 600;
   color: #333;
