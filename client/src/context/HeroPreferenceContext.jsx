@@ -32,7 +32,7 @@ export function HeroPreferenceProvider({ children }) {
         } catch (_) {
           stored = null;
         }
-        const isUnlocked = (h) => h.unlocked !== false;
+        const isUnlocked = (h) => h.unlocked === true;
         setSelectedHeroIdState((prev) => {
           const unlockedList = list.filter(isUnlocked);
           if (unlockedList.length === 0) {

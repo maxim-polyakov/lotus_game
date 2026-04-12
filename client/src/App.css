@@ -1018,6 +1018,38 @@ header .header-username {
   border-color: #e74c3c;
   box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.25);
 }
+.hero-card.hero-card--locked {
+  opacity: 0.68;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+.hero-card.hero-card--locked:hover {
+  border-color: var(--border, #ddd);
+  box-shadow: none;
+}
+.hero-card-lock-badge {
+  margin-left: 0.25rem;
+  font-size: 0.75em;
+}
+.heroes-page-intro {
+  margin: 0 0 1rem;
+  color: var(--text-muted, #666);
+  font-size: 0.95rem;
+  max-width: 42rem;
+}
+.heroes-page-empty {
+  margin: 0;
+  color: var(--text-muted, #666);
+}
+.heroes-page-grid {
+  margin-top: 0.5rem;
+}
+.play-page-hero-pill {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .hero-card-portrait {
   width: 52px;
   height: 52px;

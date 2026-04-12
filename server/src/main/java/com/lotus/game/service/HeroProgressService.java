@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -45,12 +45,12 @@ public class HeroProgressService {
         syncUnlockedPool(user, finished);
         userRepository.save(user);
 
-        Set<String> unlocked = new HashSet<>(user.getUnlockedHeroIds());
-        int gamesUntilNext = gamesUntilNextUnlock(finished, unlocked.size());
+        Set<String> unlockedSet = user.getUnlockedHeroIds();
+        int gamesUntilNext = gamesUntilNextUnlock(finished, unlockedSet.size());
 
         List<HeroDto> out = new ArrayList<>();
         for (HeroDto h : heroCatalog.listAll()) {
-            boolean u = unlocked.contains(h.getId());
+            boolean u = unlockedSet.contains(h.getId());
             out.add(toClientDto(h, u, u ? null : gamesUntilNext));
         }
         return out;
@@ -93,7 +93,7 @@ public class HeroProgressService {
 
     void ensureStarterHero(User user) {
         if (user.getUnlockedHeroIds() == null) {
-            user.setUnlockedHeroIds(new HashSet<>());
+            user.setUnlockedHeroIds(new LinkedHashSet<>());
         }
         if (!user.getUnlockedHeroIds().isEmpty()) {
             return;
@@ -109,8 +109,22 @@ public class HeroProgressService {
     void syncUnlockedPool(User user, long finishedMatches) {
         int cap = heroCatalog.heroCount();
         int target = (int) Math.min(cap, 1 + finishedMatches / MATCHES_PER_EXTRA_HERO);
-        Set<String> unlocked = new HashSet<>(user.getUnlockedHeroIds());
         List<String> all = heroCatalog.allHeroIds();
+        Set<String> raw = user.getUnlockedHeroIds();
+        if (raw == null) {
+            raw = new LinkedHashSet<>();
+        }
+        LinkedHashSet<String> unlocked = new LinkedHashSet<>(raw);
+        if (unlocked.size() > target) {
+            LinkedHashSet<String> trimmed = new LinkedHashSet<>();
+            for (String id : unlocked) {
+                if (trimmed.size() >= target) {
+                    break;
+                }
+                trimmed.add(id);
+            }
+            unlocked = trimmed;
+        }
         while (unlocked.size() < target) {
             List<String> locked = all.stream().filter(id -> !unlocked.contains(id)).toList();
             if (locked.isEmpty()) {

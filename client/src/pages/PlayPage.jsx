@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useMatchWebSocket } from '../context/MatchWebSocketContext';
 import { useHeroPreference } from '../context/HeroPreferenceContext';
-import NavBarHeroSelect from '../components/NavBarHeroSelect';
 import GameBoard from '../components/GameBoard';
 import WaitingMatch from '../components/WaitingMatch';
 import CardDisplay from '../components/CardDisplay';
@@ -21,7 +20,7 @@ const ACTIVE_MATCH_KEY = 'lotus_active_match_id';
 
 export default function PlayPage() {
   const { findMatch: wsFindMatch, getMatch: wsGetMatch, connected } = useMatchWebSocket();
-  const { selectedHeroId, loading: heroesLoading } = useHeroPreference();
+  const { selectedHeroId, selectedHero, loading: heroesLoading } = useHeroPreference();
   const [decks, setDecks] = useState([]);
   const [allCards, setAllCards] = useState([]);
   const [selectedDeck, setSelectedDeck] = useState(null);
@@ -74,7 +73,7 @@ export default function PlayPage() {
       return;
     }
     if (!selectedHeroId) {
-      setError('Выберите героя в шапке сайта');
+      setError('Выберите героя на странице «Герои»');
       return;
     }
     setError('');
@@ -111,7 +110,9 @@ export default function PlayPage() {
       <div className="play-page-toolbar play-page-toolbar-with-hero">
         <h1>Найти матч</h1>
         <div className="play-page-toolbar-right">
-          <NavBarHeroSelect />
+          <Link to="/heroes" className="btn btn-outline play-page-hero-pill">
+            {selectedHero ? `Герой: ${selectedHero.name}` : 'Выбрать героя'}
+          </Link>
           <Link to="/" className="btn btn-secondary">Назад</Link>
         </div>
       </div>

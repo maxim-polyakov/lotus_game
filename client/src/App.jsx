@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import DecksPage from './pages/DecksPage';
+import HeroesPage from './pages/HeroesPage';
 import DeckCreatePage from './pages/DeckCreatePage';
 import DeckDetailPage from './pages/DeckDetailPage';
 import PlayPage from './pages/PlayPage';
@@ -47,6 +48,7 @@ export default function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/heroes" element={<PrivateRoute><HeroesPage /></PrivateRoute>} />
                 <Route path="/decks" element={<PrivateRoute><DecksPage /></PrivateRoute>} />
                 <Route path="/decks/new" element={<PrivateRoute><DeckCreatePage /></PrivateRoute>} />
                 <Route path="/decks/:id" element={<PrivateRoute><DeckDetailPage /></PrivateRoute>} />
