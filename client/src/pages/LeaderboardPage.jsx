@@ -17,9 +17,9 @@ export default function LeaderboardPage() {
     <div className="leaderboard-page">
       <header>
         <h1 className="header-logo">
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'inherit' }}>
-            <img src="/lotus.jpg" alt="Lotus Game" />
-            Lotus Game
+          <Link to="/" className="header-logo-link">
+            <img src="/lotus.jpg" alt="" />
+            <span className="header-logo-text">Lotus Game</span>
           </Link>
         </h1>
         <div className="header-actions">

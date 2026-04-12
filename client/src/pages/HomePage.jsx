@@ -16,8 +16,8 @@ export default function HomePage() {
         {user ? (
           <>
             <h1 className="header-logo">
-              <img src="/lotus.jpg" alt="Lotus Game" />
-              Lotus Game
+              <img src="/lotus.jpg" alt="" />
+              <span className="header-logo-text">Lotus Game</span>
             </h1>
             <div className="header-actions">
               <span className="header-user">
@@ -58,8 +58,8 @@ export default function HomePage() {
         ) : (
           <>
             <h1 className="header-logo">
-              <img src="/lotus.jpg" alt="Lotus Game" />
-              Lotus Game
+              <img src="/lotus.jpg" alt="" />
+              <span className="header-logo-text">Lotus Game</span>
             </h1>
             <div className="header-actions header-actions-guest">
               <div className="header-buttons">
