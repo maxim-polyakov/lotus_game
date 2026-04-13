@@ -15,6 +15,8 @@ const api = axios.create({
 });
 
 let refreshPromise = null;
+const MAX_NETWORK_RETRIES = 3;
+const RETRYABLE_HTTP_STATUSES = new Set([502, 503, 504]);
 
 async function refreshAccessToken() {
   if (!refreshPromise) {
@@ -53,11 +55,17 @@ api.interceptors.response.use(
   async (err) => {
     const originalRequest = err.config || {};
     const status = err.response?.status;
+    const method = originalRequest.method?.toLowerCase();
 
-    if (!err.response && originalRequest.method?.toLowerCase() === 'get' && !originalRequest._networkRetry) {
-      originalRequest._networkRetry = true;
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      return api.request(originalRequest);
+    const isRetryableNetworkIssue = !err.response || RETRYABLE_HTTP_STATUSES.has(status);
+    if (method === 'get' && isRetryableNetworkIssue) {
+      const retryCount = originalRequest._networkRetryCount || 0;
+      if (retryCount < MAX_NETWORK_RETRIES) {
+        originalRequest._networkRetryCount = retryCount + 1;
+        const delay = 250 * (2 ** retryCount);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return api.request(originalRequest);
+      }
     }
 
     if ((status === 401 || status === 403) && !originalRequest._retry && !String(originalRequest.url || '').includes('/api/auth/refresh')) {
@@ -80,6 +88,13 @@ api.interceptors.response.use(
         return Promise.reject(err);
       }
     }
+
+    if ((status === 401 || status === 403) && !String(originalRequest.url || '').includes('/api/auth/refresh')) {
+      clearTokens();
+      window.location.href = '/login?auth_error=session_expired';
+      return Promise.reject(err);
+    }
+
     return Promise.reject(err);
   }
 );
