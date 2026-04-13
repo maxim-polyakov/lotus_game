@@ -14,6 +14,26 @@ const api = axios.create({
   baseURL: API_BASE,
 });
 
+let refreshPromise = null;
+
+async function refreshAccessToken() {
+  if (!refreshPromise) {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) throw new Error('NO_REFRESH_TOKEN');
+    refreshPromise = axios
+      .post(`${API_BASE}/api/auth/refresh`, { refreshToken })
+      .then(({ data }) => {
+        const rememberMe = localStorage.getItem('rememberMe') === 'true';
+        setTokens(data.accessToken, data.refreshToken, rememberMe);
+        return data.accessToken;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -31,22 +51,30 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   async (err) => {
+    const originalRequest = err.config || {};
     const status = err.response?.status;
-    if (status === 401 || status === 403) {
+
+    if (!err.response && originalRequest.method?.toLowerCase() === 'get' && !originalRequest._networkRetry) {
+      originalRequest._networkRetry = true;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      return api.request(originalRequest);
+    }
+
+    if ((status === 401 || status === 403) && !originalRequest._retry && !String(originalRequest.url || '').includes('/api/auth/refresh')) {
       const refresh = getRefreshToken();
-      if (refresh) {
-        try {
-          const { data } = await axios.post(`${API_BASE}/api/auth/refresh`, { refreshToken: refresh });
-          const rememberMe = localStorage.getItem('rememberMe') === 'true';
-          setTokens(data.accessToken, data.refreshToken, rememberMe);
-          err.config.headers.Authorization = `Bearer ${data.accessToken}`;
-          return api.request(err.config);
-        } catch (_) {
-          clearTokens();
-          window.location.href = '/login?auth_error=session_expired';
-          return Promise.reject(err);
-        }
-      } else {
+      if (!refresh) {
+        clearTokens();
+        window.location.href = '/login?auth_error=session_expired';
+        return Promise.reject(err);
+      }
+
+      originalRequest._retry = true;
+      try {
+        const accessToken = await refreshAccessToken();
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api.request(originalRequest);
+      } catch (_) {
         clearTokens();
         window.location.href = '/login?auth_error=session_expired';
         return Promise.reject(err);
