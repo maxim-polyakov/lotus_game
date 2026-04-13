@@ -1922,6 +1922,44 @@ header .header-username {
   font-size: 1rem;
   min-width: 200px;
 }
+.admin-post-match-section {
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.admin-post-match-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.admin-post-match-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.admin-post-match-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  width: 100%;
+  max-width: 720px;
+}
+.admin-post-match-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+.admin-post-match-field span {
+  font-weight: 500;
+}
+.admin-post-match-field input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
 .admin-game-sounds-section {
   padding: 1rem 2rem;
   background: #fff;
@@ -3604,6 +3642,126 @@ header .header-username {
   margin-left: 0.5rem;
 }
 
+/* Notifications */
+.notifications-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.notifications-content {
+  flex: 1;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.notifications-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.notification-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.notification-item--read {
+  opacity: 0.82;
+}
+.notification-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.notification-hero-portrait {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.notification-text {
+  min-width: 0;
+}
+.notification-text h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+.notification-text p {
+  margin: 0 0 0.3rem;
+  color: var(--text-muted);
+}
+.notification-reward-amount {
+  margin: 0.15rem 0 0.35rem;
+  font-weight: 700;
+  color: #e74c3c;
+}
+.notification-text small {
+  color: var(--text-muted);
+}
+.notifications-empty {
+  color: var(--text-muted);
+}
+
+/* Hero drop modal */
+.hero-drop-modal {
+  max-width: 560px;
+}
+.hero-drop-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.hero-drop-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.hero-drop-portrait {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+.hero-drop-info h3 {
+  margin: 0 0 0.35rem;
+}
+.hero-drop-info p {
+  margin: 0;
+  color: var(--text-muted);
+}
+.hero-drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.post-match-reward-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.25);
+  flex-shrink: 0;
+}
+.post-match-reward-amount {
+  margin: 0.35rem 0 0;
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: #e74c3c;
+}
+
 @media (max-width: 768px) {
   .profile-page header {
     padding-left: max(1rem, env(safe-area-inset-left));
@@ -3710,6 +3868,7 @@ header .header-username {
   }
   .admin-header,
   .admin-promote-section,
+  .admin-post-match-section,
   .admin-game-sounds-section {
     padding: 1rem;
     padding-left: max(1rem, env(safe-area-inset-left));
@@ -3738,6 +3897,14 @@ header .header-username {
   }
   .admin-promote-form .btn {
     width: 100%;
+  }
+  .admin-post-match-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+  }
+  .admin-post-match-form .btn {
+    width: 100%;
+    max-width: 280px;
   }
   .admin-game-sounds-grid {
     grid-template-columns: 1fr;
@@ -3803,10 +3970,12 @@ header .header-username {
     max-width: none;
   }
   .admin-promote-section,
+  .admin-post-match-section,
   .admin-game-sounds-section {
     padding: 0.75rem;
   }
   .admin-promote-section h3,
+  .admin-post-match-section h3,
   .admin-game-sounds-section h3 {
     font-size: 0.95rem;
   }

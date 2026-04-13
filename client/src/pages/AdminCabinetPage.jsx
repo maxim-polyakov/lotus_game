@@ -52,6 +52,17 @@ export default function AdminCabinetPage() {
   const [heroPortraitFiles, setHeroPortraitFiles] = useState({});
   const [heroUploadingId, setHeroUploadingId] = useState(null);
   const [heroDeletingId, setHeroDeletingId] = useState(null);
+  const [postMatchDrop, setPostMatchDrop] = useState({
+    weightGold: 40,
+    weightDust: 40,
+    weightHero: 20,
+    goldMin: 15,
+    goldMax: 75,
+    dustMin: 5,
+    dustMax: 30,
+  });
+  const [postMatchDropLoading, setPostMatchDropLoading] = useState(false);
+  const [postMatchDropSaving, setPostMatchDropSaving] = useState(false);
 
   const loadHeroes = () => {
     api.get('/api/heroes')
@@ -73,6 +84,18 @@ export default function AdminCabinetPage() {
 
   useEffect(() => {
     loadHeroes();
+  }, []);
+
+  useEffect(() => {
+    setPostMatchDropLoading(true);
+    api.get('/api/admin/settings/post-match-drop')
+      .then(({ data }) => {
+        if (data && typeof data === 'object') {
+          setPostMatchDrop((prev) => ({ ...prev, ...data }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPostMatchDropLoading(false));
   }, []);
 
   useEffect(() => {
@@ -514,6 +537,29 @@ export default function AdminCabinetPage() {
     }
   };
 
+  const handlePostMatchDropSave = async (e) => {
+    e.preventDefault();
+    setError('');
+    setPostMatchDropSaving(true);
+    try {
+      const payload = {
+        weightGold: Number(postMatchDrop.weightGold) || 0,
+        weightDust: Number(postMatchDrop.weightDust) || 0,
+        weightHero: Number(postMatchDrop.weightHero) || 0,
+        goldMin: Number(postMatchDrop.goldMin) || 0,
+        goldMax: Number(postMatchDrop.goldMax) || 0,
+        dustMin: Number(postMatchDrop.dustMin) || 0,
+        dustMax: Number(postMatchDrop.dustMax) || 0,
+      };
+      const { data } = await api.put('/api/admin/settings/post-match-drop', payload);
+      setPostMatchDrop((prev) => ({ ...prev, ...data }));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось сохранить настройки дропа');
+    } finally {
+      setPostMatchDropSaving(false);
+    }
+  };
+
   return (
     <div className="admin-cabinet">
       <div className="admin-header">
@@ -533,6 +579,90 @@ export default function AdminCabinetPage() {
           />
           <button type="submit" className="btn btn-primary" disabled={promoting || !promoteInput.trim()}>
             {promoting ? '...' : 'Назначить ROLE_ADMIN'}
+          </button>
+        </form>
+      </div>
+      <div className="admin-post-match-section">
+        <h3>Награда после PvP-матча</h3>
+        <p className="admin-hint-small">
+          Веса — любые неотрицательные числа; шанс типа примерно равен доле его веса в сумме весов (золото / пыль / герой).
+          Если у игрока не осталось заблокированных героев, ветка «герой» не выпадает. Диапазоны золота и пыли — включительно.
+        </p>
+        <form className="admin-post-match-form" onSubmit={handlePostMatchDropSave}>
+          <div className="admin-post-match-grid">
+            <label className="admin-post-match-field">
+              <span>Вес: золото</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.weightGold}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, weightGold: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Вес: пыль</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.weightDust}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, weightDust: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Вес: герой</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.weightHero}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, weightHero: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Золото: мин</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.goldMin}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, goldMin: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Золото: макс</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.goldMax}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, goldMax: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Пыль: мин</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.dustMin}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, dustMin: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Пыль: макс</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.dustMax}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, dustMax: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={postMatchDropLoading || postMatchDropSaving}>
+            {postMatchDropSaving ? '…' : 'Сохранить'}
           </button>
         </form>
       </div>

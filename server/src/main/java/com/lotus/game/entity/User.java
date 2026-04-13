@@ -69,6 +69,14 @@ public class User {
     @Builder.Default
     private int rating = 1000;
 
+    @Column(nullable = false, columnDefinition = "int default 0")
+    @Builder.Default
+    private int gold = 0;
+
+    @Column(nullable = false, columnDefinition = "int default 0")
+    @Builder.Default
+    private int dust = 0;
+
     /** Герои, доступные в матчах (у новичка один случайный; админам не используется — им отдаются все в API) */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_unlocked_heroes", joinColumns = @JoinColumn(name = "user_id"))

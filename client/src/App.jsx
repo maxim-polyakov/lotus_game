@@ -19,6 +19,7 @@ import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ReplayPage from './pages/ReplayPage';
 import ReplaysListPage from './pages/ReplaysListPage';
+import NotificationsPage from './pages/NotificationsPage';
 import { MatchWebSocketProvider } from './context/MatchWebSocketContext';
 import './App.css';
 
@@ -58,6 +59,7 @@ export default function App() {
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/replays" element={<PrivateRoute><ReplaysListPage /></PrivateRoute>} />
                 <Route path="/replay/:matchId" element={<PrivateRoute><ReplayPage /></PrivateRoute>} />
+                <Route path="/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
               </Routes>
             </BrowserRouter>
           </HeroPreferenceProvider>

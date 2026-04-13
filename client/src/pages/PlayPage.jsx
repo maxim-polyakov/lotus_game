@@ -6,6 +6,7 @@ import { useHeroPreference } from '../context/HeroPreferenceContext';
 import GameBoard from '../components/GameBoard';
 import WaitingMatch from '../components/WaitingMatch';
 import CardDisplay from '../components/CardDisplay';
+import PostMatchReward from '../components/PostMatchReward';
 
 function enrichDeckWithCards(deck, allCards) {
   if (!deck?.cards || !allCards?.length) return deck;
@@ -33,6 +34,7 @@ export default function PlayPage() {
   const [match, setMatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [postMatchReward, setPostMatchReward] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -77,7 +79,19 @@ export default function PlayPage() {
     if (!ok) setSelectedDeck(null);
   }, [selectedHeroId, decks, selectedDeck]);
 
-  const clearActiveMatch = () => {
+  const clearActiveMatch = async (finishedMatch) => {
+    if (finishedMatch?.status === 'FINISHED' && finishedMatch?.id) {
+      try {
+        const { data, status } = await api.get('/api/notifications/post-match/latest', {
+          params: { matchId: finishedMatch.id },
+          validateStatus: (s) => (s >= 200 && s < 300) || s === 204,
+        });
+        if (status === 200 && data?.id) {
+          setPostMatchReward(data);
+          await api.post(`/api/notifications/${data.id}/read`);
+        }
+      } catch (_) {}
+    }
     setMatch(null);
     sessionStorage.removeItem(ACTIVE_MATCH_KEY);
   };
@@ -246,6 +260,7 @@ export default function PlayPage() {
           {!connected ? 'Подключение...' : loading ? 'Поиск...' : 'Найти матч'}
         </button>
       </div>
+      <PostMatchReward reward={postMatchReward} onClose={() => setPostMatchReward(null)} />
     </div>
   );
 }

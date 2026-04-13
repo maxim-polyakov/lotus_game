@@ -51,6 +51,7 @@ export default function HomePage() {
                   menuAlign="left"
                   items={[
                     { to: '/profile', label: 'Профиль' },
+                    { to: '/notifications', label: 'Уведомления' },
                     { to: '/replays', label: 'Реплеи' },
                     { to: '/leaderboard', label: 'Рейтинг' },
                     { label: 'Правила', onClick: () => setTutorialOpen(true) },

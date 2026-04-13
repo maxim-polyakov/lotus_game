@@ -102,10 +102,10 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
 
   useEffect(() => {
     if (match?.status === 'FINISHED' && onExit) {
-      const t = setTimeout(() => onExit(), 2500);
+      const t = setTimeout(() => onExit(match), 2500);
       return () => clearTimeout(t);
     }
-  }, [match?.status, onExit]);
+  }, [match, onExit]);
 
   useEffect(() => {
     if (match?.gameState && match.currentTurnPlayerId !== user?.id) {
@@ -199,7 +199,7 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
       <div className="game-board game-board-loading">
         <header>
           <h2>Матч #{matchId}</h2>
-          <button onClick={onExit} className="btn btn-secondary">Выход</button>
+          <button onClick={() => onExit?.()} className="btn btn-secondary">Выход</button>
         </header>
         {loadError ? (
           <div className="game-load-error">
@@ -242,7 +242,7 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
           <button onClick={toggleSound} className="btn btn-outline btn-sm" title={soundEnabled ? 'Выключить звук' : 'Включить звук'} aria-label="Звук">
             {soundEnabled ? '🔊' : '🔇'}
           </button>
-          <button onClick={onExit} className="btn btn-secondary">Выход</button>
+          <button onClick={() => onExit?.(match)} className="btn btn-secondary">Выход</button>
         </div>
       </header>
       {effectOverlay && (

@@ -13,9 +13,9 @@ import lombok.*;
 public class GameConfig {
 
     @Id
-    @Column(name = "config_key", length = 50)
+    @Column(name = "config_key", length = 120)
     private String configKey;
 
-    @Column(name = "config_value", length = 512)
+    @Column(name = "config_value", length = 1024)
     private String configValue;
 }

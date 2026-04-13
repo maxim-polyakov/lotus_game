@@ -35,7 +35,7 @@ export default function HeroesPage() {
       <div className="decks-grid-full">
         <div className="hero-selection heroes-page-selection">
           <p className="heroes-page-intro">
-            Выберите героя для поиска матча. Новые герои открываются по мере завершённых игр.
+            Выберите героя для поиска матча. После завершённых матчей случайно выпадают новые герои.
           </p>
           {heroes.length === 0 ? (
             <p className="heroes-page-empty">Нет доступных героев.</p>
@@ -43,12 +43,7 @@ export default function HeroesPage() {
             <div className="hero-selection-grid heroes-page-grid">
               {heroes.map((h) => {
                 const locked = h.unlocked !== true;
-                const hint =
-                  locked && h.gamesUntilUnlock != null && h.gamesUntilUnlock > 0
-                    ? `Ещё ${h.gamesUntilUnlock} завершённых матчей`
-                    : locked
-                      ? 'Сыграйте матчи, чтобы разблокировать'
-                      : '';
+                const hint = locked ? 'Завершайте матчи, чтобы получить случайного героя' : '';
                 return (
                   <button
                     key={h.id}
@@ -75,9 +70,7 @@ export default function HeroesPage() {
                     </span>
                     <span className="hero-card-hp">
                       {locked
-                        ? h.gamesUntilUnlock != null && h.gamesUntilUnlock > 0
-                          ? `Через ${h.gamesUntilUnlock} матч.`
-                          : 'Заблокировано'
+                        ? 'Заблокировано'
                         : `${h.startingHealth} HP`}
                     </span>
                   </button>

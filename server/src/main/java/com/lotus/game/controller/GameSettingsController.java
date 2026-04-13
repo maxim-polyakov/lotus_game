@@ -1,5 +1,6 @@
 package com.lotus.game.controller;
 
+import com.lotus.game.dto.game.PostMatchDropSettingsDto;
 import com.lotus.game.service.GameConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -73,6 +74,27 @@ public class GameSettingsController {
             @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         return deleteSound(GameConfigService.KEY_DRAW_SOUND);
+    }
+
+    @GetMapping("/api/admin/settings/post-match-drop")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PostMatchDropSettingsDto> getPostMatchDropSettings(
+            @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(gameConfigService.getPostMatchDropSettings());
+    }
+
+    @PutMapping("/api/admin/settings/post-match-drop")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PostMatchDropSettingsDto> updatePostMatchDropSettings(
+            @RequestBody PostMatchDropSettingsDto body,
+            @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        try {
+            return ResponseEntity.ok(gameConfigService.updatePostMatchDropSettings(body));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     private ResponseEntity<Map<String, String>> uploadSound(String key, MultipartFile file) {
