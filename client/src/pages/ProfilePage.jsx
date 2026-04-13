@@ -4,7 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [username, setUsername] = useState(user?.username || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [avatarFile, setAvatarFile] = useState(null);
@@ -73,6 +73,7 @@ export default function ProfilePage() {
         </h1>
         <div className="header-actions">
           <Link to="/" className="btn btn-secondary">На главную</Link>
+          <button type="button" onClick={logout} className="btn btn-secondary">Выйти</button>
         </div>
       </header>
       <main className="profile-main">

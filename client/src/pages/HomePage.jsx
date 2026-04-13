@@ -7,7 +7,7 @@ import TutorialModal from '../components/TutorialModal';
 import NavDropdown from '../components/NavDropdown';
 
 export default function HomePage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { soundEnabled, toggleSound } = useSettings();
   const [tutorialOpen, setTutorialOpen] = useState(false);
@@ -66,7 +66,6 @@ export default function HomePage() {
                     {soundEnabled ? '\u{1F50A}' : '\u{1F507}'}
                   </button>
                 </div>
-                <button type="button" onClick={logout} className="btn btn-secondary">Выйти</button>
               </div>
             </div>
           </>
