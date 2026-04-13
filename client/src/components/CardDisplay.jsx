@@ -12,6 +12,7 @@ export default function CardDisplay({ card, size = 'md', count }) {
   const sizeClass = `card-display--${size}`;
   const attack = card.attack ?? 0;
   const health = card.health ?? 0;
+  const damage = card.damage ?? 0;
   const hasImage = !!card.imageUrl;
 
   return (
@@ -40,8 +41,14 @@ export default function CardDisplay({ card, size = 'md', count }) {
         </div>
       )}
       <div className="card-display-right-stats">
-        <span className="card-display-attack" title="Атака">{attack}</span>
-        <span className="card-display-health" title="Защита">{health}</span>
+        {isMinion ? (
+          <>
+            <span className="card-display-attack" title="Атака">{attack}</span>
+            <span className="card-display-health" title="Защита">{health}</span>
+          </>
+        ) : (
+          <span className="card-display-attack" title="Урон заклинания">{damage}</span>
+        )}
       </div>
     </div>
   );
