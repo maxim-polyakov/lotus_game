@@ -727,22 +727,22 @@ header .header-username {
   flex-shrink: 0;
 }
 .nav-tab {
-  border: none;
-  border-radius: 0;
-  border-bottom: 2px solid #e74c3c;
-  background: transparent;
-  color: #e74c3c;
-  padding: 0.55rem 0.35rem;
+  border: 1px solid #e74c3c;
+  border-radius: 8px;
+  background: #e74c3c;
+  color: #fff;
+  padding: 0.55rem 0.65rem;
   min-height: 2.2rem;
 }
 .nav-tab:hover {
-  color: #e74c3c;
-  border-bottom-color: #e74c3c;
-  background: rgba(231, 76, 60, 0.1);
+  color: #fff;
+  background: #c0392b;
+  border-color: #c0392b;
 }
 .nav-tab[aria-expanded="true"] {
-  color: #e74c3c;
-  border-bottom-color: #e74c3c;
+  color: #fff;
+  background: #c0392b;
+  border-color: #c0392b;
 }
 .nav-dropdown-label {
   overflow: hidden;
