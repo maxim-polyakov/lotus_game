@@ -317,6 +317,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0;
 .home-page header {
   width: 100%;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 .home-page main {
   flex: 1;
@@ -575,6 +576,20 @@ header .header-actions {
 header .header-actions-guest {
   flex: 0 1 auto;
 }
+header .header-actions-auth {
+  order: 3;
+  flex: 1 1 100%;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+header .header-nav-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
 header .header-buttons {
   display: flex;
   flex-wrap: nowrap;
@@ -691,11 +706,39 @@ header .header-username {
   flex-shrink: 0;
   align-self: center;
 }
+.header-nav-tabs .nav-dropdown {
+  flex: 1 1 0;
+  min-width: 0;
+  align-self: stretch;
+}
 .nav-dropdown-trigger {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   max-width: min(100%, 12.5rem);
+}
+.header-nav-tabs .nav-dropdown-trigger {
+  width: 100%;
+  max-width: none;
+  justify-content: space-between;
+}
+.nav-tab {
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid var(--border, #e0e0e0);
+  background: transparent;
+  color: var(--text-muted, #666);
+  padding: 0.55rem 0.35rem;
+  min-height: 2.2rem;
+}
+.nav-tab:hover {
+  color: #e74c3c;
+  border-bottom-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.06);
+}
+.nav-tab[aria-expanded="true"] {
+  color: #e74c3c;
+  border-bottom-color: #e74c3c;
 }
 .nav-dropdown-label {
   overflow: hidden;

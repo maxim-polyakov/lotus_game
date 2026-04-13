@@ -34,39 +34,37 @@ export default function HomePage() {
               )}
               <span className="header-username">{user.username}</span>
             </span>
-            <div className="header-actions">
-              <div className="header-buttons">
-                <div className="header-nav-primary">
-                  <NavDropdown
-                    label="Герои и колоды"
-                    buttonClassName="btn btn-primary"
-                    items={[
-                      { to: '/heroes', label: 'Герои' },
-                      { to: '/decks', label: 'Колоды' },
-                    ]}
-                  />
-                </div>
-                <div className="header-nav-secondary">
-                  <NavDropdown
-                    label="Аккаунт"
-                    buttonClassName="btn btn-outline"
-                    items={[
-                      { to: '/profile', label: 'Профиль' },
-                      { to: '/replays', label: 'Реплеи' },
-                      { to: '/leaderboard', label: 'Рейтинг' },
-                      { label: 'Правила', onClick: () => setTutorialOpen(true) },
-                      ...(isAdmin ? [{ to: '/admin', label: 'Админ' }] : []),
-                    ]}
-                  />
-                </div>
-                <div className="header-nav-tools">
-                  <button type="button" onClick={toggleTheme} className="btn btn-outline btn-icon" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">
-                    {theme === 'dark' ? '\u2600' : '\u{1F319}'}
-                  </button>
-                  <button type="button" onClick={toggleSound} className="btn btn-outline btn-icon" title={soundEnabled ? 'Выключить звук' : 'Включить звук'} aria-label="Звук">
-                    {soundEnabled ? '\u{1F50A}' : '\u{1F507}'}
-                  </button>
-                </div>
+            <div className="header-actions header-actions-auth">
+              <div className="header-nav-tabs">
+                <NavDropdown
+                  label="Герои и колоды"
+                  buttonClassName="nav-tab"
+                  menuAlign="left"
+                  items={[
+                    { to: '/heroes', label: 'Герои' },
+                    { to: '/decks', label: 'Колоды' },
+                  ]}
+                />
+                <NavDropdown
+                  label="Аккаунт"
+                  buttonClassName="nav-tab"
+                  menuAlign="left"
+                  items={[
+                    { to: '/profile', label: 'Профиль' },
+                    { to: '/replays', label: 'Реплеи' },
+                    { to: '/leaderboard', label: 'Рейтинг' },
+                    { label: 'Правила', onClick: () => setTutorialOpen(true) },
+                    ...(isAdmin ? [{ to: '/admin', label: 'Админ' }] : []),
+                  ]}
+                />
+              </div>
+              <div className="header-nav-tools">
+                <button type="button" onClick={toggleTheme} className="btn btn-outline btn-icon" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">
+                  {theme === 'dark' ? '\u2600' : '\u{1F319}'}
+                </button>
+                <button type="button" onClick={toggleSound} className="btn btn-outline btn-icon" title={soundEnabled ? 'Выключить звук' : 'Включить звук'} aria-label="Звук">
+                  {soundEnabled ? '\u{1F50A}' : '\u{1F507}'}
+                </button>
               </div>
             </div>
           </>
