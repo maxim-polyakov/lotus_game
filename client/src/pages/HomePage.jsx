@@ -21,8 +21,10 @@ export default function HomePage() {
         {user ? (
           <>
             <h1 className="header-logo">
-              <img src="/lotus.jpg" alt="" />
-              <span className="header-logo-text">Lotus Game</span>
+              <Link to="/play" className="header-logo-link">
+                <img src="/lotus.jpg" alt="" />
+                <span className="header-logo-text">Lotus Game</span>
+              </Link>
             </h1>
             <span className="header-user">
               {user.avatarUrl ? (
@@ -43,7 +45,6 @@ export default function HomePage() {
                       { to: '/decks', label: 'Колоды' },
                     ]}
                   />
-                  <Link to="/play" className="btn btn-primary">Играть</Link>
                 </div>
                 <div className="header-nav-secondary">
                   <NavDropdown
@@ -52,11 +53,11 @@ export default function HomePage() {
                     items={[
                       { to: '/profile', label: 'Профиль' },
                       { to: '/replays', label: 'Реплеи' },
+                      { to: '/leaderboard', label: 'Рейтинг' },
+                      { label: 'Правила', onClick: () => setTutorialOpen(true) },
                       ...(isAdmin ? [{ to: '/admin', label: 'Админ' }] : []),
                     ]}
                   />
-                  <Link to="/leaderboard" className="btn btn-outline">Рейтинг</Link>
-                  <button type="button" onClick={() => setTutorialOpen(true)} className="btn btn-outline">Правила</button>
                 </div>
                 <div className="header-nav-tools">
                   <button type="button" onClick={toggleTheme} className="btn btn-outline btn-icon" title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} aria-label="Тема">

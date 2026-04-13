@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 /**
  * @param {string} label — текст на кнопке
- * @param {{ to: string, label: string, variant?: 'primary' }[]} items
+ * @param {{ to?: string, label: string, variant?: 'primary', onClick?: () => void }[]} items
  * @param {string} [buttonClassName]
  * @param {'left'|'right'} [menuAlign]
  */
@@ -83,9 +83,9 @@ export default function NavDropdown({
         style={menuStyle}
         role="menu"
       >
-        {items.map((item) => (
+        {items.map((item, idx) => (item.to ? (
           <Link
-            key={item.to}
+            key={`${item.to}-${idx}`}
             to={item.to}
             className={`nav-dropdown-item ${item.variant === 'primary' ? 'nav-dropdown-item--primary' : ''}`}
             role="menuitem"
@@ -93,7 +93,20 @@ export default function NavDropdown({
           >
             {item.label}
           </Link>
-        ))}
+        ) : (
+          <button
+            key={`action-${item.label}-${idx}`}
+            type="button"
+            className={`nav-dropdown-item ${item.variant === 'primary' ? 'nav-dropdown-item--primary' : ''}`}
+            role="menuitem"
+            onClick={() => {
+              item.onClick?.();
+              setOpen(false);
+            }}
+          >
+            {item.label}
+          </button>
+        )))}
       </div>,
       document.body
     );
