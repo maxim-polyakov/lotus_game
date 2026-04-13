@@ -5,6 +5,7 @@ import com.lotus.game.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -19,7 +20,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -68,6 +71,17 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oauth2LoginSuccessHandler)
+                )
+                .exceptionHandling(ex -> ex
+                        // Для API не делаем редирект на OAuth: фронт должен получить 401/403.
+                        .defaultAuthenticationEntryPointFor(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                new AntPathRequestMatcher("/api/**")
+                        )
+                        .defaultAccessDeniedHandlerFor(
+                                (request, response, accessDeniedException) -> response.sendError(HttpStatus.FORBIDDEN.value()),
+                                new AntPathRequestMatcher("/api/**")
+                        )
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
