@@ -746,22 +746,23 @@ header .header-username {
   }
 }
 .nav-tab {
-  border: 1px solid #e74c3c;
-  border-radius: 8px;
-  background: #e74c3c;
-  color: #fff;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid #e74c3c;
+  background: #fff;
+  color: #e74c3c;
   padding: 0.55rem 0.65rem;
   min-height: 2.2rem;
 }
 .nav-tab:hover {
-  color: #fff;
-  background: #c0392b;
-  border-color: #c0392b;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  border-bottom-color: #e74c3c;
 }
 .nav-tab[aria-expanded="true"] {
-  color: #fff;
-  background: #c0392b;
-  border-color: #c0392b;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  border-bottom-color: #e74c3c;
 }
 .nav-dropdown-label {
   overflow: hidden;
