@@ -726,6 +726,25 @@ header .header-username {
   margin-left: auto;
   flex-shrink: 0;
 }
+
+@media (min-width: 769px) {
+  .home-page header .header-actions-auth {
+    align-self: stretch;
+    margin-top: -1rem;
+    margin-bottom: -1rem;
+  }
+  .home-page header .header-nav-tabs {
+    align-self: stretch;
+  }
+  .home-page header .header-nav-tabs .nav-dropdown {
+    align-self: stretch;
+  }
+  .home-page header .header-nav-tabs .nav-dropdown-trigger {
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+  }
+}
 .nav-tab {
   border: 1px solid #e74c3c;
   border-radius: 8px;
