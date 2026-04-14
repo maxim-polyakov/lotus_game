@@ -16,6 +16,7 @@ public class UserNotification {
 
     public enum NotificationType {
         HERO_UNLOCK,
+        CARD_UNLOCK,
         REWARD_GOLD,
         REWARD_DUST
     }
@@ -39,6 +40,12 @@ public class UserNotification {
 
     @Column(name = "hero_id", length = 64)
     private String heroId;
+
+    @Column(name = "card_type", length = 16)
+    private String cardType;
+
+    @Column(name = "card_id")
+    private Long cardId;
 
     @Column(name = "reward_amount")
     private Integer rewardAmount;

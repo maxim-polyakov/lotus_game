@@ -84,6 +84,13 @@ public class User {
     @Builder.Default
     private Set<String> unlockedHeroIds = new LinkedHashSet<>();
 
+    /** Карты, доступные для составления/редактирования колод (формат ключа: TYPE:ID, например MINION:12). */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_unlocked_cards", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "card_key", length = 64)
+    @Builder.Default
+    private Set<String> unlockedCardKeys = new LinkedHashSet<>();
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

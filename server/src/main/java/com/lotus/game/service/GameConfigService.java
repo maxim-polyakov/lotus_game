@@ -1,6 +1,7 @@
 package com.lotus.game.service;
 
 import com.lotus.game.config.RedisCacheConfig;
+import com.lotus.game.dto.game.CardDropPoolSettingsDto;
 import com.lotus.game.dto.game.PostMatchDropSettingsDto;
 import com.lotus.game.entity.GameConfig;
 import com.lotus.game.repository.GameConfigRepository;
@@ -13,8 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +32,13 @@ public class GameConfigService {
 
     public static final String KEY_POST_MATCH_WEIGHT_GOLD = "postMatchDrop.weightGold";
     public static final String KEY_POST_MATCH_WEIGHT_DUST = "postMatchDrop.weightDust";
+    public static final String KEY_POST_MATCH_WEIGHT_CARD = "postMatchDrop.weightCard";
     public static final String KEY_POST_MATCH_WEIGHT_HERO = "postMatchDrop.weightHero";
     public static final String KEY_POST_MATCH_GOLD_MIN = "postMatchDrop.goldMin";
     public static final String KEY_POST_MATCH_GOLD_MAX = "postMatchDrop.goldMax";
     public static final String KEY_POST_MATCH_DUST_MIN = "postMatchDrop.dustMin";
     public static final String KEY_POST_MATCH_DUST_MAX = "postMatchDrop.dustMax";
+    public static final String KEY_POST_MATCH_CARD_POOL = "postMatchDrop.cardPool";
 
     private final GameConfigRepository configRepository;
     private final ObjectProvider<StorageService> storageServiceProvider;
@@ -98,6 +106,7 @@ public class GameConfigService {
         return PostMatchDropSettingsDto.builder()
                 .weightGold(readInt(KEY_POST_MATCH_WEIGHT_GOLD, 40))
                 .weightDust(readInt(KEY_POST_MATCH_WEIGHT_DUST, 40))
+                .weightCard(readInt(KEY_POST_MATCH_WEIGHT_CARD, 20))
                 .weightHero(readInt(KEY_POST_MATCH_WEIGHT_HERO, 20))
                 .goldMin(readInt(KEY_POST_MATCH_GOLD_MIN, 15))
                 .goldMax(readInt(KEY_POST_MATCH_GOLD_MAX, 75))
@@ -113,6 +122,7 @@ public class GameConfigService {
         }
         int wGold = clampNonNeg(dto.getWeightGold(), 40);
         int wDust = clampNonNeg(dto.getWeightDust(), 40);
+        int wCard = clampNonNeg(dto.getWeightCard(), 20);
         int wHero = clampNonNeg(dto.getWeightHero(), 20);
 
         int goldMin = clampNonNeg(dto.getGoldMin(), 15);
@@ -131,14 +141,16 @@ public class GameConfigService {
             dustMax = t;
         }
 
-        if (wGold + wDust + wHero == 0) {
+        if (wGold + wDust + wCard + wHero == 0) {
             wGold = 40;
             wDust = 40;
+            wCard = 20;
             wHero = 20;
         }
 
         upsertInt(KEY_POST_MATCH_WEIGHT_GOLD, wGold);
         upsertInt(KEY_POST_MATCH_WEIGHT_DUST, wDust);
+        upsertInt(KEY_POST_MATCH_WEIGHT_CARD, wCard);
         upsertInt(KEY_POST_MATCH_WEIGHT_HERO, wHero);
         upsertInt(KEY_POST_MATCH_GOLD_MIN, goldMin);
         upsertInt(KEY_POST_MATCH_GOLD_MAX, goldMax);
@@ -146,6 +158,33 @@ public class GameConfigService {
         upsertInt(KEY_POST_MATCH_DUST_MAX, dustMax);
 
         return getPostMatchDropSettings();
+    }
+
+    @Transactional(readOnly = true)
+    public CardDropPoolSettingsDto getPostMatchCardDropPool() {
+        return CardDropPoolSettingsDto.builder()
+                .enabledCardKeys(new java.util.ArrayList<>(getEnabledPostMatchCardKeys()))
+                .build();
+    }
+
+    @Transactional
+    public CardDropPoolSettingsDto updatePostMatchCardDropPool(CardDropPoolSettingsDto dto) {
+        Set<String> keys = dto == null || dto.getEnabledCardKeys() == null
+                ? Set.of()
+                : dto.getEnabledCardKeys().stream()
+                .filter(v -> v != null && !v.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        upsertCsvSet(KEY_POST_MATCH_CARD_POOL, keys);
+        return getPostMatchCardDropPool();
+    }
+
+    @Transactional(readOnly = true)
+    public Set<String> getEnabledPostMatchCardKeys() {
+        return configRepository.findByConfigKey(KEY_POST_MATCH_CARD_POOL)
+                .map(GameConfig::getConfigValue)
+                .map(this::parseCsvSet)
+                .orElse(Set.of());
     }
 
     private int readInt(String key, int def) {
@@ -177,5 +216,28 @@ public class GameConfigService {
     private static int clampNonNeg(int v, int def) {
         if (v < 0) return def;
         return v;
+    }
+
+    private Set<String> parseCsvSet(String raw) {
+        if (raw == null || raw.isBlank()) return Set.of();
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(v -> !v.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private void upsertCsvSet(String key, Set<String> values) {
+        if (values == null || values.isEmpty()) {
+            configRepository.findByConfigKey(key).ifPresent(configRepository::delete);
+            return;
+        }
+        String csv = String.join(",", values);
+        GameConfig cfg = configRepository.findByConfigKey(key).orElse(null);
+        if (cfg == null) {
+            configRepository.save(GameConfig.builder().configKey(key).configValue(csv).build());
+            return;
+        }
+        cfg.setConfigValue(csv);
+        configRepository.save(cfg);
     }
 }

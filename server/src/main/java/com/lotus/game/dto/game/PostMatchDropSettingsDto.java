@@ -13,6 +13,7 @@ public class PostMatchDropSettingsDto {
     /** Веса (любые неотрицательные числа; вероятность ~ weight / sum(weights)) */
     private int weightGold;
     private int weightDust;
+    private int weightCard;
     private int weightHero;
 
     /** Диапазоны количества (включительно) */

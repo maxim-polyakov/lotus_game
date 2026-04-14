@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 function rewardIcon(type) {
   if (type === 'REWARD_GOLD') return '💰';
   if (type === 'REWARD_DUST') return '✨';
+  if (type === 'CARD_UNLOCK') return '🃏';
   if (type === 'HERO_UNLOCK') return '🎖️';
   return '🎁';
 }
@@ -12,6 +13,7 @@ export default function PostMatchReward({ reward, onClose }) {
   if (!reward) return null;
 
   const isHero = reward.type === 'HERO_UNLOCK';
+  const isCard = reward.type === 'CARD_UNLOCK';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -38,6 +40,9 @@ export default function PostMatchReward({ reward, onClose }) {
             <div className="hero-drop-info">
               <h3>{reward.title || 'Награда'}</h3>
               <p>{reward.message || ''}</p>
+              {isCard && reward.cardName && (
+                <p className="post-match-reward-amount">{reward.cardName}</p>
+              )}
               {!isHero && reward.rewardAmount != null && (
                 <p className="post-match-reward-amount">+{reward.rewardAmount}</p>
               )}
@@ -46,6 +51,7 @@ export default function PostMatchReward({ reward, onClose }) {
           <div className="hero-drop-actions">
             <Link to="/notifications" className="btn btn-outline" onClick={onClose}>Уведомления</Link>
             {isHero && <Link to="/heroes" className="btn btn-primary" onClick={onClose}>К героям</Link>}
+            {isCard && <Link to="/decks/new" className="btn btn-primary" onClick={onClose}>Собрать колоду</Link>}
             <button type="button" className="btn btn-secondary" onClick={onClose}>Закрыть</button>
           </div>
         </div>

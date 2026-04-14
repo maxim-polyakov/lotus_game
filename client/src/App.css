@@ -1960,6 +1960,75 @@ header .header-username {
   border-radius: 8px;
   font-size: 1rem;
 }
+.admin-drop-card-pool-section {
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.admin-drop-card-pool-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.admin-drop-card-pool-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.admin-drop-card-pool-filters {
+  display: grid;
+  grid-template-columns: 220px minmax(220px, 380px);
+  gap: 0.5rem;
+}
+.admin-drop-card-pool-filters select,
+.admin-drop-card-pool-filters input {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
+}
+.admin-drop-card-pool-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.admin-drop-card-pool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: #fafafa;
+}
+.admin-drop-card-pool-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  padding: 0.45rem;
+  background: #fff;
+}
+.admin-drop-card-pool-item input[type="checkbox"] {
+  margin: 0 0 0.15rem;
+}
+.admin-drop-card-pool-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.admin-drop-card-pool-meta {
+  font-size: 0.72rem;
+  color: #888;
+}
+.admin-drop-card-pool-empty {
+  padding: 0.65rem;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  color: #777;
+  background: #fff;
+}
 .admin-game-sounds-section {
   padding: 1rem 2rem;
   background: #fff;
@@ -3688,6 +3757,16 @@ header .header-username {
   height: 48px;
   flex-shrink: 0;
 }
+.notification-reward-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  background: color-mix(in srgb, var(--primary-color, #f39c12) 14%, transparent);
+}
 .notification-text {
   min-width: 0;
 }
@@ -3869,6 +3948,7 @@ header .header-username {
   .admin-header,
   .admin-promote-section,
   .admin-post-match-section,
+  .admin-drop-card-pool-section,
   .admin-game-sounds-section {
     padding: 1rem;
     padding-left: max(1rem, env(safe-area-inset-left));
@@ -3905,6 +3985,13 @@ header .header-username {
   .admin-post-match-form .btn {
     width: 100%;
     max-width: 280px;
+  }
+  .admin-drop-card-pool-grid {
+    grid-template-columns: 1fr;
+    max-height: 280px;
+  }
+  .admin-drop-card-pool-filters {
+    grid-template-columns: 1fr;
   }
   .admin-game-sounds-grid {
     grid-template-columns: 1fr;
@@ -3971,11 +4058,13 @@ header .header-username {
   }
   .admin-promote-section,
   .admin-post-match-section,
+  .admin-drop-card-pool-section,
   .admin-game-sounds-section {
     padding: 0.75rem;
   }
   .admin-promote-section h3,
   .admin-post-match-section h3,
+  .admin-drop-card-pool-section h3,
   .admin-game-sounds-section h3 {
     font-size: 0.95rem;
   }

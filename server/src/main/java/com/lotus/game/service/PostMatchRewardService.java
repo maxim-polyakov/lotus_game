@@ -1,6 +1,7 @@
 package com.lotus.game.service;
 
 import com.lotus.game.dto.game.PostMatchDropSettingsDto;
+import com.lotus.game.dto.game.CardDto;
 import com.lotus.game.entity.User;
 import com.lotus.game.entity.UserNotification;
 import com.lotus.game.repository.UserNotificationRepository;
@@ -20,6 +21,7 @@ public class PostMatchRewardService {
     private final UserRepository userRepository;
     private final UserNotificationRepository userNotificationRepository;
     private final HeroCatalog heroCatalog;
+    private final CardProgressService cardProgressService;
     private final NotificationService notificationService;
     private final GameConfigService gameConfigService;
 
@@ -38,16 +40,19 @@ public class PostMatchRewardService {
         }
 
         boolean canHero = hasLockedHero(user);
+        boolean canCard = cardProgressService.hasLockedCards(user);
         PostMatchDropSettingsDto cfg = gameConfigService.getPostMatchDropSettings();
         int wGold = cfg.getWeightGold();
         int wDust = cfg.getWeightDust();
+        int wCard = canCard ? cfg.getWeightCard() : 0;
         int wHero = canHero ? cfg.getWeightHero() : 0;
-        int total = wGold + wDust + wHero;
+        int total = wGold + wDust + wCard + wHero;
         if (total <= 0) {
             wGold = 40;
             wDust = 40;
+            wCard = canCard ? 20 : 0;
             wHero = canHero ? 20 : 0;
-            total = wGold + wDust + wHero;
+            total = wGold + wDust + wCard + wHero;
         }
         int roll = ThreadLocalRandom.current().nextInt(total);
         if (roll < wGold) {
@@ -67,6 +72,8 @@ public class PostMatchRewardService {
                     UserNotification.NotificationType.REWARD_GOLD,
                     "Награда за матч",
                     "Вы получили " + amount + " золота.",
+                    null,
+                    null,
                     null,
                     amount
             );
@@ -91,8 +98,19 @@ public class PostMatchRewardService {
                     "Награда за матч",
                     "Вы получили " + amount + " пыли.",
                     null,
+                    null,
+                    null,
                     amount
             );
+            return;
+        }
+        roll -= wDust;
+        if (roll < wCard) {
+            CardDto card = cardProgressService.unlockRandomCard(user);
+            userRepository.save(user);
+            if (card != null) {
+                notificationService.createCardUnlockNotification(userId, card.getCardType(), card.getId(), card.getName(), matchId);
+            }
             return;
         }
 

@@ -1,5 +1,6 @@
 package com.lotus.game.controller;
 
+import com.lotus.game.dto.game.CardDropPoolSettingsDto;
 import com.lotus.game.dto.game.PostMatchDropSettingsDto;
 import com.lotus.game.service.GameConfigService;
 import lombok.RequiredArgsConstructor;
@@ -95,6 +96,23 @@ public class GameSettingsController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @GetMapping("/api/admin/settings/post-match-drop/cards")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CardDropPoolSettingsDto> getPostMatchCardDropPool(
+            @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(gameConfigService.getPostMatchCardDropPool());
+    }
+
+    @PutMapping("/api/admin/settings/post-match-drop/cards")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CardDropPoolSettingsDto> updatePostMatchCardDropPool(
+            @RequestBody CardDropPoolSettingsDto body,
+            @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(gameConfigService.updatePostMatchCardDropPool(body));
     }
 
     private ResponseEntity<Map<String, String>> uploadSound(String key, MultipartFile file) {

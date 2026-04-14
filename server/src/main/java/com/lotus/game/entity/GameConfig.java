@@ -16,6 +16,6 @@ public class GameConfig {
     @Column(name = "config_key", length = 120)
     private String configKey;
 
-    @Column(name = "config_value", length = 1024)
+    @Column(name = "config_value", length = 8000)
     private String configValue;
 }

@@ -23,6 +23,7 @@ public class HeroProgressService {
     private final UserRepository userRepository;
     private final HeroCatalog heroCatalog;
     private final HeroPortraitService heroPortraitService;
+    private final CardProgressService cardProgressService;
     private final PostMatchRewardService postMatchRewardService;
 
     public boolean isAdmin(User user) {
@@ -77,6 +78,7 @@ public class HeroProgressService {
             return;
         }
         ensureStarterHero(user);
+        cardProgressService.ensureStarterCards(user);
         userRepository.save(user);
         postMatchRewardService.grantPostMatchReward(userId, matchId);
     }

@@ -14,12 +14,15 @@ public class NotificationDto {
     private String heroId;
     private String heroName;
     private String heroPortraitUrl;
+    private String cardType;
+    private Long cardId;
+    private String cardName;
     private Integer rewardAmount;
     private Long matchId;
     private boolean read;
     private String createdAt;
 
-    public static NotificationDto from(UserNotification n, String heroName, String heroPortraitUrl) {
+    public static NotificationDto from(UserNotification n, String heroName, String heroPortraitUrl, String cardName) {
         return NotificationDto.builder()
                 .id(n.getId())
                 .type(n.getType() != null ? n.getType().name() : null)
@@ -28,6 +31,9 @@ public class NotificationDto {
                 .heroId(n.getHeroId())
                 .heroName(heroName)
                 .heroPortraitUrl(heroPortraitUrl)
+                .cardType(n.getCardType())
+                .cardId(n.getCardId())
+                .cardName(cardName)
                 .rewardAmount(n.getRewardAmount())
                 .matchId(n.getMatchId())
                 .read(n.isRead())

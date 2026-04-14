@@ -30,7 +30,7 @@ export default function DeckCreatePage() {
 
   const loadCards = useCallback(() => {
     setError('');
-    api.get('/api/cards')
+    api.get('/api/cards/collection')
       .then(({ data }) => {
         setCards(data || []);
         setError('');
@@ -43,7 +43,7 @@ export default function DeckCreatePage() {
           } else if (e.response?.status === 401) {
             msg = 'Сессия истекла. Войдите снова.';
           } else {
-            msg = e.message || 'Не удалось загрузить карты';
+            msg = e.message || 'Не удалось загрузить коллекцию карт';
           }
         }
         setError(msg);
@@ -169,21 +169,25 @@ export default function DeckCreatePage() {
         </div>
         <div className="deck-edit-cards-section">
           <h3>Состав колоды</h3>
-          <div className="deck-edit-cards-grid">
-            {cards.map((c) => {
-              const count = getCount(c);
-              return (
-                <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
-                  <CardDisplay card={c} size="lg" count={count} />
-                  <div className="deck-edit-card-controls">
-                    <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
-                    <span className="deck-edit-card-count">{count}</span>
-                    <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+          {cards.length === 0 ? (
+            <p className="play-page-deck-hint">В коллекции пока нет карт. Сыграйте матч, чтобы открыть новые.</p>
+          ) : (
+            <div className="deck-edit-cards-grid">
+              {cards.map((c) => {
+                const count = getCount(c);
+                return (
+                  <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
+                    <CardDisplay card={c} size="lg" count={count} />
+                    <div className="deck-edit-card-controls">
+                      <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
+                      <span className="deck-edit-card-count">{count}</span>
+                      <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         <button type="submit" className="btn btn-primary" disabled={loading || total !== DECK_SIZE}>
           {loading ? 'Создание...' : 'Создать колоду'}

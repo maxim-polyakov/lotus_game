@@ -2,6 +2,7 @@ package com.lotus.game.service;
 
 import com.lotus.game.dto.game.HeroDto;
 import com.lotus.game.dto.game.NotificationDto;
+import com.lotus.game.dto.game.CardDto;
 import com.lotus.game.entity.UserNotification;
 import com.lotus.game.repository.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ public class NotificationService {
     private final UserNotificationRepository userNotificationRepository;
     private final HeroCatalog heroCatalog;
     private final HeroPortraitService heroPortraitService;
+    private final CardService cardService;
 
     @Transactional
     public void createHeroUnlockNotification(Long userId, String heroId, Long matchId) {
@@ -28,6 +30,25 @@ public class NotificationService {
                 .title("Новый герой открыт")
                 .message("После матча вам выпал герой: " + hero.getName())
                 .heroId(heroId)
+                .cardType(null)
+                .cardId(null)
+                .rewardAmount(null)
+                .matchId(matchId)
+                .read(false)
+                .build();
+        userNotificationRepository.save(n);
+    }
+
+    @Transactional
+    public void createCardUnlockNotification(Long userId, CardDto.CardType cardType, Long cardId, String cardName, Long matchId) {
+        UserNotification n = UserNotification.builder()
+                .userId(userId)
+                .type(UserNotification.NotificationType.CARD_UNLOCK)
+                .title("Новая карта открыта")
+                .message("После матча вам выпала карта: " + cardName)
+                .heroId(null)
+                .cardType(cardType != null ? cardType.name() : null)
+                .cardId(cardId)
                 .rewardAmount(null)
                 .matchId(matchId)
                 .read(false)
@@ -42,6 +63,8 @@ public class NotificationService {
                                          String title,
                                          String message,
                                          String heroId,
+                                         String cardType,
+                                         Long cardId,
                                          Integer rewardAmount) {
         UserNotification n = UserNotification.builder()
                 .userId(userId)
@@ -49,6 +72,8 @@ public class NotificationService {
                 .title(title)
                 .message(message)
                 .heroId(heroId)
+                .cardType(cardType)
+                .cardId(cardId)
                 .rewardAmount(rewardAmount)
                 .matchId(matchId)
                 .read(false)
@@ -85,6 +110,7 @@ public class NotificationService {
     private NotificationDto toDto(UserNotification n) {
         String heroName = null;
         String heroPortrait = null;
+        String cardName = null;
         if (n.getHeroId() != null && !n.getHeroId().isBlank()) {
             heroName = heroCatalog.find(n.getHeroId()).map(HeroDto::getName).orElse(n.getHeroId());
             heroPortrait = heroPortraitService.resolvePortraitUrl(n.getHeroId());
@@ -92,6 +118,13 @@ public class NotificationService {
                 heroPortrait = "";
             }
         }
-        return NotificationDto.from(n, heroName, heroPortrait);
+        if (n.getCardType() != null && n.getCardId() != null) {
+            try {
+                cardName = cardService.getCard(n.getCardType(), n.getCardId()).getName();
+            } catch (Exception ignored) {
+                cardName = n.getCardType() + " #" + n.getCardId();
+            }
+        }
+        return NotificationDto.from(n, heroName, heroPortrait, cardName);
     }
 }

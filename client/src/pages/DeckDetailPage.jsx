@@ -24,7 +24,7 @@ export default function DeckDetailPage() {
     setError('');
     Promise.all([
       api.get(`/api/decks/${id}`).then(({ data }) => data),
-      api.get('/api/cards').then(({ data }) => data),
+      api.get('/api/cards/collection').then(({ data }) => data),
     ])
       .then(([deckData, cardsData]) => {
         setDeck(deckData);
@@ -161,21 +161,25 @@ export default function DeckDetailPage() {
         </div>
         <div className="deck-edit-cards-section">
           <h3>Состав колоды</h3>
-          <div className="deck-edit-cards-grid">
-            {allCards.map((c) => {
-              const count = getCount(c);
-              return (
-                <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
-                  <CardDisplay card={c} size="lg" count={count} />
-                  <div className="deck-edit-card-controls">
-                    <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
-                    <span className="deck-edit-card-count">{count}</span>
-                    <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+          {allCards.length === 0 ? (
+            <p className="play-page-deck-hint">В коллекции пока нет карт. Сыграйте матч, чтобы открыть новые.</p>
+          ) : (
+            <div className="deck-edit-cards-grid">
+              {allCards.map((c) => {
+                const count = getCount(c);
+                return (
+                  <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
+                    <CardDisplay card={c} size="lg" count={count} />
+                    <div className="deck-edit-card-controls">
+                      <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
+                      <span className="deck-edit-card-count">{count}</span>
+                      <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         <button type="submit" className="btn btn-primary" disabled={saving || total !== DECK_SIZE}>
           {saving ? 'Сохранение...' : 'Сохранить изменения'}

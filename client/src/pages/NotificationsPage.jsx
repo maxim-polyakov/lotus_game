@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 
+function rewardIcon(type) {
+  if (type === 'REWARD_GOLD') return '💰';
+  if (type === 'REWARD_DUST') return '✨';
+  if (type === 'CARD_UNLOCK') return '🃏';
+  if (type === 'HERO_UNLOCK') return '🎖️';
+  return '🎁';
+}
+
 export default function NotificationsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,16 +49,23 @@ export default function NotificationsPage() {
             {items.map((n) => (
               <li key={n.id} className={`notification-item ${n.read ? 'notification-item--read' : ''}`}>
                 <div className="notification-item-main">
-                  <div className={`hero-card-portrait hero-card-portrait--${n.heroId || 'default'} notification-hero-portrait`}>
-                    {n.heroPortraitUrl ? (
-                      <img src={n.heroPortraitUrl} alt="" />
-                    ) : (
-                      <span>{(n.heroName || '?').charAt(0)}</span>
-                    )}
-                  </div>
+                  {n.type === 'HERO_UNLOCK' ? (
+                    <div className={`hero-card-portrait hero-card-portrait--${n.heroId || 'default'} notification-hero-portrait`}>
+                      {n.heroPortraitUrl ? (
+                        <img src={n.heroPortraitUrl} alt="" />
+                      ) : (
+                        <span>{(n.heroName || '?').charAt(0)}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="notification-reward-icon" aria-hidden>{rewardIcon(n.type)}</div>
+                  )}
                   <div className="notification-text">
                     <h3>{n.title}</h3>
                     <p>{n.message}</p>
+                    {n.type === 'CARD_UNLOCK' && n.cardName && (
+                      <p className="notification-reward-amount">{n.cardName}</p>
+                    )}
                     {n.rewardAmount != null && (
                       <p className="notification-reward-amount">+{n.rewardAmount}</p>
                     )}

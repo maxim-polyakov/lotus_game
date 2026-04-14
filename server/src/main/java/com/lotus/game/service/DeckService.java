@@ -26,6 +26,7 @@ public class DeckService {
     private final SpellRepository spellRepository;
     private final HeroCatalog heroCatalog;
     private final HeroProgressService heroProgressService;
+    private final CardProgressService cardProgressService;
 
     @Transactional(readOnly = true)
     public List<DeckDto> getDecksByUserId(Long userId) {
@@ -63,10 +64,16 @@ public class DeckService {
             DeckCard dc = new DeckCard();
             dc.setDeck(deck);
             if (slot.getCardType() == CardDto.CardType.MINION) {
+                if (!cardProgressService.canUseCard(userId, CardDto.CardType.MINION, slot.getCardId())) {
+                    throw new IllegalArgumentException("Карта ещё не разблокирована: MINION #" + slot.getCardId());
+                }
                 Minion m = minionRepository.findById(slot.getCardId())
                         .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + slot.getCardId()));
                 dc.setMinion(m);
             } else {
+                if (!cardProgressService.canUseCard(userId, CardDto.CardType.SPELL, slot.getCardId())) {
+                    throw new IllegalArgumentException("Карта ещё не разблокирована: SPELL #" + slot.getCardId());
+                }
                 Spell s = spellRepository.findById(slot.getCardId())
                         .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + slot.getCardId()));
                 dc.setSpell(s);
@@ -101,10 +108,16 @@ public class DeckService {
                 DeckCard dc = new DeckCard();
                 dc.setDeck(deck);
                 if (slot.getCardType() == CardDto.CardType.MINION) {
+                    if (!cardProgressService.canUseCard(userId, CardDto.CardType.MINION, slot.getCardId())) {
+                        throw new IllegalArgumentException("Карта ещё не разблокирована: MINION #" + slot.getCardId());
+                    }
                     Minion m = minionRepository.findById(slot.getCardId())
                             .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + slot.getCardId()));
                     dc.setMinion(m);
                 } else {
+                    if (!cardProgressService.canUseCard(userId, CardDto.CardType.SPELL, slot.getCardId())) {
+                        throw new IllegalArgumentException("Карта ещё не разблокирована: SPELL #" + slot.getCardId());
+                    }
                     Spell s = spellRepository.findById(slot.getCardId())
                             .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + slot.getCardId()));
                     dc.setSpell(s);

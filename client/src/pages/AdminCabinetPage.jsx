@@ -55,6 +55,7 @@ export default function AdminCabinetPage() {
   const [postMatchDrop, setPostMatchDrop] = useState({
     weightGold: 40,
     weightDust: 40,
+    weightCard: 20,
     weightHero: 20,
     goldMin: 15,
     goldMax: 75,
@@ -63,6 +64,11 @@ export default function AdminCabinetPage() {
   });
   const [postMatchDropLoading, setPostMatchDropLoading] = useState(false);
   const [postMatchDropSaving, setPostMatchDropSaving] = useState(false);
+  const [dropCardPoolKeys, setDropCardPoolKeys] = useState([]);
+  const [dropCardPoolLoading, setDropCardPoolLoading] = useState(false);
+  const [dropCardPoolSaving, setDropCardPoolSaving] = useState(false);
+  const [dropCardPoolTypeFilter, setDropCardPoolTypeFilter] = useState('ALL');
+  const [dropCardPoolSearch, setDropCardPoolSearch] = useState('');
 
   const loadHeroes = () => {
     api.get('/api/heroes')
@@ -96,6 +102,14 @@ export default function AdminCabinetPage() {
       })
       .catch(() => {})
       .finally(() => setPostMatchDropLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setDropCardPoolLoading(true);
+    api.get('/api/admin/settings/post-match-drop/cards')
+      .then(({ data }) => setDropCardPoolKeys(Array.isArray(data?.enabledCardKeys) ? data.enabledCardKeys : []))
+      .catch(() => setDropCardPoolKeys([]))
+      .finally(() => setDropCardPoolLoading(false));
   }, []);
 
   useEffect(() => {
@@ -545,6 +559,7 @@ export default function AdminCabinetPage() {
       const payload = {
         weightGold: Number(postMatchDrop.weightGold) || 0,
         weightDust: Number(postMatchDrop.weightDust) || 0,
+        weightCard: Number(postMatchDrop.weightCard) || 0,
         weightHero: Number(postMatchDrop.weightHero) || 0,
         goldMin: Number(postMatchDrop.goldMin) || 0,
         goldMax: Number(postMatchDrop.goldMax) || 0,
@@ -557,6 +572,62 @@ export default function AdminCabinetPage() {
       setError(err.response?.data?.message || 'Не удалось сохранить настройки дропа');
     } finally {
       setPostMatchDropSaving(false);
+    }
+  };
+
+  const cardDropKey = (card) => `${card.cardType}:${card.id}`;
+  const isCardInDropPool = (card) => dropCardPoolKeys.includes(cardDropKey(card));
+
+  const toggleCardInDropPool = (card) => {
+    const key = cardDropKey(card);
+    setDropCardPoolKeys((prev) => (
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    ));
+  };
+
+  const handleDropCardPoolSelectAll = () => {
+    setDropCardPoolKeys(cards.map((c) => cardDropKey(c)));
+  };
+
+  const handleDropCardPoolUseAllByDefault = () => {
+    setDropCardPoolKeys([]);
+  };
+
+  const handleDropCardPoolSelectFiltered = () => {
+    const filteredKeys = filteredDropPoolCards.map((c) => cardDropKey(c));
+    setDropCardPoolKeys((prev) => Array.from(new Set([...prev, ...filteredKeys])));
+  };
+
+  const handleDropCardPoolUnselectFiltered = () => {
+    const filteredKeys = new Set(filteredDropPoolCards.map((c) => cardDropKey(c)));
+    setDropCardPoolKeys((prev) => prev.filter((key) => !filteredKeys.has(key)));
+  };
+
+  const normalizedDropCardPoolSearch = dropCardPoolSearch.trim().toLowerCase();
+  const filteredDropPoolCards = cards.filter((c) => {
+    if (dropCardPoolTypeFilter !== 'ALL' && c.cardType !== dropCardPoolTypeFilter) {
+      return false;
+    }
+    if (!normalizedDropCardPoolSearch) return true;
+    return (
+      (c.name || '').toLowerCase().includes(normalizedDropCardPoolSearch)
+      || String(c.id).includes(normalizedDropCardPoolSearch)
+    );
+  });
+
+  const handleDropCardPoolSave = async (e) => {
+    e.preventDefault();
+    setError('');
+    setDropCardPoolSaving(true);
+    try {
+      const { data } = await api.put('/api/admin/settings/post-match-drop/cards', {
+        enabledCardKeys: dropCardPoolKeys,
+      });
+      setDropCardPoolKeys(Array.isArray(data?.enabledCardKeys) ? data.enabledCardKeys : []);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось сохранить пул карт для дропа');
+    } finally {
+      setDropCardPoolSaving(false);
     }
   };
 
@@ -585,7 +656,7 @@ export default function AdminCabinetPage() {
       <div className="admin-post-match-section">
         <h3>Награда после PvP-матча</h3>
         <p className="admin-hint-small">
-          Веса — любые неотрицательные числа; шанс типа примерно равен доле его веса в сумме весов (золото / пыль / герой).
+          Веса — любые неотрицательные числа; шанс типа примерно равен доле его веса в сумме весов (золото / пыль / карта / герой).
           Если у игрока не осталось заблокированных героев, ветка «герой» не выпадает. Диапазоны золота и пыли — включительно.
         </p>
         <form className="admin-post-match-form" onSubmit={handlePostMatchDropSave}>
@@ -617,6 +688,16 @@ export default function AdminCabinetPage() {
                 min={0}
                 value={postMatchDrop.weightHero}
                 onChange={(e) => setPostMatchDrop((p) => ({ ...p, weightHero: e.target.value }))}
+                disabled={postMatchDropLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Вес: карта</span>
+              <input
+                type="number"
+                min={0}
+                value={postMatchDrop.weightCard}
+                onChange={(e) => setPostMatchDrop((p) => ({ ...p, weightCard: e.target.value }))}
                 disabled={postMatchDropLoading}
               />
             </label>
@@ -663,6 +744,73 @@ export default function AdminCabinetPage() {
           </div>
           <button type="submit" className="btn btn-primary" disabled={postMatchDropLoading || postMatchDropSaving}>
             {postMatchDropSaving ? '…' : 'Сохранить'}
+          </button>
+        </form>
+      </div>
+      <div className="admin-drop-card-pool-section">
+        <h3>Пул карт для случайного дропа</h3>
+        <p className="admin-hint-small">
+          Отметьте карты, которые могут выпадать после матча. Если снять отметки со всех карт, используется весь пул.
+        </p>
+        <p className="admin-hint-small">
+          {dropCardPoolKeys.length === 0
+            ? 'Сейчас используется весь пул карт (по умолчанию).'
+            : `Выбрано карт в пуле: ${dropCardPoolKeys.length}`}
+        </p>
+        <form className="admin-drop-card-pool-form" onSubmit={handleDropCardPoolSave}>
+          <div className="admin-drop-card-pool-filters">
+            <select
+              value={dropCardPoolTypeFilter}
+              onChange={(e) => setDropCardPoolTypeFilter(e.target.value)}
+              disabled={dropCardPoolLoading}
+            >
+              <option value="ALL">Все типы</option>
+              <option value="MINION">Только MINION</option>
+              <option value="SPELL">Только SPELL</option>
+            </select>
+            <input
+              type="text"
+              value={dropCardPoolSearch}
+              onChange={(e) => setDropCardPoolSearch(e.target.value)}
+              placeholder="Поиск по названию или ID"
+              disabled={dropCardPoolLoading}
+            />
+          </div>
+          <div className="admin-drop-card-pool-actions">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleDropCardPoolSelectAll} disabled={dropCardPoolLoading}>
+              Выбрать все
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleDropCardPoolSelectFiltered} disabled={dropCardPoolLoading || filteredDropPoolCards.length === 0}>
+              Выбрать отфильтрованные
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleDropCardPoolUnselectFiltered} disabled={dropCardPoolLoading || filteredDropPoolCards.length === 0}>
+              Снять отфильтрованные
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleDropCardPoolUseAllByDefault} disabled={dropCardPoolLoading}>
+              Сбросить (весь пул)
+            </button>
+          </div>
+          <div className="admin-drop-card-pool-grid">
+            {filteredDropPoolCards.map((c) => (
+              <label key={`drop-pool-${c.cardType}-${c.id}`} className="admin-drop-card-pool-item">
+                <input
+                  type="checkbox"
+                  checked={isCardInDropPool(c)}
+                  onChange={() => toggleCardInDropPool(c)}
+                  disabled={dropCardPoolLoading}
+                />
+                <span className="admin-drop-card-pool-name">{c.name}</span>
+                <span className="admin-drop-card-pool-meta">{c.cardType} · #{c.id}</span>
+              </label>
+            ))}
+            {filteredDropPoolCards.length === 0 && (
+              <div className="admin-drop-card-pool-empty">
+                По текущему фильтру карты не найдены.
+              </div>
+            )}
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={dropCardPoolLoading || dropCardPoolSaving}>
+            {dropCardPoolSaving ? '…' : 'Сохранить пул карт'}
           </button>
         </form>
       </div>
