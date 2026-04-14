@@ -2184,28 +2184,9 @@ header .header-username {
   background: #fff;
   transition: border-color 0.2s;
   text-align: center;
-  position: relative;
 }
 .admin-card-item:hover { border-color: #e74c3c; }
 .admin-card-item.selected { border-color: #e74c3c; background: #fff8f8; }
-.admin-card-delete-btn {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 999px;
-  background: #e74c3c;
-  color: #fff;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
-.admin-card-delete-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
 .admin-card-preview-img {
   width: 72px;
   height: 98px;
@@ -2280,6 +2261,9 @@ header .header-username {
   font-size: 1rem;
 }
 .admin-form button { margin-top: 0.5rem; }
+.admin-delete-card-btn {
+  margin-left: 0.5rem;
+}
 .admin-image-upload,
 .admin-sound-upload {
   margin-top: 1.5rem;

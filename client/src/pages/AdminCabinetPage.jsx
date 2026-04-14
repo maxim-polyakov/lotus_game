@@ -1292,15 +1292,6 @@ export default function AdminCabinetPage() {
                 className={`admin-card-item ${selected?.id === c.id && selected?.cardType === c.cardType ? 'selected' : ''}`}
                 onClick={() => setSelected(c)}
               >
-                <button
-                  type="button"
-                  className="admin-card-delete-btn"
-                  onClick={(e) => handleDeleteCard(c, e)}
-                  disabled={deletingCardKey === `${c.cardType}:${c.id}`}
-                  title="Удалить карту"
-                >
-                  {deletingCardKey === `${c.cardType}:${c.id}` ? '...' : '×'}
-                </button>
                 {c.imageUrl ? (
                   <img src={c.imageUrl} alt={c.name} className="admin-card-preview-img" />
                 ) : (
@@ -1457,6 +1448,14 @@ export default function AdminCabinetPage() {
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? 'Сохранение...' : 'Сохранить'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary admin-delete-card-btn"
+                  disabled={deletingCardKey === `${selected.cardType}:${selected.id}`}
+                  onClick={() => handleDeleteCard(selected)}
+                >
+                  {deletingCardKey === `${selected.cardType}:${selected.id}` ? 'Удаление...' : 'Удалить карту'}
                 </button>
               </form>
               <div className="admin-image-upload">
