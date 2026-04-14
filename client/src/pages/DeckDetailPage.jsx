@@ -6,12 +6,14 @@ import { useHeroPreference } from '../context/HeroPreferenceContext';
 
 const DECK_SIZE = 30;
 const DEFAULT_DECK_HERO_ID = 'lotus_guardian';
+const cardKey = (cardType, cardId) => `${cardType}:${cardId}`;
 
 export default function DeckDetailPage() {
   const { id } = useParams();
   const { heroes, loading: heroesLoading } = useHeroPreference();
   const [deck, setDeck] = useState(null);
   const [allCards, setAllCards] = useState([]);
+  const [unlockedCardKeys, setUnlockedCardKeys] = useState(new Set());
   const [name, setName] = useState('');
   const [heroId, setHeroId] = useState('');
   const [slots, setSlots] = useState([]);
@@ -24,11 +26,13 @@ export default function DeckDetailPage() {
     setError('');
     Promise.all([
       api.get(`/api/decks/${id}`).then(({ data }) => data),
-      api.get('/api/cards/collection').then(({ data }) => data),
+      api.get('/api/cards').then(({ data }) => data || []),
+      api.get('/api/cards/collection').then(({ data }) => data || []),
     ])
-      .then(([deckData, cardsData]) => {
+      .then(([deckData, allCardsData, unlockedCardsData]) => {
         setDeck(deckData);
-        setAllCards(cardsData || []);
+        setAllCards(allCardsData || []);
+        setUnlockedCardKeys(new Set((unlockedCardsData || []).map((c) => cardKey(c.cardType, c.id))));
         setName(deckData?.name || '');
         setHeroId(deckData?.heroId || DEFAULT_DECK_HERO_ID);
         setSlots((deckData?.cards || []).map((c) => ({
@@ -167,13 +171,23 @@ export default function DeckDetailPage() {
             <div className="deck-edit-cards-grid">
               {allCards.map((c) => {
                 const count = getCount(c);
+                const isUnlocked = unlockedCardKeys.has(cardKey(c.cardType, c.id));
                 return (
-                  <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
+                  <div key={`${c.cardType}-${c.id}`} className={`deck-edit-card-item ${isUnlocked ? '' : 'deck-edit-card-item--locked'}`}>
                     <CardDisplay card={c} size="lg" count={count} />
+                    {!isUnlocked && <span className="deck-edit-card-lock">Не открыта</span>}
                     <div className="deck-edit-card-controls">
                       <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
                       <span className="deck-edit-card-count">{count}</span>
-                      <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+                      <button
+                        type="button"
+                        onClick={() => addCard(c)}
+                        className="btn btn-primary btn-sm"
+                        disabled={!isUnlocked}
+                        title={isUnlocked ? '' : 'Сначала откройте эту карту'}
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
                 );

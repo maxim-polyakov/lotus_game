@@ -5,12 +5,14 @@ import CardDisplay from '../components/CardDisplay';
 import { useHeroPreference } from '../context/HeroPreferenceContext';
 
 const DECK_SIZE = 30;
+const cardKey = (cardType, cardId) => `${cardType}:${cardId}`;
 
 export default function DeckCreatePage() {
   const [searchParams] = useSearchParams();
   const { heroes, loading: heroesLoading } = useHeroPreference();
   const [name, setName] = useState('');
   const [cards, setCards] = useState([]);
+  const [unlockedCardKeys, setUnlockedCardKeys] = useState(new Set());
   const [slots, setSlots] = useState([]); // { cardType, cardId, count }
   const [heroId, setHeroId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,9 +32,13 @@ export default function DeckCreatePage() {
 
   const loadCards = useCallback(() => {
     setError('');
-    api.get('/api/cards/collection')
-      .then(({ data }) => {
-        setCards(data || []);
+    Promise.all([
+      api.get('/api/cards').then(({ data }) => data || []),
+      api.get('/api/cards/collection').then(({ data }) => data || []),
+    ])
+      .then(([allCards, unlockedCards]) => {
+        setCards(allCards);
+        setUnlockedCardKeys(new Set(unlockedCards.map((c) => cardKey(c.cardType, c.id))));
         setError('');
       })
       .catch((e) => {
@@ -43,7 +49,7 @@ export default function DeckCreatePage() {
           } else if (e.response?.status === 401) {
             msg = 'Сессия истекла. Войдите снова.';
           } else {
-            msg = e.message || 'Не удалось загрузить коллекцию карт';
+            msg = e.message || 'Не удалось загрузить список карт';
           }
         }
         setError(msg);
@@ -175,13 +181,23 @@ export default function DeckCreatePage() {
             <div className="deck-edit-cards-grid">
               {cards.map((c) => {
                 const count = getCount(c);
+                const isUnlocked = unlockedCardKeys.has(cardKey(c.cardType, c.id));
                 return (
-                  <div key={`${c.cardType}-${c.id}`} className="deck-edit-card-item">
+                  <div key={`${c.cardType}-${c.id}`} className={`deck-edit-card-item ${isUnlocked ? '' : 'deck-edit-card-item--locked'}`}>
                     <CardDisplay card={c} size="lg" count={count} />
+                    {!isUnlocked && <span className="deck-edit-card-lock">Не открыта</span>}
                     <div className="deck-edit-card-controls">
                       <button type="button" onClick={() => removeCard(c)} className="btn btn-secondary btn-sm" disabled={count === 0}>−</button>
                       <span className="deck-edit-card-count">{count}</span>
-                      <button type="button" onClick={() => addCard(c)} className="btn btn-primary btn-sm">+</button>
+                      <button
+                        type="button"
+                        onClick={() => addCard(c)}
+                        className="btn btn-primary btn-sm"
+                        disabled={!isUnlocked}
+                        title={isUnlocked ? '' : 'Сначала откройте эту карту'}
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
                 );

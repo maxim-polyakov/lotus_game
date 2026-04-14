@@ -1,6 +1,7 @@
 package com.lotus.game.controller;
 
 import com.lotus.game.dto.shop.RandomCardPurchaseDto;
+import com.lotus.game.dto.shop.RandomHeroPurchaseDto;
 import com.lotus.game.dto.shop.ShopStatusDto;
 import com.lotus.game.security.GameUserDetails;
 import com.lotus.game.service.ShopService;
@@ -29,5 +30,11 @@ public class ShopController {
     public ResponseEntity<RandomCardPurchaseDto> buyRandomCard(@AuthenticationPrincipal GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(shopService.buyRandomCard(user.getId()));
+    }
+
+    @PostMapping("/buy/random-hero")
+    public ResponseEntity<RandomHeroPurchaseDto> buyRandomHero(@AuthenticationPrincipal GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(shopService.buyRandomHero(user.getId()));
     }
 }
