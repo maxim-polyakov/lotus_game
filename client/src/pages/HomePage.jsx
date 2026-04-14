@@ -52,6 +52,7 @@ export default function HomePage() {
                   menuAlign="left"
                   items={[
                     { to: '/profile', label: 'Профиль' },
+                    { to: '/shop', label: 'Магазин' },
                     { to: '/friends', label: 'Друзья' },
                     { to: '/notifications', label: 'Уведомления' },
                     { to: '/replays', label: 'Реплеи' },

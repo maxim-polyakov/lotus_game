@@ -62,6 +62,15 @@ public class CardProgressService {
         return allKeys.stream().anyMatch(k -> !unlocked.contains(k));
     }
 
+    public int countLockedCards(User user) {
+        ensureStarterCards(user);
+        Set<String> unlocked = user.getUnlockedCardKeys() != null ? user.getUnlockedCardKeys() : Set.of();
+        return (int) eligibleDropCards().stream()
+                .map(c -> toCardKey(c.getCardType(), c.getId()))
+                .filter(k -> !unlocked.contains(k))
+                .count();
+    }
+
     public CardDto unlockRandomCard(User user) {
         ensureStarterCards(user);
         Set<String> unlocked = user.getUnlockedCardKeys();

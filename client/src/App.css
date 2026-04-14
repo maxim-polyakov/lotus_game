@@ -3901,6 +3901,43 @@ header .header-username {
   font-size: 0.9rem;
 }
 
+.shop-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 2rem 2rem;
+}
+.shop-block {
+  background: var(--card-bg);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  padding: 1rem;
+}
+.shop-block h3 {
+  margin: 0 0 0.75rem;
+}
+.shop-info-line {
+  margin: 0 0 0.45rem;
+}
+.shop-hint-muted {
+  margin: 0.65rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.shop-last-card {
+  margin-top: 0.75rem;
+}
+@media (max-width: 768px) {
+  .shop-content {
+    padding: 1rem;
+  }
+}
+@media (max-width: 480px) {
+  .shop-content {
+    padding: 0.75rem;
+  }
+}
+
 .chat-widget {
   --chat-accent: #e74c3c;
   --chat-accent-soft: rgba(231, 76, 60, 0.12);

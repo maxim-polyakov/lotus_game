@@ -2,6 +2,7 @@ package com.lotus.game.controller;
 
 import com.lotus.game.dto.game.CardDropPoolSettingsDto;
 import com.lotus.game.dto.game.PostMatchDropSettingsDto;
+import com.lotus.game.dto.shop.ShopSettingsDto;
 import com.lotus.game.service.GameConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -113,6 +114,23 @@ public class GameSettingsController {
             @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
         if (user == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(gameConfigService.updatePostMatchCardDropPool(body));
+    }
+
+    @GetMapping("/api/admin/settings/shop")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ShopSettingsDto> getShopSettings(
+            @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(gameConfigService.getShopSettings());
+    }
+
+    @PutMapping("/api/admin/settings/shop")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ShopSettingsDto> updateShopSettings(
+            @RequestBody ShopSettingsDto body,
+            @AuthenticationPrincipal com.lotus.game.security.GameUserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(gameConfigService.updateShopSettings(body));
     }
 
     private ResponseEntity<Map<String, String>> uploadSound(String key, MultipartFile file) {

@@ -3,6 +3,7 @@ package com.lotus.game.service;
 import com.lotus.game.config.RedisCacheConfig;
 import com.lotus.game.dto.game.CardDropPoolSettingsDto;
 import com.lotus.game.dto.game.PostMatchDropSettingsDto;
+import com.lotus.game.dto.shop.ShopSettingsDto;
 import com.lotus.game.entity.GameConfig;
 import com.lotus.game.repository.GameConfigRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class GameConfigService {
     public static final String KEY_POST_MATCH_DUST_MIN = "postMatchDrop.dustMin";
     public static final String KEY_POST_MATCH_DUST_MAX = "postMatchDrop.dustMax";
     public static final String KEY_POST_MATCH_CARD_POOL = "postMatchDrop.cardPool";
+    public static final String KEY_SHOP_RANDOM_CARD_PRICE = "shop.randomCardPrice";
 
     private final GameConfigRepository configRepository;
     private final ObjectProvider<StorageService> storageServiceProvider;
@@ -177,6 +179,35 @@ public class GameConfigService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         upsertCsvSet(KEY_POST_MATCH_CARD_POOL, keys);
         return getPostMatchCardDropPool();
+    }
+
+    @Transactional(readOnly = true)
+    public ShopSettingsDto getShopSettings() {
+        int randomCardPrice = readInt(KEY_SHOP_RANDOM_CARD_PRICE, 100);
+        if (randomCardPrice <= 0) {
+            randomCardPrice = 100;
+        }
+        return ShopSettingsDto.builder()
+                .randomCardPrice(randomCardPrice)
+                .build();
+    }
+
+    @Transactional
+    public ShopSettingsDto updateShopSettings(ShopSettingsDto dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Пустые настройки магазина");
+        }
+        int randomCardPrice = clampNonNeg(dto.getRandomCardPrice(), 100);
+        if (randomCardPrice <= 0) {
+            randomCardPrice = 100;
+        }
+        upsertInt(KEY_SHOP_RANDOM_CARD_PRICE, randomCardPrice);
+        return getShopSettings();
+    }
+
+    @Transactional(readOnly = true)
+    public int getRandomCardPrice() {
+        return getShopSettings().getRandomCardPrice();
     }
 
     @Transactional(readOnly = true)

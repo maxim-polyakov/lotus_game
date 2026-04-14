@@ -36,6 +36,8 @@ public class MeController {
         body.put("email", user.getEmail());
         body.put("avatarUrl", user.getAvatarUrl());
         body.put("rating", dbUser != null ? dbUser.getRating() : 1000);
+        body.put("gold", dbUser != null ? dbUser.getGold() : 0);
+        body.put("dust", dbUser != null ? dbUser.getDust() : 0);
         body.put("roles", user.getAuthorities().stream()
                 .map(a -> a.getAuthority())
                 .collect(Collectors.toList()));

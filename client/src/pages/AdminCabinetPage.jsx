@@ -64,6 +64,9 @@ export default function AdminCabinetPage() {
   });
   const [postMatchDropLoading, setPostMatchDropLoading] = useState(false);
   const [postMatchDropSaving, setPostMatchDropSaving] = useState(false);
+  const [shopSettings, setShopSettings] = useState({ randomCardPrice: 100 });
+  const [shopSettingsLoading, setShopSettingsLoading] = useState(false);
+  const [shopSettingsSaving, setShopSettingsSaving] = useState(false);
   const [dropCardPoolKeys, setDropCardPoolKeys] = useState([]);
   const [dropCardPoolLoading, setDropCardPoolLoading] = useState(false);
   const [dropCardPoolSaving, setDropCardPoolSaving] = useState(false);
@@ -110,6 +113,18 @@ export default function AdminCabinetPage() {
       .then(({ data }) => setDropCardPoolKeys(Array.isArray(data?.enabledCardKeys) ? data.enabledCardKeys : []))
       .catch(() => setDropCardPoolKeys([]))
       .finally(() => setDropCardPoolLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setShopSettingsLoading(true);
+    api.get('/api/admin/settings/shop')
+      .then(({ data }) => {
+        if (data && typeof data === 'object') {
+          setShopSettings((prev) => ({ ...prev, ...data }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setShopSettingsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -631,6 +646,23 @@ export default function AdminCabinetPage() {
     }
   };
 
+  const handleShopSettingsSave = async (e) => {
+    e.preventDefault();
+    setError('');
+    setShopSettingsSaving(true);
+    try {
+      const payload = {
+        randomCardPrice: Number(shopSettings.randomCardPrice) || 0,
+      };
+      const { data } = await api.put('/api/admin/settings/shop', payload);
+      setShopSettings((prev) => ({ ...prev, ...data }));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось сохранить настройки магазина');
+    } finally {
+      setShopSettingsSaving(false);
+    }
+  };
+
   return (
     <div className="admin-cabinet">
       <div className="admin-header">
@@ -744,6 +776,29 @@ export default function AdminCabinetPage() {
           </div>
           <button type="submit" className="btn btn-primary" disabled={postMatchDropLoading || postMatchDropSaving}>
             {postMatchDropSaving ? '…' : 'Сохранить'}
+          </button>
+        </form>
+      </div>
+      <div className="admin-drop-card-pool-section">
+        <h3>Магазин</h3>
+        <p className="admin-hint-small">
+          Настройка цены покупки случайной карты за золото.
+        </p>
+        <form className="admin-post-match-form" onSubmit={handleShopSettingsSave}>
+          <div className="admin-post-match-grid">
+            <label className="admin-post-match-field">
+              <span>Цена случайной карты</span>
+              <input
+                type="number"
+                min={1}
+                value={shopSettings.randomCardPrice}
+                onChange={(e) => setShopSettings((p) => ({ ...p, randomCardPrice: e.target.value }))}
+                disabled={shopSettingsLoading}
+              />
+            </label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={shopSettingsLoading || shopSettingsSaving}>
+            {shopSettingsSaving ? '…' : 'Сохранить цену'}
           </button>
         </form>
       </div>
