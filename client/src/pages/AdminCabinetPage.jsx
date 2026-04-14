@@ -82,6 +82,7 @@ export default function AdminCabinetPage() {
   const [creatingMinion, setCreatingMinion] = useState(false);
   const [creatingSpell, setCreatingSpell] = useState(false);
   const [creatingHero, setCreatingHero] = useState(false);
+  const [deletingCardKey, setDeletingCardKey] = useState('');
 
   const loadHeroes = () => {
     api.get('/api/heroes')
@@ -368,6 +369,33 @@ export default function AdminCabinetPage() {
       setError(err.response?.data?.message || 'Не удалось добавить героя');
     } finally {
       setCreatingHero(false);
+    }
+  };
+
+  const handleDeleteCard = async (card, e) => {
+    e?.stopPropagation?.();
+    if (!card) return;
+    const confirmed = window.confirm(`Удалить карту "${card.name}"? Это удалит её из всех колод и из разблокированных карт игроков.`);
+    if (!confirmed) return;
+    setError('');
+    const key = `${card.cardType}:${card.id}`;
+    setDeletingCardKey(key);
+    try {
+      const path = card.cardType === 'MINION'
+        ? `/api/admin/cards/minions/${card.id}`
+        : `/api/admin/cards/spells/${card.id}`;
+      await api.delete(path);
+      setCards((prev) => prev.filter((c) => !(c.cardType === card.cardType && c.id === card.id)));
+      setDropCardPoolKeys((prev) => prev.filter((k) => k !== key));
+      setSelected((prev) => (
+        prev && prev.cardType === card.cardType && prev.id === card.id
+          ? null
+          : prev
+      ));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось удалить карту');
+    } finally {
+      setDeletingCardKey('');
     }
   };
 
@@ -1264,6 +1292,15 @@ export default function AdminCabinetPage() {
                 className={`admin-card-item ${selected?.id === c.id && selected?.cardType === c.cardType ? 'selected' : ''}`}
                 onClick={() => setSelected(c)}
               >
+                <button
+                  type="button"
+                  className="admin-card-delete-btn"
+                  onClick={(e) => handleDeleteCard(c, e)}
+                  disabled={deletingCardKey === `${c.cardType}:${c.id}`}
+                  title="Удалить карту"
+                >
+                  {deletingCardKey === `${c.cardType}:${c.id}` ? '...' : '×'}
+                </button>
                 {c.imageUrl ? (
                   <img src={c.imageUrl} alt={c.name} className="admin-card-preview-img" />
                 ) : (

@@ -6,6 +6,7 @@ import com.lotus.game.dto.game.UpdateSpellRequest;
 import com.lotus.game.service.CardService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -40,5 +41,17 @@ public class AdminCardController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateSpellRequest request) {
         return ResponseEntity.ok(cardService.updateSpell(id, request));
+    }
+
+    @DeleteMapping("/minions/{id}")
+    public ResponseEntity<Void> deleteMinion(@PathVariable Long id) {
+        cardService.deleteMinion(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @DeleteMapping("/spells/{id}")
+    public ResponseEntity<Void> deleteSpell(@PathVariable Long id) {
+        cardService.deleteSpell(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

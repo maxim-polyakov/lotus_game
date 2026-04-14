@@ -1,14 +1,19 @@
 package com.lotus.game.service;
 
 import com.lotus.game.dto.game.CardDto;
+import com.lotus.game.dto.game.CardDropPoolSettingsDto;
 import com.lotus.game.dto.game.UpdateMinionRequest;
 import com.lotus.game.dto.game.UpdateSpellRequest;
 import com.lotus.game.entity.Minion;
 import com.lotus.game.entity.Spell;
+import com.lotus.game.entity.User;
 import com.lotus.game.config.RedisCacheConfig;
+import com.lotus.game.repository.DeckCardRepository;
 import com.lotus.game.repository.MinionRepository;
 import com.lotus.game.repository.SpellRepository;
+import com.lotus.game.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -16,8 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +31,10 @@ public class CardService {
 
     private final MinionRepository minionRepository;
     private final SpellRepository spellRepository;
+    private final DeckCardRepository deckCardRepository;
+    private final UserRepository userRepository;
+    private final GameConfigService gameConfigService;
+    private final ObjectProvider<StorageService> storageServiceProvider;
 
     @Transactional(readOnly = true)
     @Cacheable(value = RedisCacheConfig.CACHE_CARDS, key = "'all'")
@@ -151,5 +161,57 @@ public class CardService {
         if (req.getDescription() != null) s.setDescription(req.getDescription());
         if (req.getDamage() != null) s.setDamage(req.getDamage());
         return CardDto.fromSpell(spellRepository.save(s));
+    }
+
+    @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
+    public void deleteMinion(Long id) {
+        Minion minion = minionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));
+        String cardKey = CardProgressService.toCardKey(CardDto.CardType.MINION, id);
+        deleteCardAssets(minion.getImageUrl(), minion.getSoundUrl(), minion.getPlayEffectUrl(), minion.getAttackEffectUrl(), minion.getAttackSoundUrl());
+        deckCardRepository.deleteByMinionId(id);
+        cleanupCardReferences(cardKey);
+        minionRepository.delete(minion);
+    }
+
+    @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
+    public void deleteSpell(Long id) {
+        Spell spell = spellRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Spell not found: " + id));
+        String cardKey = CardProgressService.toCardKey(CardDto.CardType.SPELL, id);
+        deleteCardAssets(spell.getImageUrl(), spell.getSoundUrl(), spell.getPlayEffectUrl());
+        deckCardRepository.deleteBySpellId(id);
+        cleanupCardReferences(cardKey);
+        spellRepository.delete(spell);
+    }
+
+    private void cleanupCardReferences(String cardKey) {
+        for (User user : userRepository.findAll()) {
+            Set<String> unlocked = user.getUnlockedCardKeys();
+            if (unlocked != null) {
+                unlocked.remove(cardKey);
+            }
+        }
+
+        Set<String> enabled = new LinkedHashSet<>(gameConfigService.getEnabledPostMatchCardKeys());
+        if (enabled.remove(cardKey)) {
+            gameConfigService.updatePostMatchCardDropPool(CardDropPoolSettingsDto.builder()
+                    .enabledCardKeys(new ArrayList<>(enabled))
+                    .build());
+        }
+    }
+
+    private void deleteCardAssets(String... urls) {
+        StorageService storageService = storageServiceProvider.getIfAvailable();
+        if (storageService == null || urls == null) {
+            return;
+        }
+        for (String url : urls) {
+            if (url != null && !url.isBlank()) {
+                storageService.deleteByUrl(url);
+            }
+        }
     }
 }
