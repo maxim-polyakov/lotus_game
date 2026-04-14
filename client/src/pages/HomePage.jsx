@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import TutorialModal from '../components/TutorialModal';
 import NavDropdown from '../components/NavDropdown';
+import ChatWidget from '../components/ChatWidget';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -119,6 +120,7 @@ export default function HomePage() {
           </div>
         )}
       </main>
+      {user && <ChatWidget />}
       <TutorialModal isOpen={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>
   );

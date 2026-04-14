@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private static final Pattern MATCH_TOPIC = Pattern.compile("^/topic/match/(\\d+)$");
+    private static final Pattern CHAT_MATCH_TOPIC = Pattern.compile("^/topic/chat/match/(\\d+)$");
 
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
@@ -73,6 +74,18 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     var matchEntity = matchOpt.get();
                     if (!matchEntity.getPlayer1Id().equals(userId) && !java.util.Objects.equals(matchEntity.getPlayer2Id(), userId)) {
                         log.warn("User {} attempted to subscribe to match {} without access", userId, matchId);
+                        return null;
+                    }
+                }
+                Matcher mChat = CHAT_MATCH_TOPIC.matcher(dest);
+                if (mChat.matches()) {
+                    Long matchId = Long.parseLong(mChat.group(1));
+                    Long userId = ((GameUserDetails) ((UsernamePasswordAuthenticationToken) user).getPrincipal()).getId();
+                    var matchOpt = matchRepository.findById(matchId);
+                    if (matchOpt.isEmpty()) return null;
+                    var matchEntity = matchOpt.get();
+                    if (!matchEntity.getPlayer1Id().equals(userId) && !java.util.Objects.equals(matchEntity.getPlayer2Id(), userId)) {
+                        log.warn("User {} attempted to subscribe to match-chat {} without access", userId, matchId);
                         return null;
                     }
                 }

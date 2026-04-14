@@ -9,6 +9,7 @@ import { playSound, playSoundFromUrl } from '../utils/sound';
 import CardDisplay from './CardDisplay';
 import EffectOverlay from './EffectOverlay';
 import ErrorDetail from './ErrorDetail';
+import ChatWidget from './ChatWidget';
 
 export default function GameBoard({ matchId, initialMatch, onExit, allCards: allCardsProp }) {
   const [match, setMatch] = useState(initialMatch ?? null);
@@ -443,6 +444,7 @@ export default function GameBoard({ matchId, initialMatch, onExit, allCards: all
       {gameError && (
         <ErrorDetail err={gameError} context={gameErrorContext} onClose={() => setGameError(null)} />
       )}
+      <ChatWidget />
     </div>
   );
 }
