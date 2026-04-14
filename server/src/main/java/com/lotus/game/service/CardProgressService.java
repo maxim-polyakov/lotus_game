@@ -55,28 +55,18 @@ public class CardProgressService {
     }
 
     public boolean hasLockedCards(User user) {
-        List<String> allKeys = eligibleDropCards().stream()
-                .map(c -> toCardKey(c.getCardType(), c.getId()))
-                .toList();
-        Set<String> unlocked = user.getUnlockedCardKeys() != null ? user.getUnlockedCardKeys() : Set.of();
-        return allKeys.stream().anyMatch(k -> !unlocked.contains(k));
+        return !lockedCardsForUser(user).isEmpty();
     }
 
     public int countLockedCards(User user) {
         ensureStarterCards(user);
-        Set<String> unlocked = user.getUnlockedCardKeys() != null ? user.getUnlockedCardKeys() : Set.of();
-        return (int) eligibleDropCards().stream()
-                .map(c -> toCardKey(c.getCardType(), c.getId()))
-                .filter(k -> !unlocked.contains(k))
-                .count();
+        return lockedCardsForUser(user).size();
     }
 
     public CardDto unlockRandomCard(User user) {
         ensureStarterCards(user);
         Set<String> unlocked = user.getUnlockedCardKeys();
-        List<CardDto> locked = eligibleDropCards().stream()
-                .filter(c -> !unlocked.contains(toCardKey(c.getCardType(), c.getId())))
-                .toList();
+        List<CardDto> locked = lockedCardsForUser(user);
         if (locked.isEmpty()) {
             return null;
         }
@@ -134,5 +124,20 @@ public class CardProgressService {
                 .filter(c -> enabled.contains(toCardKey(c.getCardType(), c.getId())))
                 .toList();
         return filtered.isEmpty() ? all : filtered;
+    }
+
+    private List<CardDto> lockedCardsForUser(User user) {
+        Set<String> unlocked = user.getUnlockedCardKeys() != null ? user.getUnlockedCardKeys() : Set.of();
+        List<CardDto> lockedFromConfiguredPool = eligibleDropCards().stream()
+                .filter(c -> !unlocked.contains(toCardKey(c.getCardType(), c.getId())))
+                .toList();
+        if (!lockedFromConfiguredPool.isEmpty()) {
+            return lockedFromConfiguredPool;
+        }
+        // Compatibility for old accounts: if configured pool is exhausted, allow unlocking
+        // newly added cards that are still locked for the player.
+        return cardService.getAllCards().stream()
+                .filter(c -> !unlocked.contains(toCardKey(c.getCardType(), c.getId())))
+                .toList();
     }
 }
