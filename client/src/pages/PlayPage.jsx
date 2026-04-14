@@ -79,18 +79,35 @@ export default function PlayPage() {
     if (!ok) setSelectedDeck(null);
   }, [selectedHeroId, decks, selectedDeck]);
 
-  const clearActiveMatch = async (finishedMatch) => {
-    if (finishedMatch?.status === 'FINISHED' && finishedMatch?.id) {
+  const fetchPostMatchReward = async (matchId, attempts = 6, delayMs = 500) => {
+    for (let i = 0; i < attempts; i += 1) {
       try {
         const { data, status } = await api.get('/api/notifications/post-match/latest', {
-          params: { matchId: finishedMatch.id },
+          params: { matchId },
           validateStatus: (s) => (s >= 200 && s < 300) || s === 204,
         });
         if (status === 200 && data?.id) {
-          setPostMatchReward(data);
-          await api.post(`/api/notifications/${data.id}/read`);
+          return data;
         }
-      } catch (_) {}
+      } catch (_) {
+        // Ignore transient errors and retry shortly.
+      }
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+    return null;
+  };
+
+  const clearActiveMatch = async (finishedMatch) => {
+    if (finishedMatch?.status === 'FINISHED' && finishedMatch?.id) {
+      const reward = await fetchPostMatchReward(finishedMatch.id);
+      if (reward?.id) {
+        setPostMatchReward(reward);
+        try {
+          await api.post(`/api/notifications/${reward.id}/read`);
+        } catch (_) {}
+      }
     }
     setMatch(null);
     sessionStorage.removeItem(ACTIVE_MATCH_KEY);
