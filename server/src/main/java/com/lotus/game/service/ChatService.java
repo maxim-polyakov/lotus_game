@@ -236,6 +236,7 @@ public class ChatService {
                 .channelKey(channelKey)
                 .senderId(sender.getId())
                 .senderUsername(sender.getUsername())
+                .senderAvatarUrl(sender.getAvatarUrl())
                 .recipientUserId(recipientUserId)
                 .matchId(matchId)
                 .text(text)
@@ -268,6 +269,7 @@ public class ChatService {
                 .channelType(m.getChannelType() != null ? m.getChannelType().name() : null)
                 .channelKey(m.getChannelKey())
                 .fromUsername(m.getSenderUsername())
+                .fromAvatarUrl(m.getSenderAvatarUrl())
                 .text(m.getText())
                 .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : Instant.now().toString())
                 .build();

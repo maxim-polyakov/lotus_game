@@ -10,6 +10,7 @@ public class ChatMessageDto {
     private String channelType; // GENERAL | PRIVATE | MATCH
     private String channelKey;
     private String fromUsername;
+    private String fromAvatarUrl;
     private String text;
     private String createdAt;
 }

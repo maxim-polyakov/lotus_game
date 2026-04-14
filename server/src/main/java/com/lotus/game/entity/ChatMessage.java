@@ -43,6 +43,9 @@ public class ChatMessage {
     @Column(name = "sender_username", nullable = false, length = 80)
     private String senderUsername;
 
+    @Column(name = "sender_avatar_url", length = 512)
+    private String senderAvatarUrl;
+
     @Column(name = "recipient_user_id")
     private Long recipientUserId;
 

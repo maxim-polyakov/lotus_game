@@ -21,6 +21,27 @@ function resolvePrivatePeer(myUsername, channelKey) {
   return null;
 }
 
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function initials(username) {
+  const value = (username || '').trim();
+  if (!value) return '?';
+  return value.slice(0, 2).toUpperCase();
+}
+
+function parseTimestamp(iso) {
+  if (!iso) return null;
+  const ts = Date.parse(iso);
+  return Number.isNaN(ts) ? null : ts;
+}
+
+const MESSAGE_GROUP_WINDOW_MS = 3 * 60 * 1000;
+
 export default function ChatWidget() {
   const { user } = useAuth();
   const [connected, setConnected] = useState(false);
@@ -45,6 +66,17 @@ export default function ChatWidget() {
   }, [activeTab, privatePeer, activeMatchId, user?.username]);
 
   const currentMessages = currentChannelKey ? (messagesByKey[currentChannelKey] || []) : [];
+  const renderedMessages = useMemo(() => currentMessages.map((message, index) => {
+    const prev = index > 0 ? currentMessages[index - 1] : null;
+    const sameAuthor = !!prev && prev.fromUsername === message.fromUsername;
+    const prevTs = parseTimestamp(prev?.createdAt);
+    const curTs = parseTimestamp(message?.createdAt);
+    const closeInTime = prevTs != null && curTs != null && Math.abs(curTs - prevTs) <= MESSAGE_GROUP_WINDOW_MS;
+    return {
+      message,
+      hideMeta: sameAuthor && closeInTime,
+    };
+  }), [currentMessages]);
 
   const appendMessage = (msg) => {
     const key = msg?.channelKey;
@@ -60,7 +92,14 @@ export default function ChatWidget() {
         const peer = resolvePrivatePeer(user?.username, msg.channelKey);
         if (!peer) return prev;
         const existing = prev.filter((d) => d.channelKey !== msg.channelKey);
-        return [{ username: peer, channelKey: msg.channelKey, lastMessage: msg.text, lastCreatedAt: msg.createdAt }, ...existing].slice(0, 50);
+        const prevDialog = prev.find((d) => d.channelKey === msg.channelKey);
+        return [{
+          username: peer,
+          channelKey: msg.channelKey,
+          lastMessage: msg.text,
+          lastCreatedAt: msg.createdAt,
+          avatarUrl: prevDialog?.avatarUrl || (msg.fromUsername?.toLowerCase() === peer ? msg.fromAvatarUrl : null),
+        }, ...existing].slice(0, 50);
       });
     }
     if (key !== currentChannelKey && msg.fromUsername !== user?.username) {
@@ -261,10 +300,18 @@ export default function ChatWidget() {
   if (!user) return null;
 
   return (
-    <div className={`chat-widget ${collapsed ? 'chat-widget--collapsed' : ''}`}>
-      <button type="button" className="chat-widget-toggle btn btn-secondary btn-sm" onClick={() => setCollapsed((v) => !v)}>
-        {collapsed ? 'Чат' : 'Свернуть'}
-      </button>
+    <div className={`chat-widget chat-widget--theme-${activeTab.toLowerCase()} ${collapsed ? 'chat-widget--collapsed' : ''}`}>
+      <div className="chat-widget-head">
+        <div className="chat-widget-title-wrap">
+          <span className="chat-widget-title">Lotus Chat</span>
+          <span className={`chat-widget-conn ${connected ? 'chat-widget-conn--online' : 'chat-widget-conn--offline'}`}>
+            {connected ? 'online' : 'offline'}
+          </span>
+        </div>
+        <button type="button" className="chat-widget-toggle btn btn-outline btn-sm" onClick={() => setCollapsed((v) => !v)}>
+          {collapsed ? 'Открыть' : 'Свернуть'}
+        </button>
+      </div>
       {!collapsed && (
         <>
           <div className="chat-widget-tabs">
@@ -298,6 +345,11 @@ export default function ChatWidget() {
                     const unread = unreadByKey[key] || 0;
                     return (
                       <button key={key} type="button" className={`chat-dialog ${privatePeer === d.username ? 'chat-dialog--active' : ''}`} onClick={() => openDialog(d)}>
+                        {d.avatarUrl ? (
+                          <img className="chat-dialog-avatar" src={d.avatarUrl} alt={d.username} />
+                        ) : (
+                          <span className="chat-dialog-avatar chat-dialog-avatar--fallback">{initials(d.username)}</span>
+                        )}
                         <span className="chat-dialog-name">{d.username}</span>
                         <span className="chat-dialog-last">{d.lastMessage || '...'}</span>
                         {unread > 0 && <span className="chat-dialog-unread">{unread}</span>}
@@ -310,16 +362,26 @@ export default function ChatWidget() {
           )}
 
           <div className="chat-widget-status">
-            {connected ? 'online' : 'offline'}
-            {activeTab === 'PRIVATE' && privatePeer ? ` · приват: ${privatePeer}` : ''}
-            {activeTab === 'MATCH' && activeMatchId ? ` · матч #${activeMatchId}` : ''}
+            {activeTab === 'PRIVATE' && privatePeer ? `Приват: ${privatePeer}` : ''}
+            {activeTab === 'MATCH' && activeMatchId ? `Канал матча #${activeMatchId}` : ''}
           </div>
 
           <div className="chat-widget-messages">
-            {currentMessages.map((m, i) => (
-              <div key={`${m.createdAt}-${m.fromUsername}-${i}`} className={`chat-msg ${m.fromUsername === user.username ? 'chat-msg--me' : ''}`}>
-                <span className="chat-msg-author">{m.fromUsername}</span>
-                <span className="chat-msg-text">{m.text}</span>
+            {renderedMessages.map(({ message: m, hideMeta }, i) => (
+              <div
+                key={`${m.createdAt}-${m.fromUsername}-${i}`}
+                className={`chat-msg ${m.fromUsername === user.username ? 'chat-msg--me' : ''} ${hideMeta ? 'chat-msg--compact' : ''}`}
+              >
+                {!hideMeta && (m.fromAvatarUrl ? (
+                  <img className="chat-msg-avatar" src={m.fromAvatarUrl} alt={m.fromUsername} />
+                ) : (
+                  <span className="chat-msg-avatar chat-msg-avatar--fallback">{initials(m.fromUsername)}</span>
+                ))}
+                <div className="chat-msg-body">
+                  {!hideMeta && <span className="chat-msg-author">{m.fromUsername}</span>}
+                  <span className="chat-msg-time">{formatTime(m.createdAt)}</span>
+                  <span className="chat-msg-text">{m.text}</span>
+                </div>
               </div>
             ))}
             {currentMessages.length === 0 && <div className="chat-empty">Сообщений пока нет.</div>}
