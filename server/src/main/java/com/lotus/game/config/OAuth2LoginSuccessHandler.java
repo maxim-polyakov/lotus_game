@@ -3,6 +3,7 @@ package com.lotus.game.config;
 import com.lotus.game.entity.User;
 import com.lotus.game.repository.UserRepository;
 import com.lotus.game.security.JwtService;
+import com.lotus.game.service.FriendOnlineNotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final OAuthCodeStore oauthCodeStore;
+    private final FriendOnlineNotificationService friendOnlineNotificationService;
 
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
@@ -66,6 +68,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             }
             user.setLastLoginAt(Instant.now());
             userRepository.save(user);
+            friendOnlineNotificationService.notifyFriendsUserLoggedIn(user.getId());
 
             String accessToken = jwtService.buildAccessToken(user);
             String refreshToken = jwtService.buildRefreshToken(user);

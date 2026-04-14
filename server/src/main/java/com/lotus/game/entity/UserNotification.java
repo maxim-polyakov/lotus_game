@@ -17,6 +17,7 @@ public class UserNotification {
     public enum NotificationType {
         HERO_UNLOCK,
         CARD_UNLOCK,
+        FRIEND_ONLINE,
         REWARD_GOLD,
         REWARD_DUST
     }

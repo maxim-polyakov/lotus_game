@@ -24,6 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final MailService mailService;
+    private final FriendOnlineNotificationService friendOnlineNotificationService;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -102,6 +103,7 @@ public class AuthService {
 
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
+        friendOnlineNotificationService.notifyFriendsUserLoggedIn(user.getId());
 
         return buildLoginResponse(user);
     }

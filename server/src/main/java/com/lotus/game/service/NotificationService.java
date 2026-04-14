@@ -97,6 +97,14 @@ public class NotificationService {
                 .map(this::toDto);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<NotificationDto> latestUnreadFriendOnline(Long userId) {
+        return userNotificationRepository.findFirstByUserIdAndTypeAndReadFalseOrderByCreatedAtDesc(
+                        userId, UserNotification.NotificationType.FRIEND_ONLINE
+                )
+                .map(this::toDto);
+    }
+
     @Transactional
     public void markRead(Long userId, Long notificationId) {
         UserNotification n = userNotificationRepository.findByIdAndUserId(notificationId, userId)
@@ -105,6 +113,25 @@ public class NotificationService {
             n.setRead(true);
             userNotificationRepository.save(n);
         }
+    }
+
+    @Transactional
+    public NotificationDto createFriendOnlineNotification(Long userId, String friendUsername) {
+        String safeName = (friendUsername == null || friendUsername.isBlank()) ? "Ваш друг" : friendUsername;
+        UserNotification n = UserNotification.builder()
+                .userId(userId)
+                .type(UserNotification.NotificationType.FRIEND_ONLINE)
+                .title("Друг в сети")
+                .message(safeName + " вошёл в игру")
+                .heroId(null)
+                .cardType(null)
+                .cardId(null)
+                .rewardAmount(null)
+                .matchId(null)
+                .read(false)
+                .build();
+        UserNotification saved = userNotificationRepository.save(n);
+        return toDto(saved);
     }
 
     private NotificationDto toDto(UserNotification n) {

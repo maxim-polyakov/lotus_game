@@ -15,4 +15,6 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
     boolean existsByUserIdAndMatchId(Long userId, Long matchId);
 
     Optional<UserNotification> findFirstByUserIdAndMatchIdAndReadFalseOrderByCreatedAtDesc(Long userId, Long matchId);
+
+    Optional<UserNotification> findFirstByUserIdAndTypeAndReadFalseOrderByCreatedAtDesc(Long userId, UserNotification.NotificationType type);
 }

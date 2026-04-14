@@ -34,6 +34,16 @@ public class NotificationController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    @GetMapping("/friend-online/latest")
+    public ResponseEntity<NotificationDto> latestFriendOnline(
+            @AuthenticationPrincipal GameUserDetails user
+    ) {
+        if (user == null) return ResponseEntity.status(401).build();
+        return notificationService.latestUnreadFriendOnline(user.getId())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
     @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(
             @PathVariable Long id,
