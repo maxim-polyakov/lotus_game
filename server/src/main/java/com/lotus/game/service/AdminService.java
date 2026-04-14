@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 @Service
 @RequiredArgsConstructor
 public class AdminService {
@@ -36,4 +39,23 @@ public class AdminService {
             userRepository.save(user);
         }
     }
+
+    @Transactional
+    public RandomGoldGrantResult grantGoldToRandomPlayer(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Количество золота должно быть больше 0");
+        }
+        List<User> players = userRepository.findAll().stream()
+                .filter(u -> u.getRoles() == null || !u.getRoles().contains(ROLE_ADMIN))
+                .toList();
+        if (players.isEmpty()) {
+            throw new IllegalArgumentException("Нет доступных игроков для выдачи золота");
+        }
+        User winner = players.get(ThreadLocalRandom.current().nextInt(players.size()));
+        winner.setGold(winner.getGold() + amount);
+        userRepository.save(winner);
+        return new RandomGoldGrantResult(winner.getId(), winner.getUsername(), amount, winner.getGold());
+    }
+
+    public record RandomGoldGrantResult(Long userId, String username, int grantedGold, int totalGold) {}
 }

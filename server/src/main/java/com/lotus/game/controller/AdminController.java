@@ -28,8 +28,35 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/users/grant-random-gold")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RandomGoldGrantResponse> grantRandomGold(@RequestBody RandomGoldGrantRequest request) {
+        int amount = request != null ? request.getAmount() : 0;
+        var result = adminService.grantGoldToRandomPlayer(amount);
+        return ResponseEntity.ok(RandomGoldGrantResponse.builder()
+                .userId(result.userId())
+                .username(result.username())
+                .grantedGold(result.grantedGold())
+                .totalGold(result.totalGold())
+                .build());
+    }
+
     @Data
     public static class PromoteAdminRequest {
         private String emailOrUsername;
+    }
+
+    @Data
+    public static class RandomGoldGrantRequest {
+        private int amount;
+    }
+
+    @Data
+    @lombok.Builder
+    public static class RandomGoldGrantResponse {
+        private Long userId;
+        private String username;
+        private int grantedGold;
+        private int totalGold;
     }
 }

@@ -38,6 +38,9 @@ export default function AdminCabinetPage() {
   const [error, setError] = useState('');
   const [promoteInput, setPromoteInput] = useState('');
   const [promoting, setPromoting] = useState(false);
+  const [randomGoldAmount, setRandomGoldAmount] = useState(100);
+  const [randomGoldGiving, setRandomGoldGiving] = useState(false);
+  const [randomGoldResult, setRandomGoldResult] = useState(null);
   const [gameSounds, setGameSounds] = useState({ victorySoundUrl: null, defeatSoundUrl: null, drawSoundUrl: null });
   const [victorySoundFile, setVictorySoundFile] = useState(null);
   const [defeatSoundFile, setDefeatSoundFile] = useState(null);
@@ -275,6 +278,26 @@ export default function AdminCabinetPage() {
       setError(err.response?.data?.message || 'Ошибка');
     } finally {
       setPromoting(false);
+    }
+  };
+
+  const handleGrantRandomGold = async (e) => {
+    e.preventDefault();
+    const amount = Number(randomGoldAmount) || 0;
+    if (amount <= 0) {
+      setError('Количество золота должно быть больше 0');
+      return;
+    }
+    setError('');
+    setRandomGoldGiving(true);
+    setRandomGoldResult(null);
+    try {
+      const { data } = await api.post('/api/admin/users/grant-random-gold', { amount });
+      setRandomGoldResult(data || null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось выдать золото случайному игроку');
+    } finally {
+      setRandomGoldGiving(false);
     }
   };
 
@@ -754,6 +777,25 @@ export default function AdminCabinetPage() {
             {promoting ? '...' : 'Назначить ROLE_ADMIN'}
           </button>
         </form>
+        <h3 style={{ marginTop: '1rem' }}>Выдать золото случайному игроку</h3>
+        <form onSubmit={handleGrantRandomGold} className="admin-promote-form">
+          <input
+            type="number"
+            min={1}
+            value={randomGoldAmount}
+            onChange={(e) => setRandomGoldAmount(e.target.value)}
+            placeholder="Количество золота"
+            className="admin-promote-input"
+          />
+          <button type="submit" className="btn btn-primary" disabled={randomGoldGiving || Number(randomGoldAmount) <= 0}>
+            {randomGoldGiving ? '...' : 'Выдать случайному игроку'}
+          </button>
+        </form>
+        {randomGoldResult && (
+          <p className="admin-hint-small" style={{ marginTop: '0.5rem' }}>
+            Выдано {randomGoldResult.grantedGold} золота игроку <b>{randomGoldResult.username}</b>. Теперь у него: {randomGoldResult.totalGold}.
+          </p>
+        )}
       </div>
       <div className="admin-post-match-section">
         <h3>Награда после PvP-матча</h3>
