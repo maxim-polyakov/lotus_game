@@ -28,12 +28,13 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/users/grant-random-gold")
+    @PostMapping("/users/grant-gold")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RandomGoldGrantResponse> grantRandomGold(@RequestBody RandomGoldGrantRequest request) {
+    public ResponseEntity<GoldGrantResponse> grantGold(@RequestBody GoldGrantRequest request) {
         int amount = request != null ? request.getAmount() : 0;
-        var result = adminService.grantGoldToRandomPlayer(amount);
-        return ResponseEntity.ok(RandomGoldGrantResponse.builder()
+        String emailOrUsername = request != null ? request.getEmailOrUsername() : null;
+        var result = adminService.grantGoldToUserByEmailOrUsername(emailOrUsername, amount);
+        return ResponseEntity.ok(GoldGrantResponse.builder()
                 .userId(result.userId())
                 .username(result.username())
                 .grantedGold(result.grantedGold())
@@ -47,13 +48,14 @@ public class AdminController {
     }
 
     @Data
-    public static class RandomGoldGrantRequest {
+    public static class GoldGrantRequest {
+        private String emailOrUsername;
         private int amount;
     }
 
     @Data
     @lombok.Builder
-    public static class RandomGoldGrantResponse {
+    public static class GoldGrantResponse {
         private Long userId;
         private String username;
         private int grantedGold;

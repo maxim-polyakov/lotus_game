@@ -38,9 +38,10 @@ export default function AdminCabinetPage() {
   const [error, setError] = useState('');
   const [promoteInput, setPromoteInput] = useState('');
   const [promoting, setPromoting] = useState(false);
-  const [randomGoldAmount, setRandomGoldAmount] = useState(100);
-  const [randomGoldGiving, setRandomGoldGiving] = useState(false);
-  const [randomGoldResult, setRandomGoldResult] = useState(null);
+  const [grantGoldInput, setGrantGoldInput] = useState('');
+  const [grantGoldAmount, setGrantGoldAmount] = useState(100);
+  const [grantGoldLoading, setGrantGoldLoading] = useState(false);
+  const [grantGoldResult, setGrantGoldResult] = useState(null);
   const [gameSounds, setGameSounds] = useState({ victorySoundUrl: null, defeatSoundUrl: null, drawSoundUrl: null });
   const [victorySoundFile, setVictorySoundFile] = useState(null);
   const [defeatSoundFile, setDefeatSoundFile] = useState(null);
@@ -281,23 +282,28 @@ export default function AdminCabinetPage() {
     }
   };
 
-  const handleGrantRandomGold = async (e) => {
+  const handleGrantGold = async (e) => {
     e.preventDefault();
-    const amount = Number(randomGoldAmount) || 0;
+    const amount = Number(grantGoldAmount) || 0;
+    const emailOrUsername = grantGoldInput.trim();
+    if (!emailOrUsername) {
+      setError('Введите email или username игрока');
+      return;
+    }
     if (amount <= 0) {
       setError('Количество золота должно быть больше 0');
       return;
     }
     setError('');
-    setRandomGoldGiving(true);
-    setRandomGoldResult(null);
+    setGrantGoldLoading(true);
+    setGrantGoldResult(null);
     try {
-      const { data } = await api.post('/api/admin/users/grant-random-gold', { amount });
-      setRandomGoldResult(data || null);
+      const { data } = await api.post('/api/admin/users/grant-gold', { emailOrUsername, amount });
+      setGrantGoldResult(data || null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Не удалось выдать золото случайному игроку');
+      setError(err.response?.data?.message || 'Не удалось выдать золото игроку');
     } finally {
-      setRandomGoldGiving(false);
+      setGrantGoldLoading(false);
     }
   };
 
@@ -766,34 +772,50 @@ export default function AdminCabinetPage() {
       <div className="admin-promote-section">
         <h3>Сделать админом</h3>
         <form onSubmit={handlePromoteToAdmin} className="admin-promote-form">
-          <input
-            type="text"
-            value={promoteInput}
-            onChange={(e) => setPromoteInput(e.target.value)}
-            placeholder="Email или username"
-            className="admin-promote-input"
-          />
+          <label className="admin-inline-field">
+            <span>Email или username</span>
+            <input
+              type="text"
+              value={promoteInput}
+              onChange={(e) => setPromoteInput(e.target.value)}
+              placeholder="Email или username"
+              className="admin-promote-input"
+            />
+          </label>
           <button type="submit" className="btn btn-primary" disabled={promoting || !promoteInput.trim()}>
             {promoting ? '...' : 'Назначить ROLE_ADMIN'}
           </button>
         </form>
-        <h3 style={{ marginTop: '1rem' }}>Выдать золото случайному игроку</h3>
-        <form onSubmit={handleGrantRandomGold} className="admin-promote-form">
-          <input
-            type="number"
-            min={1}
-            value={randomGoldAmount}
-            onChange={(e) => setRandomGoldAmount(e.target.value)}
-            placeholder="Количество золота"
-            className="admin-promote-input"
-          />
-          <button type="submit" className="btn btn-primary" disabled={randomGoldGiving || Number(randomGoldAmount) <= 0}>
-            {randomGoldGiving ? '...' : 'Выдать случайному игроку'}
+        <h3 style={{ marginTop: '1rem' }}>Выдать золото игроку</h3>
+        <form onSubmit={handleGrantGold} className="admin-promote-form">
+          <label className="admin-inline-field">
+            <span>Кому выдать (email/username)</span>
+            <input
+              type="text"
+              value={grantGoldInput}
+              onChange={(e) => setGrantGoldInput(e.target.value)}
+              placeholder="Email или username"
+              className="admin-promote-input"
+            />
+          </label>
+          <label className="admin-inline-field">
+            <span>Количество золота</span>
+            <input
+              type="number"
+              min={1}
+              value={grantGoldAmount}
+              onChange={(e) => setGrantGoldAmount(e.target.value)}
+              placeholder="Количество золота"
+              className="admin-promote-input"
+            />
+          </label>
+          <button type="submit" className="btn btn-primary" disabled={grantGoldLoading || !grantGoldInput.trim() || Number(grantGoldAmount) <= 0}>
+            {grantGoldLoading ? '...' : 'Выдать игроку'}
           </button>
         </form>
-        {randomGoldResult && (
+        {grantGoldResult && (
           <p className="admin-hint-small" style={{ marginTop: '0.5rem' }}>
-            Выдано {randomGoldResult.grantedGold} золота игроку <b>{randomGoldResult.username}</b>. Теперь у него: {randomGoldResult.totalGold}.
+            Выдано {grantGoldResult.grantedGold} золота игроку <b>{grantGoldResult.username}</b>. Теперь у него: {grantGoldResult.totalGold}.
           </p>
         )}
       </div>
@@ -1060,40 +1082,52 @@ export default function AdminCabinetPage() {
         <h3>Портреты героев</h3>
         <p className="admin-hint-small">Изображение для выбора героя в шапке и на доске (PNG, JPG, WebP). Требуется настроенное облачное хранилище (S3).</p>
         <form className="admin-promote-form" onSubmit={handleCreateHero} style={{ marginBottom: 12 }}>
-          <input
-            type="text"
-            value={newHero.id}
-            onChange={(e) => setNewHero((p) => ({ ...p, id: e.target.value }))}
-            placeholder="hero_id (пример: storm_knight)"
-            className="admin-promote-input"
-            required
-          />
-          <input
-            type="text"
-            value={newHero.name}
-            onChange={(e) => setNewHero((p) => ({ ...p, name: e.target.value }))}
-            placeholder="Название героя"
-            className="admin-promote-input"
-            required
-          />
-          <input
-            type="text"
-            value={newHero.title}
-            onChange={(e) => setNewHero((p) => ({ ...p, title: e.target.value }))}
-            placeholder="Подзаголовок (необязательно)"
-            className="admin-promote-input"
-          />
-          <input
-            type="number"
-            min={1}
-            max={100}
-            value={newHero.startingHealth}
-            onChange={(e) => setNewHero((p) => ({ ...p, startingHealth: e.target.value }))}
-            placeholder="HP"
-            className="admin-promote-input"
-            style={{ maxWidth: 120 }}
-            required
-          />
+          <label className="admin-inline-field">
+            <span>ID героя</span>
+            <input
+              type="text"
+              value={newHero.id}
+              onChange={(e) => setNewHero((p) => ({ ...p, id: e.target.value }))}
+              placeholder="hero_id (пример: storm_knight)"
+              className="admin-promote-input"
+              required
+            />
+          </label>
+          <label className="admin-inline-field">
+            <span>Название героя</span>
+            <input
+              type="text"
+              value={newHero.name}
+              onChange={(e) => setNewHero((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Название героя"
+              className="admin-promote-input"
+              required
+            />
+          </label>
+          <label className="admin-inline-field">
+            <span>Подзаголовок</span>
+            <input
+              type="text"
+              value={newHero.title}
+              onChange={(e) => setNewHero((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Подзаголовок (необязательно)"
+              className="admin-promote-input"
+            />
+          </label>
+          <label className="admin-inline-field">
+            <span>Стартовое здоровье</span>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={newHero.startingHealth}
+              onChange={(e) => setNewHero((p) => ({ ...p, startingHealth: e.target.value }))}
+              placeholder="HP"
+              className="admin-promote-input"
+              style={{ maxWidth: 120 }}
+              required
+            />
+          </label>
           <button type="submit" className="btn btn-primary" disabled={creatingHero || !newHero.id.trim() || !newHero.name.trim()}>
             {creatingHero ? '...' : 'Добавить героя'}
           </button>
@@ -1148,24 +1182,39 @@ export default function AdminCabinetPage() {
           <h3>Добавить карты</h3>
           <div className="admin-promote-form" style={{ marginBottom: 12 }}>
             <form onSubmit={handleCreateMinion} className="admin-promote-form">
-              <input
-                type="text"
-                value={newMinion.name}
-                onChange={(e) => setNewMinion((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Миньон: название"
-                className="admin-promote-input"
-                required
-              />
-              <input type="number" min={0} value={newMinion.manaCost} onChange={(e) => setNewMinion((p) => ({ ...p, manaCost: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
-              <input type="number" min={0} value={newMinion.attack} onChange={(e) => setNewMinion((p) => ({ ...p, attack: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
-              <input type="number" min={1} value={newMinion.health} onChange={(e) => setNewMinion((p) => ({ ...p, health: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
-              <input
-                type="text"
-                value={newMinion.description}
-                onChange={(e) => setNewMinion((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Описание"
-                className="admin-promote-input"
-              />
+              <label className="admin-inline-field">
+                <span>Название миньона</span>
+                <input
+                  type="text"
+                  value={newMinion.name}
+                  onChange={(e) => setNewMinion((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Миньон: название"
+                  className="admin-promote-input"
+                  required
+                />
+              </label>
+              <label className="admin-inline-field">
+                <span>Мана</span>
+                <input type="number" min={0} value={newMinion.manaCost} onChange={(e) => setNewMinion((p) => ({ ...p, manaCost: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              </label>
+              <label className="admin-inline-field">
+                <span>Атака</span>
+                <input type="number" min={0} value={newMinion.attack} onChange={(e) => setNewMinion((p) => ({ ...p, attack: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              </label>
+              <label className="admin-inline-field">
+                <span>Здоровье</span>
+                <input type="number" min={1} value={newMinion.health} onChange={(e) => setNewMinion((p) => ({ ...p, health: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              </label>
+              <label className="admin-inline-field">
+                <span>Описание</span>
+                <input
+                  type="text"
+                  value={newMinion.description}
+                  onChange={(e) => setNewMinion((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="Описание"
+                  className="admin-promote-input"
+                />
+              </label>
               <button type="submit" className="btn btn-primary" disabled={creatingMinion || !newMinion.name.trim()}>
                 {creatingMinion ? '...' : 'Добавить миньона'}
               </button>
@@ -1173,23 +1222,35 @@ export default function AdminCabinetPage() {
           </div>
           <div className="admin-promote-form" style={{ marginBottom: 12 }}>
             <form onSubmit={handleCreateSpell} className="admin-promote-form">
-              <input
-                type="text"
-                value={newSpell.name}
-                onChange={(e) => setNewSpell((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Заклинание: название"
-                className="admin-promote-input"
-                required
-              />
-              <input type="number" min={0} value={newSpell.manaCost} onChange={(e) => setNewSpell((p) => ({ ...p, manaCost: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
-              <input type="number" min={0} value={newSpell.damage} onChange={(e) => setNewSpell((p) => ({ ...p, damage: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
-              <input
-                type="text"
-                value={newSpell.description}
-                onChange={(e) => setNewSpell((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Описание"
-                className="admin-promote-input"
-              />
+              <label className="admin-inline-field">
+                <span>Название заклинания</span>
+                <input
+                  type="text"
+                  value={newSpell.name}
+                  onChange={(e) => setNewSpell((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Заклинание: название"
+                  className="admin-promote-input"
+                  required
+                />
+              </label>
+              <label className="admin-inline-field">
+                <span>Мана</span>
+                <input type="number" min={0} value={newSpell.manaCost} onChange={(e) => setNewSpell((p) => ({ ...p, manaCost: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              </label>
+              <label className="admin-inline-field">
+                <span>Урон</span>
+                <input type="number" min={0} value={newSpell.damage} onChange={(e) => setNewSpell((p) => ({ ...p, damage: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              </label>
+              <label className="admin-inline-field">
+                <span>Описание</span>
+                <input
+                  type="text"
+                  value={newSpell.description}
+                  onChange={(e) => setNewSpell((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="Описание"
+                  className="admin-promote-input"
+                />
+              </label>
               <button type="submit" className="btn btn-primary" disabled={creatingSpell || !newSpell.name.trim()}>
                 {creatingSpell ? '...' : 'Добавить заклинание'}
               </button>

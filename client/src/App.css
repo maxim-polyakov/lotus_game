@@ -1956,6 +1956,16 @@ header .header-username {
   align-items: center;
   flex-wrap: wrap;
 }
+.admin-inline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.admin-inline-field > span {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted, #666);
+}
 .admin-promote-input {
   padding: 0.5rem 0.75rem;
   border: 1px solid #ddd;
