@@ -18,6 +18,16 @@ public class AdminCardController {
 
     private final CardService cardService;
 
+    @PostMapping("/minions")
+    public ResponseEntity<CardDto> createMinion(@Valid @RequestBody UpdateMinionRequest request) {
+        return ResponseEntity.ok(cardService.createMinion(request));
+    }
+
+    @PostMapping("/spells")
+    public ResponseEntity<CardDto> createSpell(@Valid @RequestBody UpdateSpellRequest request) {
+        return ResponseEntity.ok(cardService.createSpell(request));
+    }
+
     @PutMapping("/minions/{id}")
     public ResponseEntity<CardDto> updateMinion(
             @PathVariable Long id,

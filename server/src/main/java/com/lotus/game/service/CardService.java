@@ -57,6 +57,64 @@ public class CardService {
 
     @Transactional
     @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
+    public CardDto createMinion(UpdateMinionRequest req) {
+        if (req == null) {
+            throw new IllegalArgumentException("Пустые данные карты");
+        }
+        if (req.getName() == null || req.getName().isBlank()) {
+            throw new IllegalArgumentException("Укажите название миньона");
+        }
+        if (req.getManaCost() == null) {
+            throw new IllegalArgumentException("Укажите стоимость маны");
+        }
+        Minion m = Minion.builder()
+                .name(req.getName().trim())
+                .manaCost(req.getManaCost())
+                .attack(req.getAttack() != null ? req.getAttack() : 0)
+                .health(req.getHealth() != null ? req.getHealth() : 1)
+                .description(req.getDescription() != null ? req.getDescription().trim() : null)
+                .taunt(Boolean.TRUE.equals(req.getTaunt()))
+                .charge(Boolean.TRUE.equals(req.getCharge()))
+                .divineShield(Boolean.TRUE.equals(req.getDivineShield()))
+                .windfury(Boolean.TRUE.equals(req.getWindfury()))
+                .stealth(Boolean.TRUE.equals(req.getStealth()))
+                .poisonous(Boolean.TRUE.equals(req.getPoisonous()))
+                .lifesteal(Boolean.TRUE.equals(req.getLifesteal()))
+                .rush(Boolean.TRUE.equals(req.getRush()))
+                .battlecryType(req.getBattlecryType() == null || req.getBattlecryType().isBlank() ? null : req.getBattlecryType().trim())
+                .battlecryValue(req.getBattlecryValue())
+                .battlecryTarget(req.getBattlecryTarget() == null || req.getBattlecryTarget().isBlank() ? null : req.getBattlecryTarget().trim())
+                .battlecrySummonCardId(req.getBattlecrySummonCardId())
+                .deathrattleType(req.getDeathrattleType() == null || req.getDeathrattleType().isBlank() ? null : req.getDeathrattleType().trim())
+                .deathrattleValue(req.getDeathrattleValue())
+                .deathrattleSummonCardId(req.getDeathrattleSummonCardId())
+                .build();
+        return CardDto.fromMinion(minionRepository.save(m));
+    }
+
+    @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
+    public CardDto createSpell(UpdateSpellRequest req) {
+        if (req == null) {
+            throw new IllegalArgumentException("Пустые данные карты");
+        }
+        if (req.getName() == null || req.getName().isBlank()) {
+            throw new IllegalArgumentException("Укажите название заклинания");
+        }
+        if (req.getManaCost() == null) {
+            throw new IllegalArgumentException("Укажите стоимость маны");
+        }
+        Spell s = Spell.builder()
+                .name(req.getName().trim())
+                .manaCost(req.getManaCost())
+                .description(req.getDescription() != null ? req.getDescription().trim() : null)
+                .damage(req.getDamage() != null ? req.getDamage() : 0)
+                .build();
+        return CardDto.fromSpell(spellRepository.save(s));
+    }
+
+    @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CARDS, allEntries = true)
     public CardDto updateMinion(Long id, UpdateMinionRequest req) {
         Minion m = minionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Minion not found: " + id));

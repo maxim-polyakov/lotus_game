@@ -72,6 +72,12 @@ export default function AdminCabinetPage() {
   const [dropCardPoolSaving, setDropCardPoolSaving] = useState(false);
   const [dropCardPoolTypeFilter, setDropCardPoolTypeFilter] = useState('ALL');
   const [dropCardPoolSearch, setDropCardPoolSearch] = useState('');
+  const [newMinion, setNewMinion] = useState({ name: '', manaCost: 1, attack: 1, health: 1, description: '' });
+  const [newSpell, setNewSpell] = useState({ name: '', manaCost: 1, damage: 1, description: '' });
+  const [newHero, setNewHero] = useState({ id: '', name: '', title: '', startingHealth: 30 });
+  const [creatingMinion, setCreatingMinion] = useState(false);
+  const [creatingSpell, setCreatingSpell] = useState(false);
+  const [creatingHero, setCreatingHero] = useState(false);
 
   const loadHeroes = () => {
     api.get('/api/heroes')
@@ -269,6 +275,70 @@ export default function AdminCabinetPage() {
       setError(err.response?.data?.message || 'Ошибка');
     } finally {
       setPromoting(false);
+    }
+  };
+
+  const handleCreateMinion = async (e) => {
+    e.preventDefault();
+    setError('');
+    setCreatingMinion(true);
+    try {
+      const payload = {
+        name: newMinion.name.trim(),
+        manaCost: Number(newMinion.manaCost) || 0,
+        attack: Number(newMinion.attack) || 0,
+        health: Number(newMinion.health) || 1,
+        description: newMinion.description || '',
+      };
+      const { data } = await api.post('/api/admin/cards/minions', payload);
+      setCards((prev) => [...prev, data]);
+      setNewMinion({ name: '', manaCost: 1, attack: 1, health: 1, description: '' });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось добавить миньона');
+    } finally {
+      setCreatingMinion(false);
+    }
+  };
+
+  const handleCreateSpell = async (e) => {
+    e.preventDefault();
+    setError('');
+    setCreatingSpell(true);
+    try {
+      const payload = {
+        name: newSpell.name.trim(),
+        manaCost: Number(newSpell.manaCost) || 0,
+        damage: Number(newSpell.damage) || 0,
+        description: newSpell.description || '',
+      };
+      const { data } = await api.post('/api/admin/cards/spells', payload);
+      setCards((prev) => [...prev, data]);
+      setNewSpell({ name: '', manaCost: 1, damage: 1, description: '' });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось добавить заклинание');
+    } finally {
+      setCreatingSpell(false);
+    }
+  };
+
+  const handleCreateHero = async (e) => {
+    e.preventDefault();
+    setError('');
+    setCreatingHero(true);
+    try {
+      const payload = {
+        id: (newHero.id || '').trim().toLowerCase(),
+        name: (newHero.name || '').trim(),
+        title: (newHero.title || '').trim(),
+        startingHealth: Number(newHero.startingHealth) || 30,
+      };
+      await api.post('/api/admin/heroes', payload);
+      setNewHero({ id: '', name: '', title: '', startingHealth: 30 });
+      loadHeroes();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Не удалось добавить героя');
+    } finally {
+      setCreatingHero(false);
     }
   };
 
@@ -947,6 +1017,45 @@ export default function AdminCabinetPage() {
       <div className="admin-heroes-section">
         <h3>Портреты героев</h3>
         <p className="admin-hint-small">Изображение для выбора героя в шапке и на доске (PNG, JPG, WebP). Требуется настроенное облачное хранилище (S3).</p>
+        <form className="admin-promote-form" onSubmit={handleCreateHero} style={{ marginBottom: 12 }}>
+          <input
+            type="text"
+            value={newHero.id}
+            onChange={(e) => setNewHero((p) => ({ ...p, id: e.target.value }))}
+            placeholder="hero_id (пример: storm_knight)"
+            className="admin-promote-input"
+            required
+          />
+          <input
+            type="text"
+            value={newHero.name}
+            onChange={(e) => setNewHero((p) => ({ ...p, name: e.target.value }))}
+            placeholder="Название героя"
+            className="admin-promote-input"
+            required
+          />
+          <input
+            type="text"
+            value={newHero.title}
+            onChange={(e) => setNewHero((p) => ({ ...p, title: e.target.value }))}
+            placeholder="Подзаголовок (необязательно)"
+            className="admin-promote-input"
+          />
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={newHero.startingHealth}
+            onChange={(e) => setNewHero((p) => ({ ...p, startingHealth: e.target.value }))}
+            placeholder="HP"
+            className="admin-promote-input"
+            style={{ maxWidth: 120 }}
+            required
+          />
+          <button type="submit" className="btn btn-primary" disabled={creatingHero || !newHero.id.trim() || !newHero.name.trim()}>
+            {creatingHero ? '...' : 'Добавить героя'}
+          </button>
+        </form>
         <div className="admin-heroes-grid">
           {heroes.map((h) => (
             <div key={h.id} className="admin-hero-card">
@@ -994,6 +1103,56 @@ export default function AdminCabinetPage() {
       </div>
       <div className="admin-content">
         <div className="admin-cards-list">
+          <h3>Добавить карты</h3>
+          <div className="admin-promote-form" style={{ marginBottom: 12 }}>
+            <form onSubmit={handleCreateMinion} className="admin-promote-form">
+              <input
+                type="text"
+                value={newMinion.name}
+                onChange={(e) => setNewMinion((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Миньон: название"
+                className="admin-promote-input"
+                required
+              />
+              <input type="number" min={0} value={newMinion.manaCost} onChange={(e) => setNewMinion((p) => ({ ...p, manaCost: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              <input type="number" min={0} value={newMinion.attack} onChange={(e) => setNewMinion((p) => ({ ...p, attack: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              <input type="number" min={1} value={newMinion.health} onChange={(e) => setNewMinion((p) => ({ ...p, health: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              <input
+                type="text"
+                value={newMinion.description}
+                onChange={(e) => setNewMinion((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Описание"
+                className="admin-promote-input"
+              />
+              <button type="submit" className="btn btn-primary" disabled={creatingMinion || !newMinion.name.trim()}>
+                {creatingMinion ? '...' : 'Добавить миньона'}
+              </button>
+            </form>
+          </div>
+          <div className="admin-promote-form" style={{ marginBottom: 12 }}>
+            <form onSubmit={handleCreateSpell} className="admin-promote-form">
+              <input
+                type="text"
+                value={newSpell.name}
+                onChange={(e) => setNewSpell((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Заклинание: название"
+                className="admin-promote-input"
+                required
+              />
+              <input type="number" min={0} value={newSpell.manaCost} onChange={(e) => setNewSpell((p) => ({ ...p, manaCost: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              <input type="number" min={0} value={newSpell.damage} onChange={(e) => setNewSpell((p) => ({ ...p, damage: e.target.value }))} className="admin-promote-input" style={{ maxWidth: 90 }} />
+              <input
+                type="text"
+                value={newSpell.description}
+                onChange={(e) => setNewSpell((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Описание"
+                className="admin-promote-input"
+              />
+              <button type="submit" className="btn btn-primary" disabled={creatingSpell || !newSpell.name.trim()}>
+                {creatingSpell ? '...' : 'Добавить заклинание'}
+              </button>
+            </form>
+          </div>
           <h3>Карты</h3>
           <div className="admin-cards-grid">
             {cards.map((c) => (
