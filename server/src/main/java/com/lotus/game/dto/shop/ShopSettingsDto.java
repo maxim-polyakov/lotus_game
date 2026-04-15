@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ShopSettingsDto {
     private int randomCardPrice;
+    private int specificCardDustPrice;
 }

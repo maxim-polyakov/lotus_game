@@ -41,6 +41,7 @@ public class GameConfigService {
     public static final String KEY_POST_MATCH_DUST_MAX = "postMatchDrop.dustMax";
     public static final String KEY_POST_MATCH_CARD_POOL = "postMatchDrop.cardPool";
     public static final String KEY_SHOP_RANDOM_CARD_PRICE = "shop.randomCardPrice";
+    public static final String KEY_SHOP_SPECIFIC_CARD_DUST_PRICE = "shop.specificCardDustPrice";
 
     private final GameConfigRepository configRepository;
     private final ObjectProvider<StorageService> storageServiceProvider;
@@ -187,8 +188,13 @@ public class GameConfigService {
         if (randomCardPrice <= 0) {
             randomCardPrice = 100;
         }
+        int specificCardDustPrice = readInt(KEY_SHOP_SPECIFIC_CARD_DUST_PRICE, 120);
+        if (specificCardDustPrice <= 0) {
+            specificCardDustPrice = 120;
+        }
         return ShopSettingsDto.builder()
                 .randomCardPrice(randomCardPrice)
+                .specificCardDustPrice(specificCardDustPrice)
                 .build();
     }
 
@@ -201,13 +207,23 @@ public class GameConfigService {
         if (randomCardPrice <= 0) {
             randomCardPrice = 100;
         }
+        int specificCardDustPrice = clampNonNeg(dto.getSpecificCardDustPrice(), 120);
+        if (specificCardDustPrice <= 0) {
+            specificCardDustPrice = 120;
+        }
         upsertInt(KEY_SHOP_RANDOM_CARD_PRICE, randomCardPrice);
+        upsertInt(KEY_SHOP_SPECIFIC_CARD_DUST_PRICE, specificCardDustPrice);
         return getShopSettings();
     }
 
     @Transactional(readOnly = true)
     public int getRandomCardPrice() {
         return getShopSettings().getRandomCardPrice();
+    }
+
+    @Transactional(readOnly = true)
+    public int getSpecificCardDustPrice() {
+        return getShopSettings().getSpecificCardDustPrice();
     }
 
     @Transactional(readOnly = true)

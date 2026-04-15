@@ -10,7 +10,9 @@ export default function ShopPage() {
   const { updateUser } = useAuth();
   const [status, setStatus] = useState({
     gold: 0,
+    dust: 0,
     randomCardPrice: 100,
+    specificCardDustPrice: 120,
     randomHeroPrice: 300,
     lockedCardsCount: 0,
     lockedHeroesCount: 0,
@@ -22,6 +24,7 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [buyingCard, setBuyingCard] = useState(false);
   const [buyingHero, setBuyingHero] = useState(false);
+  const [buyingSpecificCardKey, setBuyingSpecificCardKey] = useState('');
   const [error, setError] = useState('');
   const [lastCard, setLastCard] = useState(null);
   const [lastHero, setLastHero] = useState(null);
@@ -39,7 +42,9 @@ export default function ShopPage() {
       const data = statusRes?.data;
       setStatus({
         gold: data?.gold ?? 0,
+        dust: data?.dust ?? 0,
         randomCardPrice: data?.randomCardPrice ?? 100,
+        specificCardDustPrice: data?.specificCardDustPrice ?? 120,
         randomHeroPrice: data?.randomHeroPrice ?? 300,
         lockedCardsCount: data?.lockedCardsCount ?? 0,
         lockedHeroesCount: data?.lockedHeroesCount ?? 0,
@@ -51,7 +56,7 @@ export default function ShopPage() {
       setAllHeroes(heroes);
       setUnlockedCardKeys(new Set(unlocked.map((c) => cardKey(c.cardType, c.id))));
       setUnlockedHeroIds(new Set(heroes.filter((h) => h.unlocked === true).map((h) => h.id)));
-      updateUser({ gold: data?.gold ?? 0 });
+      updateUser({ gold: data?.gold ?? 0, dust: data?.dust ?? 0 });
     } catch (e) {
       setError(e.response?.data?.message || 'Не удалось загрузить магазин');
     } finally {
@@ -71,7 +76,9 @@ export default function ShopPage() {
       const { data } = await api.post('/api/shop/buy/random-card');
       setStatus((prev) => ({
         gold: data?.gold ?? 0,
+        dust: prev.dust,
         randomCardPrice: data?.randomCardPrice ?? 100,
+        specificCardDustPrice: prev.specificCardDustPrice,
         randomHeroPrice: prev.randomHeroPrice,
         lockedCardsCount: data?.lockedCardsCount ?? 0,
         lockedHeroesCount: prev.lockedHeroesCount,
@@ -100,7 +107,9 @@ export default function ShopPage() {
       const { data } = await api.post('/api/shop/buy/random-hero');
       setStatus((prev) => ({
         gold: data?.gold ?? 0,
+        dust: prev.dust,
         randomCardPrice: prev.randomCardPrice,
+        specificCardDustPrice: prev.specificCardDustPrice,
         randomHeroPrice: data?.randomHeroPrice ?? 300,
         lockedCardsCount: prev.lockedCardsCount,
         lockedHeroesCount: data?.lockedHeroesCount ?? 0,
@@ -118,6 +127,36 @@ export default function ShopPage() {
       setError(e.response?.data?.message || 'Не удалось купить героя');
     } finally {
       setBuyingHero(false);
+    }
+  };
+
+  const buySpecificCard = async (card) => {
+    const key = cardKey(card.cardType, card.id);
+    if (buyingSpecificCardKey) return;
+    setBuyingSpecificCardKey(key);
+    setError('');
+    try {
+      const { data } = await api.post('/api/shop/buy/card', {
+        cardType: card.cardType,
+        cardId: card.id,
+      });
+      setStatus((prev) => ({
+        ...prev,
+        dust: data?.dust ?? prev.dust,
+        specificCardDustPrice: data?.specificCardDustPrice ?? prev.specificCardDustPrice,
+        lockedCardsCount: data?.lockedCardsCount ?? prev.lockedCardsCount,
+      }));
+      setLastCard(data?.card || card);
+      setUnlockedCardKeys((prev) => {
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      });
+      updateUser({ dust: data?.dust ?? status.dust });
+    } catch (e) {
+      setError(e.response?.data?.message || 'Не удалось купить карту за пыль');
+    } finally {
+      setBuyingSpecificCardKey('');
     }
   };
 
@@ -140,6 +179,9 @@ export default function ShopPage() {
               <h3>Случайная карта</h3>
               <p className="shop-info-line">
                 Баланс золота: <b>{status.gold}</b>
+              </p>
+              <p className="shop-info-line">
+                Баланс пыли: <b>{status.dust}</b>
               </p>
               <p className="shop-info-line">
                 Актуальная цена (из админки): <b>{status.randomCardPrice}</b>
@@ -211,6 +253,16 @@ export default function ShopPage() {
             )}
 
             <section className="shop-block">
+              <h3>Покупка конкретной карты за пыль</h3>
+              <p className="shop-info-line">
+                Цена: <b>{status.specificCardDustPrice}</b> пыли за карту
+              </p>
+              <p className="shop-hint-muted">
+                Купить можно только неоткрытые карты.
+              </p>
+            </section>
+
+            <section className="shop-block">
               <h3>Пул карт</h3>
               {allCards.length === 0 ? (
                 <p className="shop-hint-muted">Список карт пока пуст.</p>
@@ -224,6 +276,18 @@ export default function ShopPage() {
                         <span className={`shop-card-state ${unlocked ? 'shop-card-state--unlocked' : 'shop-card-state--locked'}`}>
                           {unlocked ? 'Открыта' : 'Не открыта'}
                         </span>
+                        {!unlocked && (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm shop-buy-specific-btn"
+                            onClick={() => buySpecificCard(c)}
+                            disabled={Boolean(buyingSpecificCardKey) || status.dust < status.specificCardDustPrice}
+                          >
+                            {buyingSpecificCardKey === cardKey(c.cardType, c.id)
+                              ? 'Покупка...'
+                              : `Купить за ${status.specificCardDustPrice} пыли`}
+                          </button>
+                        )}
                       </div>
                     );
                   })}

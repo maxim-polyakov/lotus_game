@@ -68,7 +68,7 @@ export default function AdminCabinetPage() {
   });
   const [postMatchDropLoading, setPostMatchDropLoading] = useState(false);
   const [postMatchDropSaving, setPostMatchDropSaving] = useState(false);
-  const [shopSettings, setShopSettings] = useState({ randomCardPrice: 100 });
+  const [shopSettings, setShopSettings] = useState({ randomCardPrice: 100, specificCardDustPrice: 120 });
   const [shopSettingsLoading, setShopSettingsLoading] = useState(false);
   const [shopSettingsSaving, setShopSettingsSaving] = useState(false);
   const [dropCardPoolKeys, setDropCardPoolKeys] = useState([]);
@@ -780,6 +780,7 @@ export default function AdminCabinetPage() {
     try {
       const payload = {
         randomCardPrice: Number(shopSettings.randomCardPrice) || 0,
+        specificCardDustPrice: Number(shopSettings.specificCardDustPrice) || 0,
       };
       const { data } = await api.put('/api/admin/settings/shop', payload);
       setShopSettings((prev) => ({ ...prev, ...data }));
@@ -944,7 +945,7 @@ export default function AdminCabinetPage() {
       <div className="admin-drop-card-pool-section">
         <h3>Магазин</h3>
         <p className="admin-hint-small">
-          Настройка цены покупки случайной карты за золото.
+          Настройка цен магазина: случайная карта за золото и конкретная карта за пыль.
         </p>
         <form className="admin-post-match-form" onSubmit={handleShopSettingsSave}>
           <div className="admin-post-match-grid">
@@ -955,6 +956,16 @@ export default function AdminCabinetPage() {
                 min={1}
                 value={shopSettings.randomCardPrice}
                 onChange={(e) => setShopSettings((p) => ({ ...p, randomCardPrice: e.target.value }))}
+                disabled={shopSettingsLoading}
+              />
+            </label>
+            <label className="admin-post-match-field">
+              <span>Цена конкретной карты (пыль)</span>
+              <input
+                type="number"
+                min={1}
+                value={shopSettings.specificCardDustPrice}
+                onChange={(e) => setShopSettings((p) => ({ ...p, specificCardDustPrice: e.target.value }))}
                 disabled={shopSettingsLoading}
               />
             </label>

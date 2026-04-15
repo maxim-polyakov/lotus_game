@@ -1,5 +1,6 @@
 package com.lotus.game.dto.shop;
 
+import com.lotus.game.dto.game.CardDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,12 +10,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShopStatusDto {
-    private int gold;
+public class SpecificCardPurchaseDto {
     private int dust;
-    private int randomCardPrice;
     private int specificCardDustPrice;
-    private int randomHeroPrice;
     private int lockedCardsCount;
-    private int lockedHeroesCount;
+    private CardDto card;
 }

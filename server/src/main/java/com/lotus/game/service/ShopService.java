@@ -4,6 +4,8 @@ import com.lotus.game.dto.game.CardDto;
 import com.lotus.game.dto.game.HeroDto;
 import com.lotus.game.dto.shop.RandomCardPurchaseDto;
 import com.lotus.game.dto.shop.RandomHeroPurchaseDto;
+import com.lotus.game.dto.shop.SpecificCardPurchaseDto;
+import com.lotus.game.dto.shop.SpecificCardPurchaseRequestDto;
 import com.lotus.game.dto.shop.ShopStatusDto;
 import com.lotus.game.entity.User;
 import com.lotus.game.repository.UserRepository;
@@ -27,18 +29,22 @@ public class ShopService {
     private final HeroCatalog heroCatalog;
     private final HeroPortraitService heroPortraitService;
     private final GameConfigService gameConfigService;
+    private final CardService cardService;
 
     @Transactional
     public ShopStatusDto getStatus(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
         int randomCardPrice = gameConfigService.getRandomCardPrice();
+        int specificCardDustPrice = gameConfigService.getSpecificCardDustPrice();
         cardProgressService.ensureStarterCards(user);
         heroProgressService.ensureStarterHero(user);
         userRepository.save(user);
         return ShopStatusDto.builder()
                 .gold(user.getGold())
+                .dust(user.getDust())
                 .randomCardPrice(randomCardPrice)
+                .specificCardDustPrice(specificCardDustPrice)
                 .randomHeroPrice(RANDOM_HERO_PRICE)
                 .lockedCardsCount(cardProgressService.countLockedCards(user))
                 .lockedHeroesCount(lockedHeroIds(user).size())
@@ -101,6 +107,43 @@ public class ShopService {
                 .randomHeroPrice(RANDOM_HERO_PRICE)
                 .lockedHeroesCount(lockedHeroIds(user).size())
                 .hero(toClientHero(heroId))
+                .build();
+    }
+
+    @Transactional
+    public SpecificCardPurchaseDto buySpecificCard(Long userId, SpecificCardPurchaseRequestDto request) {
+        if (request == null || request.getCardType() == null || request.getCardId() == null) {
+            throw new IllegalArgumentException("Укажите тип и ID карты");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+        int specificCardDustPrice = gameConfigService.getSpecificCardDustPrice();
+
+        cardProgressService.ensureStarterCards(user);
+        CardDto card = cardService.getCard(request.getCardType().name(), request.getCardId());
+        String cardKey = CardProgressService.toCardKey(card.getCardType(), card.getId());
+
+        LinkedHashSet<String> unlocked = new LinkedHashSet<>(
+                user.getUnlockedCardKeys() != null ? user.getUnlockedCardKeys() : List.of()
+        );
+        if (unlocked.contains(cardKey)) {
+            throw new IllegalArgumentException("Эта карта уже открыта");
+        }
+        if (user.getDust() < specificCardDustPrice) {
+            throw new IllegalArgumentException("Недостаточно пыли для покупки");
+        }
+
+        unlocked.add(cardKey);
+        user.setUnlockedCardKeys(unlocked);
+        user.setDust(user.getDust() - specificCardDustPrice);
+        userRepository.save(user);
+
+        return SpecificCardPurchaseDto.builder()
+                .dust(user.getDust())
+                .specificCardDustPrice(specificCardDustPrice)
+                .lockedCardsCount(cardProgressService.countLockedCards(user))
+                .card(card)
                 .build();
     }
 

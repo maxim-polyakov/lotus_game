@@ -3979,6 +3979,10 @@ header .header-username {
 .shop-card-state--unlocked {
   color: #27ae60;
 }
+.shop-buy-specific-btn {
+  margin-top: 0.15rem;
+  width: 100%;
+}
 .shop-heroes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
