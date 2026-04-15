@@ -7,7 +7,8 @@ import CardDisplay from '../components/CardDisplay';
 const cardKey = (cardType, cardId) => `${cardType}:${cardId}`;
 
 export default function ShopPage() {
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
+  const isAdmin = Boolean(user?.roles?.includes('ROLE_ADMIN'));
   const [status, setStatus] = useState({
     gold: 0,
     dust: 0,
@@ -194,11 +195,14 @@ export default function ShopPage() {
                 type="button"
                 className="btn btn-primary"
                 onClick={buyRandomCard}
-                disabled={buyingCard || status.lockedCardsCount <= 0}
+                disabled={buyingCard || status.lockedCardsCount <= 0 || isAdmin}
               >
                 {buyingCard ? 'Покупка...' : 'Купить случайную карту'}
               </button>
-              {status.lockedCardsCount <= 0 && (
+              {isAdmin && (
+                <p className="shop-hint-muted">Для администратора все карты уже открыты.</p>
+              )}
+              {!isAdmin && status.lockedCardsCount <= 0 && (
                 <p className="shop-hint-muted">Все доступные карты уже открыты.</p>
               )}
             </section>
@@ -257,9 +261,16 @@ export default function ShopPage() {
               <p className="shop-info-line">
                 Цена: <b>{status.specificCardDustPrice}</b> пыли за карту
               </p>
-              <p className="shop-hint-muted">
+              {!isAdmin && (
+                <p className="shop-hint-muted">
                 Купить можно только неоткрытые карты.
-              </p>
+                </p>
+              )}
+              {isAdmin && (
+                <p className="shop-hint-muted">
+                  Для администратора покупка за пыль недоступна: весь пул карт открыт.
+                </p>
+              )}
             </section>
 
             <section className="shop-block">
@@ -281,7 +292,7 @@ export default function ShopPage() {
                             type="button"
                             className="btn btn-primary btn-sm shop-buy-specific-btn"
                             onClick={() => buySpecificCard(c)}
-                            disabled={Boolean(buyingSpecificCardKey) || status.dust < status.specificCardDustPrice}
+                            disabled={Boolean(buyingSpecificCardKey) || status.dust < status.specificCardDustPrice || isAdmin}
                           >
                             {buyingSpecificCardKey === cardKey(c.cardType, c.id)
                               ? 'Покупка...'

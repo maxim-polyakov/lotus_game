@@ -40,14 +40,15 @@ public class ShopService {
         cardProgressService.ensureStarterCards(user);
         heroProgressService.ensureStarterHero(user);
         userRepository.save(user);
+        boolean admin = isAdmin(user);
         return ShopStatusDto.builder()
                 .gold(user.getGold())
                 .dust(user.getDust())
                 .randomCardPrice(randomCardPrice)
                 .specificCardDustPrice(specificCardDustPrice)
                 .randomHeroPrice(RANDOM_HERO_PRICE)
-                .lockedCardsCount(cardProgressService.countLockedCards(user))
-                .lockedHeroesCount(lockedHeroIds(user).size())
+                .lockedCardsCount(admin ? 0 : cardProgressService.countLockedCards(user))
+                .lockedHeroesCount(admin ? 0 : lockedHeroIds(user).size())
                 .build();
     }
 
@@ -55,6 +56,9 @@ public class ShopService {
     public RandomCardPurchaseDto buyRandomCard(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+        if (isAdmin(user)) {
+            throw new IllegalArgumentException("У администратора все карты уже открыты");
+        }
         int randomCardPrice = gameConfigService.getRandomCardPrice();
 
         cardProgressService.ensureStarterCards(user);
@@ -85,6 +89,9 @@ public class ShopService {
     public RandomHeroPurchaseDto buyRandomHero(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+        if (isAdmin(user)) {
+            throw new IllegalArgumentException("У администратора все герои уже открыты");
+        }
 
         heroProgressService.ensureStarterHero(user);
         List<String> locked = lockedHeroIds(user);
@@ -118,6 +125,9 @@ public class ShopService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+        if (isAdmin(user)) {
+            throw new IllegalArgumentException("У администратора все карты уже открыты");
+        }
         int specificCardDustPrice = gameConfigService.getSpecificCardDustPrice();
 
         cardProgressService.ensureStarterCards(user);
@@ -154,6 +164,10 @@ public class ShopService {
         return heroCatalog.allHeroIds().stream()
                 .filter(id -> !unlocked.contains(id))
                 .toList();
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRoles() != null && user.getRoles().contains(HeroProgressService.ADMIN_ROLE);
     }
 
     private HeroDto toClientHero(String heroId) {
