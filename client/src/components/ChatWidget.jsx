@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import api, { WS_URL } from '../api/client';
@@ -57,6 +57,7 @@ export default function ChatWidget() {
   const [collapsed, setCollapsed] = useState(false);
   const clientRef = useRef(null);
   const matchSubRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const currentChannelKey = useMemo(() => {
     if (activeTab === 'GENERAL') return 'general';
@@ -291,6 +292,12 @@ export default function ChatWidget() {
     }
   }, [currentChannelKey]);
 
+  useLayoutEffect(() => {
+    if (collapsed) return;
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [currentMessages, currentChannelKey, collapsed]);
+
   const generalUnread = unreadByKey.general || 0;
   const privateUnread = Object.entries(unreadByKey)
     .filter(([k]) => k.startsWith('private:'))
@@ -366,7 +373,7 @@ export default function ChatWidget() {
             {activeTab === 'MATCH' && activeMatchId ? `Канал матча #${activeMatchId}` : ''}
           </div>
 
-          <div className="chat-widget-messages">
+          <div className="chat-widget-messages" ref={messagesContainerRef}>
             {renderedMessages.map(({ message: m, hideMeta }, i) => (
               <div
                 key={`${m.createdAt}-${m.fromUsername}-${i}`}
