@@ -43,12 +43,16 @@ services:
       - DEBUG=maildev*
     env_file:
       - ./server/.env
-    command:
-      --outgoing-host smtp.gmail.com
-      --outgoing-port 465
+    entrypoint:
+      - /bin/sh
+      - -c
+    command: >
+      exec maildev
+      --outgoing-host "$${SMTP_OUTGOING_HOST}"
+      --outgoing-port "$${SMTP_OUTGOING_PORT}"
       --outgoing-secure
-      --outgoing-user mailer7012@gmail.com
-      --outgoing-pass "ldxm ypzz ewvf mnwq"
+      --outgoing-user "$${SMTP_OUTGOING_USER}"
+      --outgoing-pass "$${SMTP_OUTGOING_PASSWORD}"
       --auto-relay
       --verbose
     ports:
