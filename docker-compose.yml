@@ -1,12 +1,14 @@
 services:
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5497}
+        REACT_APP_WS_URL: ${REACT_APP_WS_URL:-http://localhost:5497/ws}
     container_name: lotus-client
     restart: unless-stopped
     ports:
       - "3165:3000"
-    env_file:
-      - ./client/.env
     depends_on:
       - server
     networks:
@@ -45,16 +47,9 @@ services:
       - ./server/.env
     entrypoint:
       - /bin/sh
+    command:
       - -c
-    command: >
-      exec maildev
-      --outgoing-host "$${SMTP_OUTGOING_HOST}"
-      --outgoing-port "$${SMTP_OUTGOING_PORT}"
-      --outgoing-secure
-      --outgoing-user "$${SMTP_OUTGOING_USER}"
-      --outgoing-pass "$${SMTP_OUTGOING_PASSWORD}"
-      --auto-relay
-      --verbose
+      - 'exec maildev --outgoing-host "$${SMTP_OUTGOING_HOST}" --outgoing-port "$${SMTP_OUTGOING_PORT}" --outgoing-secure --outgoing-user "$${SMTP_OUTGOING_USER}" --outgoing-pass "$${SMTP_OUTGOING_PASSWORD}" --auto-relay --verbose'
     ports:
       - "8185:1080"
     networks:

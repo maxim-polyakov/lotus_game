@@ -9,6 +9,10 @@ RUN npm ci
 
 # Копируем весь код и собираем production-версию
 COPY . .
+ARG REACT_APP_API_URL=http://localhost:5497
+ARG REACT_APP_WS_URL=http://localhost:5497/ws
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_WS_URL=$REACT_APP_WS_URL
 RUN npm run build
 
 # Устанавливаем serve для отдачи статики
