@@ -797,22 +797,22 @@ class DeckEditorScene extends BaseScene {
     const selectedCards = asArray(this.collection).filter((card) => (this.counts.get(cardSlotKey(card)) || 0) > 0);
     const total = [...this.counts.values()].reduce((sum, count) => sum + count, 0);
 
-    this.addPanel(380, 145, 620, 92, 0.82);
+    this.addPanel(460, 145, 840, 92, 0.82);
     const hero = this.heroes.find((h) => h.id === this.heroId);
-    this.addButton(210, 145, 220, 42, `Название: ${this.deckName}`, () => {
+    this.addButton(225, 145, 260, 42, `Название: ${this.deckName}`, () => {
       const nextName = window.prompt('Название колоды', this.deckName);
       if (nextName && nextName.trim()) {
         this.deckName = nextName.trim();
         this.render();
       }
     }, { fontSize: 15 });
-    this.addButton(455, 145, 220, 42, hero?.name || this.heroId, () => {
+    this.addButton(500, 145, 260, 42, hero?.name || this.heroId, () => {
       if (!this.heroes.length) return;
       const currentIndex = Math.max(0, this.heroes.findIndex((h) => h.id === this.heroId));
       this.heroId = this.heroes[(currentIndex + 1) % this.heroes.length].id;
       this.render();
     }, { fontSize: 15 });
-    this.addButton(690, 145, 150, 42, 'Сохранить', () => this.save({ name: this.deckName, heroId: this.heroId }), {
+    this.addButton(760, 145, 170, 42, 'Сохранить', () => this.save({ name: this.deckName, heroId: this.heroId }), {
       fontSize: 15,
       fill: palette.primaryDark,
     });
@@ -851,12 +851,25 @@ class DeckEditorScene extends BaseScene {
       fontSize: '18px',
       color: palette.muted,
     });
-    selectedCards.slice(0, 30).forEach((card, index) => {
+    const selectedVisibleCards = selectedCards.slice(0, 30);
+    const selectedRows = Math.max(1, Math.ceil(selectedVisibleCards.length / 6));
+    const selectedAreaTop = 285;
+    const selectedAreaBottom = 655;
+    const maxCellHeight = Math.floor((selectedAreaBottom - selectedAreaTop) / selectedRows);
+    const selectedCardHeight = Math.max(50, Math.min(76, maxCellHeight - 22));
+    const selectedCardWidth = Math.round(selectedCardHeight * 0.74);
+    const selectedRowGap = selectedCardHeight + 20;
+    const selectedStartY = selectedAreaTop + selectedCardHeight / 2;
+    selectedVisibleCards.forEach((card, index) => {
       const x = 735 + (index % 6) * 78;
-      const y = 300 + Math.floor(index / 6) * 78;
-      const view = new CardGameObject(this, x, y, card, { width: 56, height: 76 });
+      const y = selectedStartY + Math.floor(index / 6) * selectedRowGap;
+      const view = new CardGameObject(this, x, y, card, { width: selectedCardWidth, height: selectedCardHeight });
       const key = cardSlotKey(card);
-      this.add.text(x, y + 46, `x${this.counts.get(key)}`, { fontFamily: 'Segoe UI, Arial', fontSize: '13px', color: palette.text }).setOrigin(0.5);
+      this.add.text(x, y + selectedCardHeight / 2 + 10, `x${this.counts.get(key)}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '13px',
+        color: palette.text,
+      }).setOrigin(0.5);
       view.on('pointerdown', () => {
         const next = (this.counts.get(key) || 0) - 1;
         if (next <= 0) this.counts.delete(key);
