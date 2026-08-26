@@ -1,85 +1,54 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import api from '../api/client';
-import { WS_URL } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { getAccessToken } from '../utils/tokenStorage';
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../utils/tokenStorage';
+import { session } from '../game/shared';
 
-export default function FriendOnlinePopup() {
-  const { user } = useAuth();
-  const [notificationQueue, setNotificationQueue] = useState([]);
-  const [notification, setNotification] = useState(null);
-  const clientRef = useRef(null);
-  const currentNotificationIdRef = useRef(null);
+export async function loadCurrentUser() {
+  const refresh = getRefreshToken();
+  const access = getAccessToken();
+  if (!refresh && !access) return null;
 
-  useEffect(() => {
-    currentNotificationIdRef.current = notification?.id ?? null;
-  }, [notification?.id]);
-
-  useEffect(() => {
-    if (!user?.id) {
-      setNotification(null);
-      return undefined;
+  try {
+    if (refresh) {
+      const { data } = await api.post('/api/auth/refresh', { refreshToken: refresh });
+      const rememberMe = localStorage.getItem('rememberMe') === 'true';
+      setTokens(data.accessToken, data.refreshToken, rememberMe);
     }
-    const token = getAccessToken();
-    if (!token) return undefined;
+    const { data } = await api.get('/api/me');
+    session.user = data;
+    return data;
+  } catch {
+    clearTokens();
+    session.user = null;
+    return null;
+  }
+}
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS(WS_URL),
-      connectHeaders: { token },
-      reconnectDelay: 3000,
-      heartbeatIncoming: 10000,
-      heartbeatOutgoing: 10000,
-      onConnect: () => {
-        client.subscribe('/user/queue/friends-online', async (msg) => {
-          try {
-            const payload = JSON.parse(msg.body);
-            setNotificationQueue((prev) => {
-              if (!payload?.id) return prev;
-              const existsCurrent = currentNotificationIdRef.current === payload.id;
-              const existsInQueue = prev.some((n) => n?.id === payload.id);
-              if (existsCurrent || existsInQueue) return prev;
-              return [...prev, payload];
-            });
-            if (payload?.id) {
-              await api.post(`/api/notifications/${payload.id}/read`);
-            }
-          } catch (_) {}
-        });
-      },
-    });
-    clientRef.current = client;
-    client.activate();
+export async function loginUser(usernameOrEmail, password, rememberMe) {
+  const { data } = await api.post('/api/auth/login', { usernameOrEmail, password });
+  if (data?.requiresEmailVerification) {
+    throw new Error('Email не подтверждён. Откройте экран подтверждения.');
+  }
+  setTokens(data.accessToken, data.refreshToken, rememberMe);
+  const { data: me } = await api.get('/api/me');
+  session.user = me;
+  return me;
+}
 
-    return () => {
-      client.deactivate();
-      clientRef.current = null;
-    };
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (notification || notificationQueue.length === 0) return;
-    setNotification(notificationQueue[0]);
-    setNotificationQueue((prev) => prev.slice(1));
-  }, [notification, notificationQueue]);
-
-  if (!notification) return null;
-
-  return (
-    <div className="modal-overlay" onClick={() => setNotification(null)}>
-      <div className="modal-content friend-online-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{notification.title || 'Друг в сети'}</h2>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNotification(null)}>×</button>
-        </div>
-        <div className="modal-body">
-          <p>{notification.message || 'Ваш друг вошёл в игру'}</p>
-          <div className="hero-drop-actions">
-            <button type="button" className="btn btn-primary" onClick={() => setNotification(null)}>Ок</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+export async function completeOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const accessToken = params.get('accessToken');
+  const refreshToken = params.get('refreshToken');
+  if (params.get('oauth') === 'google' && code) {
+    const { data } = await api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`);
+    setTokens(data.accessToken, data.refreshToken, true);
+    window.history.replaceState({}, '', '/');
+    return loadCurrentUser();
+  }
+  if (accessToken && refreshToken) {
+    setTokens(accessToken, refreshToken, true);
+    window.history.replaceState({}, '', '/');
+    return loadCurrentUser();
+  }
+  return null;
 }

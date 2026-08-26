@@ -1,85 +1,63 @@
-import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useHeroPreference } from '../context/HeroPreferenceContext';
+import api from '../api/client';
+import { palette, session, layoutInfo } from '../game/shared';
+import { ListScene } from '../components/TutorialModal';
 
-/** Только внутренние пути (без open-redirect). */
-function safeReturnPath(state) {
-  const p = state?.returnTo;
-  if (typeof p !== 'string' || !p.startsWith('/') || p.startsWith('//') || p.includes('://')) {
-    return null;
-  }
-  return p;
-}
-
-export default function HeroesPage() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const returnTo = safeReturnPath(location.state);
-  const { heroes, loading, selectedHeroId, setSelectedHeroId } = useHeroPreference();
-
-  if (loading && heroes.length === 0) {
-    return <div className="decks-page">Загрузка...</div>;
+export class HeroesScene extends ListScene {
+  constructor() {
+    super('HeroesScene', 'Герои', async () => [], () => '');
   }
 
-  return (
-    <div className="decks-page decks-list-page">
-      <div className="decks-page-header">
-        <h1>Герои</h1>
-        <div className="decks-page-actions">
-          <Link to="/decks" className="btn btn-outline">Колоды</Link>
-          <Link to="/play" className="btn btn-primary">Играть</Link>
-          <Link to="/" className="btn btn-secondary">Назад</Link>
-          <Link to="/profile" className="btn btn-outline">Профиль</Link>
-        </div>
-      </div>
-      <div className="decks-grid-full">
-        <div className="hero-selection heroes-page-selection">
-          <p className="heroes-page-intro">
-            Выберите героя для поиска матча. После завершённых матчей случайно выпадают новые герои.
-          </p>
-          {heroes.length === 0 ? (
-            <p className="heroes-page-empty">Нет доступных героев.</p>
-          ) : (
-            <div className="hero-selection-grid heroes-page-grid">
-              {heroes.map((h) => {
-                const locked = h.unlocked !== true;
-                const hint = locked ? 'Завершайте матчи, чтобы получить случайного героя' : '';
-                return (
-                  <button
-                    key={h.id}
-                    type="button"
-                    title={hint}
-                    disabled={locked}
-                    className={`hero-card ${h.id === selectedHeroId ? 'selected' : ''} ${locked ? 'hero-card--locked' : ''}`}
-                    onClick={() => {
-                      if (locked) return;
-                      setSelectedHeroId(h.id);
-                      if (returnTo) navigate(returnTo, { replace: true });
-                    }}
-                  >
-                    <div className={`hero-card-portrait hero-card-portrait--${h.id}`}>
-                      {h.portraitUrl ? (
-                        <img src={h.portraitUrl} alt="" />
-                      ) : (
-                        <span>{(h.name || '?').charAt(0)}</span>
-                      )}
-                    </div>
-                    <span className="hero-card-name">
-                      {h.name}
-                      {locked && <span className="hero-card-lock-badge" aria-hidden>{String.fromCodePoint(0x1f512)}</span>}
-                    </span>
-                    <span className="hero-card-hp">
-                      {locked
-                        ? 'Заблокировано'
-                        : `${h.startingHealth} HP`}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  create() {
+    this.drawBackground('Герои');
+    this.addBackButton();
+    this.addMessage('Загрузка героев...', palette.text, 120);
+    api.get('/api/heroes')
+      .then(({ data }) => this.renderHeroes(data || []))
+      .catch((err) => this.renderHeroes([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
+
+  renderHeroes(heroes, error = '') {
+    this.clearScene();
+    const layout = layoutInfo();
+    this.drawBackground('Герои');
+    this.addBackButton();
+    if (error) this.addMessage(error, '#ffb3b3', 120);
+    heroes.forEach((hero, index) => {
+      const columns = layout.portrait ? 2 : 4;
+      const x = (layout.portrait ? 210 : 230) + (index % columns) * (layout.portrait ? 300 : 270);
+      const y = (layout.portrait ? 210 : 185) + Math.floor(index / columns) * (layout.portrait ? 190 : 180);
+      const selected = session.selectedHeroId === hero.id;
+      const panel = this.add.rectangle(x, y, layout.portrait ? 260 : 230, 140, hero.unlocked === false ? 0x252a36 : palette.panel2, 0.95)
+        .setStrokeStyle(2, selected ? palette.primary : 0x53627a)
+        .setInteractive({ useHandCursor: hero.unlocked !== false });
+      this.add.circle(x, y - 36, 34, selected ? palette.primaryDark : 0x3c4964);
+      this.add.text(x, y - 50, (hero.name || '?').slice(0, 1), {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '34px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.add.text(x, y + 4, hero.name || hero.id, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '19px',
+        color: palette.text,
+        align: 'center',
+        wordWrap: { width: 200 },
+      }).setOrigin(0.5);
+      this.add.text(x, y + 42, hero.unlocked === false ? `До открытия: ${hero.gamesUntilUnlock ?? '?'}` : `HP ${hero.startingHealth}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '15px',
+        color: hero.unlocked === false ? '#ffb3b3' : palette.muted,
+      }).setOrigin(0.5);
+      if (hero.unlocked !== false) {
+        panel.on('pointerdown', () => {
+          session.selectedHeroId = hero.id;
+          localStorage.setItem('lotus_selected_hero_id', hero.id);
+          this.renderHeroes(heroes);
+        });
+      }
+    });
+  }
 }
+
+export default HeroesScene;

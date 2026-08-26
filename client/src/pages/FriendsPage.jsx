@@ -1,164 +1,75 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { palette } from '../game/shared';
+import { ListScene } from '../components/TutorialModal';
 
-export default function FriendsPage() {
-  const [data, setData] = useState({ friends: [], incoming: [], outgoing: [] });
-  const [inviteUsername, setInviteUsername] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
+export class FriendsScene extends ListScene {
+  constructor() {
+    super('FriendsScene', 'Друзья', async () => [], () => '');
+  }
 
-  const load = () => {
-    setLoading(true);
+  create() {
+    this.loadFriends();
+  }
+
+  loadFriends(message = '') {
+    this.drawBackground('Друзья');
+    this.addBackButton();
+    this.addMessage('Загрузка друзей...', palette.text, 120);
     api.get('/api/friends')
-      .then(({ data: payload }) => {
-        setData({
-          friends: payload?.friends || [],
-          incoming: payload?.incoming || [],
-          outgoing: payload?.outgoing || [],
-        });
+      .then(({ data }) => {
+        const urls = [
+          ...(data.friends || []).map((x) => x.avatarUrl),
+          ...(data.incoming || []).map((x) => x.avatarUrl),
+          ...(data.outgoing || []).map((x) => x.avatarUrl),
+        ];
+        return this.loadImageUrls(urls).then(() => this.renderFriends(data, message));
       })
-      .catch((e) => setError(e.response?.data?.message || 'Не удалось загрузить друзей'))
-      .finally(() => setLoading(false));
-  };
+      .catch((err) => this.renderFriends({}, err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
 
-  useEffect(() => {
-    load();
-  }, []);
+  renderFriends(data = {}, message = '') {
+    this.clearScene();
+    this.drawBackground('Друзья');
+    this.addBackButton();
+    this.addDomForm(250, 135, `
+      <form class="phaser-form phaser-form-inline">
+        <input name="username" placeholder="Username друга" required />
+        <button type="submit">Отправить заявку</button>
+      </form>
+    `, async (values) => {
+      try {
+        await api.post('/api/friends/requests', { username: values.username.trim() });
+        this.loadFriends('Заявка отправлена');
+      } catch (err) {
+        this.renderFriends(data, err.response?.data?.message || err.message || 'Не удалось отправить заявку');
+      }
+    });
+    if (message) this.addMessage(message, message.includes('Не') || message.includes('Ошибка') ? '#ffb3b3' : palette.text, 655);
 
-  const sendInvite = async (e) => {
-    e.preventDefault();
-    if (!inviteUsername.trim()) return;
-    setSending(true);
-    setError('');
-    try {
-      await api.post('/api/friends/requests', { username: inviteUsername.trim() });
-      setInviteUsername('');
-      load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Не удалось отправить приглашение');
-    } finally {
-      setSending(false);
-    }
-  };
+    const rows = [
+      ...(data.friends || []).map((x) => ({ kind: 'Друг', name: x.username, online: x.online, avatarUrl: x.avatarUrl })),
+      ...(data.incoming || []).map((x) => ({ kind: 'Входящая заявка', name: x.fromUsername || x.username, id: x.id, incoming: true, avatarUrl: x.avatarUrl })),
+      ...(data.outgoing || []).map((x) => ({ kind: 'Исходящая заявка', name: x.toUsername || x.username, avatarUrl: x.avatarUrl })),
+    ];
+    rows.slice(0, 14).forEach((row, index) => {
+      const y = 230 + index * 34;
+      this.addAvatar(96, y + 10, row.avatarUrl, row.name, 28);
+      this.add.text(120, y, `${row.kind}: ${row.name}${row.online ? ' онлайн' : ''}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '18px',
+        color: row.online ? '#9cffb5' : palette.text,
+      });
+      if (row.incoming) {
+        this.addButton(760, y + 12, 120, 28, 'Принять', () => this.friendAction(row.id, 'accept'), { fontSize: 14, fill: 0x28543a, stroke: palette.ok });
+        this.addButton(900, y + 12, 120, 28, 'Отклонить', () => this.friendAction(row.id, 'decline'), { fontSize: 14, fill: 0x52303a, stroke: palette.danger });
+      }
+    });
+  }
 
-  const respondInvite = async (id, action) => {
-    setError('');
-    try {
-      await api.post(`/api/friends/requests/${id}/${action}`);
-      load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Не удалось обработать приглашение');
-    }
-  };
-
-  return (
-    <div className="friends-page decks-list-page">
-      <div className="decks-page-header">
-        <h1>Друзья</h1>
-        <div className="decks-page-actions">
-          <Link to="/" className="btn btn-secondary">На главную</Link>
-          <Link to="/profile" className="btn btn-outline">Профиль</Link>
-        </div>
-      </div>
-
-      <div className="friends-content">
-        <section className="friends-block">
-          <h3>Добавить в друзья</h3>
-          <form className="friends-invite-form" onSubmit={sendInvite}>
-            <input
-              type="text"
-              value={inviteUsername}
-              onChange={(e) => setInviteUsername(e.target.value)}
-              placeholder="username игрока"
-              maxLength={50}
-            />
-            <button type="submit" className="btn btn-primary" disabled={sending || !inviteUsername.trim()}>
-              {sending ? 'Отправка...' : 'Отправить приглашение'}
-            </button>
-          </form>
-        </section>
-
-        {error && <div className="error">{error}</div>}
-        {loading && <p>Загрузка...</p>}
-
-        {!loading && (
-          <>
-            <section className="friends-block">
-              <h3>Входящие приглашения</h3>
-              {data.incoming.length === 0 ? (
-                <p className="friends-empty">Нет входящих приглашений.</p>
-              ) : (
-                <ul className="friends-list">
-                  {data.incoming.map((r) => (
-                    <li key={r.requestId} className="friends-item">
-                      <FriendMiniCard user={r.user} />
-                      <div className="friends-item-actions">
-                        <button type="button" className="btn btn-primary btn-sm" onClick={() => respondInvite(r.requestId, 'accept')}>
-                          Принять
-                        </button>
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => respondInvite(r.requestId, 'decline')}>
-                          Отклонить
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="friends-block">
-              <h3>Исходящие приглашения</h3>
-              {data.outgoing.length === 0 ? (
-                <p className="friends-empty">Нет исходящих приглашений.</p>
-              ) : (
-                <ul className="friends-list">
-                  {data.outgoing.map((r) => (
-                    <li key={r.requestId} className="friends-item">
-                      <FriendMiniCard user={r.user} />
-                      <span className="friends-pending-label">Ожидает ответа</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="friends-block">
-              <h3>Мои друзья</h3>
-              {data.friends.length === 0 ? (
-                <p className="friends-empty">Пока друзей нет.</p>
-              ) : (
-                <ul className="friends-list">
-                  {data.friends.map((f) => (
-                    <li key={f.id} className="friends-item">
-                      <FriendMiniCard user={f} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  async friendAction(id, action) {
+    await api.post(`/api/friends/requests/${id}/${action}`);
+    this.loadFriends('Готово');
+  }
 }
 
-function FriendMiniCard({ user }) {
-  return (
-    <div className="friends-mini-user">
-      {user?.avatarUrl ? (
-        <img src={user.avatarUrl} alt="" className="friends-mini-avatar" />
-      ) : (
-        <span className="friends-mini-avatar friends-mini-avatar--placeholder">
-          {(user?.username || '?').charAt(0).toUpperCase()}
-        </span>
-      )}
-      <div className="friends-mini-meta">
-        <span className="friends-mini-name">{user?.username || 'Игрок'}</span>
-        <span className="friends-mini-rating">Рейтинг: {user?.rating ?? 1000}</span>
-      </div>
-    </div>
-  );
-}
+export default FriendsScene;

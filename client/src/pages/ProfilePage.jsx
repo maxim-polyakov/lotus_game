@@ -1,183 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/client';
-import { useAuth } from '../context/AuthContext';
+import { palette, session } from '../game/shared';
+import { ListScene } from '../components/TutorialModal';
 
-export default function ProfilePage() {
-  const { user, updateUser, logout } = useAuth();
-  const [username, setUsername] = useState(user?.username || '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [stats, setStats] = useState(null);
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+export class ProfileScene extends ListScene {
+  constructor() {
+    super('ProfileScene', 'Профиль', async () => [], () => '');
+  }
 
-  useEffect(() => {
-    setUsername(user?.username || '');
-    setAvatarUrl(user?.avatarUrl || '');
-  }, [user]);
+  create() {
+    this.drawBackground('Профиль');
+    this.addBackButton();
+    this.addMessage('Загрузка профиля...', palette.text, 120);
+    Promise.all([api.get('/api/me'), api.get('/api/me/stats')])
+      .then(([meRes, statsRes]) => this.loadImageUrls([meRes.data?.avatarUrl]).then(() => this.renderProfile(meRes.data, statsRes.data)))
+      .catch((err) => this.renderProfile(null, null, err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/api/me/stats').then(({ data }) => data).catch(() => ({ wins: 0, losses: 0, draws: 0, totalMatches: 0 })),
-      api.get('/api/matches').then(({ data }) => data).catch(() => []),
-    ]).then(([statsData, matchesData]) => {
-      setStats(statsData);
-      setMatches(matchesData || []);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSaving(true);
-    try {
-      const { data } = await api.put('/api/me', { username: username.trim(), avatarUrl: avatarUrl.trim() || null });
-      updateUser(data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка сохранения');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAvatarUpload = async () => {
-    if (!avatarFile) return;
-    setError('');
-    setAvatarUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('avatar', avatarFile);
-      const { data } = await api.post('/api/me/avatar', formData);
-      updateUser(data);
-      setAvatarUrl(data.avatarUrl || '');
-      setAvatarFile(null);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка загрузки аватара');
-    } finally {
-      setAvatarUploading(false);
-    }
-  };
-
-  return (
-    <div className="profile-page">
-      <header>
-        <h1 className="header-logo">
-          <Link to="/" className="header-logo-link">
-            <img src="/lotus.jpg" alt="" />
-            <span className="header-logo-text">Lotus Game</span>
-          </Link>
-        </h1>
-        <div className="header-actions">
-          <Link to="/" className="btn btn-secondary">На главную</Link>
-          <button type="button" onClick={logout} className="btn btn-secondary">Выйти</button>
-        </div>
-      </header>
-      <main className="profile-main">
-        <h2>Профиль</h2>
-        <div className="profile-card">
-          <div className="profile-avatar-wrap">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Аватар" className="profile-avatar" />
-            ) : (
-              <div className="profile-avatar-placeholder">
-                {username?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-            )}
-          </div>
-          <form onSubmit={handleSubmit} className="profile-form">
-            <div className="form-group">
-              <label>Имя пользователя</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                minLength={2}
-                maxLength={50}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Загрузить аватар</label>
-              <div className="avatar-upload-form">
-                <div className="avatar-upload-row">
-                  <label className="btn btn-secondary avatar-file-label">
-                    Выбрать файл
-                    <input
-                      key={avatarUrl || 'empty'}
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                      onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
-                      className="avatar-file-input"
-                    />
-                  </label>
-                  {avatarFile && <span className="avatar-file-name">{avatarFile.name}</span>}
-                  <button type="button" onClick={handleAvatarUpload} className="btn btn-primary" disabled={!avatarFile || avatarUploading}>
-                    {avatarUploading ? 'Загрузка...' : 'Загрузить'}
-                  </button>
-                </div>
-              </div>
-            </div>
-            {error && <div className="error">{error}</div>}
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Сохранение...' : 'Сохранить'}
-            </button>
-          </form>
-        </div>
-        <div className="profile-stats">
-          <h3>Статистика</h3>
-          {loading ? (
-            <p>Загрузка...</p>
-          ) : (
-            <div className="stats-grid">
-              <div className="stat-item stat-rating">
-                <span className="stat-value">{stats?.rating ?? 1000}</span>
-                <span className="stat-label">Рейтинг (ELO)</span>
-              </div>
-              <div className="stat-item stat-rank">
-                <span className="stat-value">{stats?.rank ?? 'Новичок'}</span>
-                <span className="stat-label">Ранг</span>
-              </div>
-              <div className="stat-item stat-wins">
-                <span className="stat-value">{stats?.wins ?? 0}</span>
-                <span className="stat-label">Побед</span>
-              </div>
-              <div className="stat-item stat-losses">
-                <span className="stat-value">{stats?.losses ?? 0}</span>
-                <span className="stat-label">Поражений</span>
-              </div>
-              <div className="stat-item stat-draws">
-                <span className="stat-value">{stats?.draws ?? 0}</span>
-                <span className="stat-label">Ничьих</span>
-              </div>
-              <div className="stat-item stat-total">
-                <span className="stat-value">{stats?.totalMatches ?? 0}</span>
-                <span className="stat-label">Всего матчей</span>
-              </div>
-            </div>
-          )}
-        </div>
-        {matches.length > 0 && (
-          <div className="profile-matches">
-            <h3>Последние матчи</h3>
-            <ul className="matches-list">
-              {matches.slice(0, 10).map((m) => (
-                <li key={m.id}>
-                  Матч #{m.id} — {m.status === 'FINISHED' ? (m.winnerId === user?.id ? 'Победа' : m.winnerId ? 'Поражение' : 'Ничья') : m.status}
-                  {m.status === 'FINISHED' && (
-                    <Link to={`/replay/${m.id}`} className="btn btn-outline btn-sm match-replay-btn">
-                      Реплей
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </main>
-    </div>
-  );
+  renderProfile(me, stats, error = '') {
+    this.clearScene();
+    this.drawBackground('Профиль');
+    this.addBackButton();
+    if (error) this.addMessage(error, '#ffb3b3', 120);
+    this.addPanel(340, 280, 460, 300);
+    this.addAvatar(600, 205, me?.avatarUrl, me?.username, 96);
+    this.add.text(150, 170, me ? me.username : 'Пользователь', { fontFamily: 'Segoe UI, Arial', fontSize: '30px', color: palette.text });
+    this.add.text(150, 218, me?.email || '', { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.muted });
+    this.add.text(150, 270, `Рейтинг: ${me?.rating ?? 0}`, { fontFamily: 'Segoe UI, Arial', fontSize: '22px', color: '#ffe18c' });
+    this.add.text(150, 310, `Золото: ${me?.gold ?? 0}   Пыль: ${me?.dust ?? 0}`, { fontFamily: 'Segoe UI, Arial', fontSize: '20px', color: palette.text });
+    this.add.text(150, 360, `Матчи: ${stats?.totalMatches ?? 0} / Победы: ${stats?.wins ?? 0} / Поражения: ${stats?.losses ?? 0}`, {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '18px',
+      color: palette.muted,
+    });
+    this.addDomForm(850, 275, `
+      <form class="phaser-form">
+        <input name="username" placeholder="Username" value="${(me?.username || '').replace(/"/g, '&quot;')}" required />
+        <input name="avatarUrl" placeholder="Avatar URL" value="${(me?.avatarUrl || '').replace(/"/g, '&quot;')}" />
+        <button type="submit">Сохранить профиль</button>
+      </form>
+    `, async (values) => {
+      try {
+        const { data } = await api.put('/api/me', { username: values.username.trim(), avatarUrl: values.avatarUrl.trim() || null });
+        session.user = { ...session.user, ...data };
+        this.renderProfile(data, stats, 'Профиль сохранён');
+      } catch (err) {
+        this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось сохранить');
+      }
+    });
+  }
 }
+
+export default ProfileScene;

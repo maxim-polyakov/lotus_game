@@ -1,88 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/client';
-import CardDisplay from '../components/CardDisplay';
-import { useHeroPreference } from '../context/HeroPreferenceContext';
+import { palette, layoutInfo } from '../game/shared';
+import { ListScene } from '../components/TutorialModal';
+import { CardGameObject } from '../components/CardDisplay';
+import { asArray, deckHeroId } from '../components/ErrorDetail';
 
-const DEFAULT_DECK_HERO_ID = 'lotus_guardian';
-function enrichDeckWithCards(deck, allCards) {
-  if (!deck?.cards) return { ...deck, cardsResolved: [] };
-  const slots = (allCards || []).length
-    ? deck.cards.map((slot) => {
-        const card = allCards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
-        return card ? { card, count: slot.count } : null;
-      }).filter(Boolean)
-    : [];
-  return { ...deck, cardsResolved: slots };
-}
+export class DecksScene extends ListScene {
+  constructor() {
+    super('DecksScene', 'Колоды', async () => [], () => '');
+  }
 
-export default function DecksPage() {
-  const { heroes, selectedHeroId } = useHeroPreference();
-  const [decks, setDecks] = useState([]);
-  const [allCards, setAllCards] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    setError('');
+  create() {
+    this.drawBackground('Колоды');
+    this.addBackButton();
+    this.addMessage('Загрузка колод...', palette.text, 120);
     Promise.all([
-      api.get('/api/decks').then(({ data }) => data),
-      api.get('/api/cards').then(({ data }) => data),
-    ])
-      .then(([decksData, cardsData]) => {
-        setDecks(decksData || []);
-        setAllCards(cardsData || []);
-      })
-      .catch((e) => {
-        setError(e.response?.data?.message || e.message || 'Не удалось загрузить данные');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      api.get('/api/decks').then(({ data }) => data || []),
+      api.get('/api/cards').then(({ data }) => data || []),
+      api.get('/api/heroes').then(({ data }) => asArray(data)),
+    ]).then(([decks, cards, heroes]) => Promise.all([
+      this.loadCardTextures(cards),
+      this.loadImageUrls(heroes.map((h) => h.portraitUrl)),
+    ]).then(() => this.renderDecks(decks, cards, heroes)))
+      .catch((err) => this.renderDecks([], [], [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
 
-  if (loading) return <div className="decks-page">Загрузка...</div>;
-
-  return (
-    <div className="decks-page decks-list-page">
-      <div className="decks-page-header">
-        <h1>Мои колоды</h1>
-        <div className="decks-page-actions">
-          <Link to="/heroes" className="btn btn-outline">Герои</Link>
-          <Link to="/" className="btn btn-secondary">Назад</Link>
-          <Link to="/profile" className="btn btn-outline">Профиль</Link>
-          <Link
-            to={selectedHeroId ? `/decks/new?heroId=${encodeURIComponent(selectedHeroId)}` : '/decks/new'}
-            className="btn btn-primary"
-          >
-            Создать колоду
-          </Link>
-        </div>
-      </div>
-      {error && <div className="error" style={{ margin: '1rem 2rem' }}>{error}</div>}
-      <div className="decks-grid decks-grid-full">
-        {decks.length === 0 && !error && (
-          <p style={{ padding: '2rem', color: '#666' }}>У вас пока нет колод. Создайте первую!</p>
-        )}
-        {decks.map((d) => {
-          const enriched = enrichDeckWithCards(d, allCards);
-          const cardsToShow = (enriched.cardsResolved || []).slice(0, 10);
-          const hid = d.heroId || DEFAULT_DECK_HERO_ID;
-          const heroName = heroes.find((h) => h.id === hid)?.name;
-          return (
-            <Link key={d.id} to={`/decks/${d.id}`} className="deck-card deck-card-link">
-              <h3>{d.name}</h3>
-              <span className="deck-card-hero-badge">{heroName || hid}</span>
-              <div className="deck-cards-preview">
-                {cardsToShow.map(({ card, count }, i) => (
-                  <CardDisplay key={`${card.cardType}-${card.id}-${i}`} card={card} count={count} size="sm" />
-                ))}
-              </div>
-              <span className="deck-card-count">
-                {d.cards?.reduce((s, x) => s + (x.count || 0), 0) || 0} карт
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
+  renderDecks(decks, cards, heroes = [], error = '') {
+    this.clearScene();
+    const layout = layoutInfo();
+    this.drawBackground('Колоды');
+    this.addBackButton();
+    this.addButton(layout.portrait ? layout.centerX : 1120, layout.portrait ? 1188 : 675, layout.portrait ? 280 : 190, 40, 'Новая колода', () => {
+      window.history.pushState({}, '', '/decks/new');
+      this.scene.start('DeckEditorScene');
+    }, { fontSize: 16, fill: palette.primaryDark });
+    if (error) this.addMessage(error, '#ffb3b3', 120);
+    decks.slice(0, layout.portrait ? 6 : 6).forEach((deck, index) => {
+      const hero = heroes.find((h) => h.id === deckHeroId(deck));
+      const x = layout.portrait ? layout.centerX : 260 + (index % 2) * 510;
+      const y = layout.portrait ? 190 + index * 158 : 170 + Math.floor(index / 2) * 178;
+      const panelWidth = layout.portrait ? 620 : 460;
+      this.add.rectangle(x, y, panelWidth, 146, palette.panel, 0.92)
+        .setStrokeStyle(2, 0x53627a)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          window.history.pushState({}, '', `/decks/${deck.id}`);
+          this.scene.start('DeckEditorScene', { deckId: deck.id });
+        });
+      this.add.text(x - panelWidth / 2 + 20, y - 52, deck.name, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '22px',
+        color: palette.text,
+      });
+      this.addAvatar(x - panelWidth / 2 + 35, y - 16, hero?.portraitUrl, hero?.name || deckHeroId(deck), 28);
+      this.add.text(x - panelWidth / 2 + 56, y - 26, `${hero?.name || deckHeroId(deck)}  |  Карт: ${(deck.cards || []).reduce((sum, c) => sum + (c.count || 0), 0)}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '15px',
+        color: palette.muted,
+      });
+      (deck.cards || []).slice(0, layout.portrait ? 5 : 4).forEach((slot, cardIndex) => {
+        const card = cards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
+        if (!card) return;
+        const view = new CardGameObject(this, x - (layout.portrait ? 190 : 116) + cardIndex * 72, y + 24, card, { width: 58, height: 80 });
+        view.setScale(0.9);
+      });
+    });
+  }
 }
+
+export default DecksScene;

@@ -1,72 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/client';
-import { useAuth } from '../context/AuthContext';
+import { GAME_WIDTH, palette } from '../game/shared';
+import { ListScene } from '../components/TutorialModal';
 
-export default function ReplaysListPage() {
-  const { user } = useAuth();
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    setError('');
-    api.get('/api/matches')
-      .then(({ data }) => setMatches(data || []))
-      .catch((e) => setError(e.response?.data?.message || e.message || 'Не удалось загрузить реплеи'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const finishedMatches = matches.filter((m) => m.status === 'FINISHED');
-
-  const getResultText = (m) => {
-    if (m.winnerId === user?.id) return 'Победа';
-    if (m.winnerId === null) return 'Ничья';
-    return 'Поражение';
-  };
-
-  const getResultClass = (m) => {
-    if (m.winnerId === user?.id) return 'replay-result-win';
-    if (m.winnerId === null) return 'replay-result-draw';
-    return 'replay-result-loss';
-  };
-
-  if (loading) {
-    return (
-      <div className="replays-list-page">
-        <div className="replays-loading">Загрузка...</div>
-      </div>
-    );
+export class ReplaysScene extends ListScene {
+  constructor() {
+    super('ReplaysScene', 'Реплеи', async () => [], () => '');
   }
 
-  return (
-    <div className="replays-list-page">
-      <div className="replays-page-header">
-        <h1>Реплеи</h1>
-        <div className="replays-page-actions">
-          <Link to="/" className="btn btn-secondary">Назад</Link>
-        </div>
-      </div>
-      {error && <div className="error replays-error">{error}</div>}
-      <div className="replays-content">
-        {finishedMatches.length === 0 && !error && (
-          <p className="replays-empty">У вас пока нет завершённых матчей с реплеями.</p>
-        )}
-        <div className="replays-grid">
-          {finishedMatches.map((m) => (
-            <Link key={m.id} to={`/replay/${m.id}`} className="replay-card">
-              <div className="replay-card-header">
-                <span className="replay-card-id">Матч #{m.id}</span>
-                <span className={`replay-card-result ${getResultClass(m)}`}>{getResultText(m)}</span>
-              </div>
-              <div className="replay-card-meta">
-                {m.matchMode === 'CASUAL' ? 'Обычный' : 'Ранговый'} • {m.createdAt ? new Date(m.createdAt).toLocaleDateString('ru-RU') : ''}
-              </div>
-              <span className="replay-card-watch">Смотреть реплей →</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  create() {
+    this.drawBackground('Реплеи');
+    this.addBackButton();
+    this.addMessage('Загрузка матчей...', palette.text, 120);
+    api.get('/api/matches')
+      .then(({ data }) => this.renderReplays((data || []).filter((m) => m.status === 'FINISHED')))
+      .catch((err) => this.renderReplays([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
+
+  renderReplays(matches, error = '') {
+    this.clearScene();
+    this.drawBackground('Реплеи');
+    this.addBackButton();
+    if (error) this.addMessage(error, '#ffb3b3', 120);
+    matches.slice(0, 12).forEach((match, index) => {
+      const y = 130 + index * 42;
+      const row = this.add.rectangle(GAME_WIDTH / 2, y + 12, 900, 34, palette.panel, 0.94)
+        .setStrokeStyle(1, 0x53627a)
+        .setInteractive({ useHandCursor: true });
+      this.add.text(210, y, `Матч #${match.id} — ${match.matchMode}, победитель: ${match.winnerId || 'ничья'}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '17px',
+        color: palette.text,
+      });
+      row.on('pointerdown', () => {
+        window.history.pushState({}, '', `/replay/${match.id}`);
+        this.scene.start('ReplayViewerScene', { matchId: match.id });
+      });
+    });
+  }
 }
+
+export default ReplaysScene;

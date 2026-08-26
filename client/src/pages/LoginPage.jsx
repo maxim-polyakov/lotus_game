@@ -1,208 +1,116 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api, { API_BASE } from '../api/client';
-import { useAuth } from '../context/AuthContext';
+import { setTokens } from '../utils/tokenStorage';
+import { layoutInfo } from '../game/shared';
+import { BaseScene } from '../components/TutorialModal';
+import { loadCurrentUser, loginUser } from '../components/FriendOnlinePopup';
 
-export default function LoginPage() {
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { login } = useAuth();
-  const oauthHandled = useRef(false);
+export class AuthScene extends BaseScene {
+  constructor() {
+    super('AuthScene');
+  }
 
-  useEffect(() => {
-    const oauthError = searchParams.get('oauth_error');
-    const oauthErrorType = searchParams.get('oauth_error_type');
-    const oauthErrorMsg = searchParams.get('oauth_error_msg');
-    const authError = searchParams.get('auth_error');
-    if (oauthError) {
-      const messages = {
-        UNREGISTERED_GOOGLE_ACCOUNT: 'Аккаунт не зарегистрирован. Зарегистрируйтесь сначала через форму регистрации.',
-        OAUTH_MISSING_DATA: 'Не удалось получить данные от Google.',
-        OAUTH_AUTH_ERROR: 'Ошибка авторизации. Попробуйте позже.',
-      };
-      let msg = messages[oauthError];
-      if (!msg) {
-        try {
-          msg = oauthError.startsWith('OAUTH_') ? 'Ошибка входа через Google.' : decodeURIComponent(oauthError);
-        } catch {
-          msg = 'Ошибка входа через Google.';
-        }
-      }
-      if (oauthErrorType || oauthErrorMsg) {
-        let detailMsg = oauthErrorMsg || '';
-        try {
-          detailMsg = oauthErrorMsg ? decodeURIComponent(oauthErrorMsg) : '';
-        } catch {
-          /* use raw */
-        }
-        const detail = [oauthErrorType, detailMsg].filter(Boolean).join(': ');
-        msg = `${msg} (${detail})`;
-      } else if (oauthError.startsWith('OAUTH_')) {
-        msg = `${oauthError}: ${msg}`;
-      }
-      setError(msg);
-      setSearchParams({}, { replace: true });
-      return;
-    }
-    if (authError) {
-      setError(authError === 'session_expired' ? 'Сессия истекла. Войдите снова.' : authError);
-      setSearchParams({}, { replace: true });
-      return;
-    }
-    const code = searchParams.get('code');
-    const accessToken = searchParams.get('accessToken');
-    const refreshToken = searchParams.get('refreshToken');
-    if (oauthHandled.current) return;
-    if (code && searchParams.get('oauth') === 'google') {
-      oauthHandled.current = true;
-      setError('');
-      setLoading(true);
-      api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`)
-        .then((res) => {
-          const data = res?.data;
-          if (!data?.accessToken || !data?.refreshToken) {
-            throw new Error('Токены не получены от сервера');
-          }
-          return login(
-            { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: 0, username: '', roles: [] },
-            true
-          );
-        })
-        .then(() => navigate('/', { replace: true }))
-        .catch((err) => {
-          oauthHandled.current = false;
-          console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
-          setError(err?.message || err?.response?.data?.message || 'Ошибка входа через Google');
-          setSearchParams({}, { replace: true });
-        })
-        .finally(() => setLoading(false));
-      return;
-    }
-    if (accessToken && refreshToken) {
-      oauthHandled.current = true;
-      setError('');
-      setLoading(true);
-      login({ accessToken, refreshToken, userId: 0, username: '', roles: [] }, true)
-        .then(() => navigate('/', { replace: true }))
-        .catch((err) => {
-          oauthHandled.current = false;
-          console.error('Google OAuth login failed:', err?.response?.status, err?.response?.data, err);
-          setError(err?.message || err?.response?.data?.message || 'Ошибка входа через Google');
-          setSearchParams({}, { replace: true });
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [searchParams, login, navigate, setSearchParams]);
+  create(data = {}) {
+    this.mode = data.mode || 'login';
+    this.render();
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  render(error = '') {
+    this.clearScene();
+    const layout = layoutInfo();
+    const title = this.mode === 'register'
+      ? 'Регистрация'
+      : this.mode === 'forgot'
+        ? 'Сброс пароля'
+        : this.mode === 'verify'
+          ? 'Подтверждение email'
+          : 'Вход';
+    this.drawBackground(title);
+    const panelY = layout.portrait ? 470 : 360;
+    const navY = layout.portrait ? 790 : 600;
+    this.addPanel(layout.centerX, panelY, layout.portrait ? 560 : 460, layout.portrait ? 560 : 450);
+
+    const formHtml = this.formHtml();
+    this.addDomForm(layout.centerX, panelY + 10, formHtml, (values) => this.submit(values));
+
+    if (error) this.addMessage(error, '#ffb3b3', layout.portrait ? 930 : 640);
+    if (layout.portrait) {
+      this.addButton(layout.centerX, navY, 300, 48, 'Вход', () => this.scene.restart({ mode: 'login' }), { fontSize: 17 });
+      this.addButton(layout.centerX, navY + 62, 300, 48, 'Регистрация', () => this.scene.restart({ mode: 'register' }), { fontSize: 17 });
+      this.addButton(layout.centerX, navY + 124, 300, 48, 'Забыли пароль', () => this.scene.restart({ mode: 'forgot' }), { fontSize: 17 });
+    } else {
+      this.addButton(468, navY, 150, 40, 'Вход', () => this.scene.restart({ mode: 'login' }), { fontSize: 16 });
+      this.addButton(640, navY, 170, 40, 'Регистрация', () => this.scene.restart({ mode: 'register' }), { fontSize: 16 });
+      this.addButton(830, navY, 180, 40, 'Забыли пароль', () => this.scene.restart({ mode: 'forgot' }), { fontSize: 16 });
+    }
+  }
+
+  formHtml() {
+    if (this.mode === 'register') {
+      return `
+        <form class="phaser-form">
+          <input name="username" placeholder="Username" required />
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="password" type="password" placeholder="Password" required />
+          <button type="submit">Создать аккаунт</button>
+        </form>`;
+    }
+    if (this.mode === 'verify') {
+      return `
+        <form class="phaser-form">
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="code" placeholder="Код подтверждения" required />
+          <button type="submit">Подтвердить</button>
+        </form>`;
+    }
+    if (this.mode === 'forgot') {
+      return `
+        <form class="phaser-form">
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="code" placeholder="Код, если уже пришёл" />
+          <input name="newPassword" type="password" placeholder="Новый пароль" />
+          <button type="submit">Отправить / сбросить</button>
+        </form>`;
+    }
+    return `
+      <form class="phaser-form">
+        <input name="usernameOrEmail" placeholder="Username или email" required />
+        <input name="password" type="password" placeholder="Password" required />
+        <label><input name="rememberMe" type="checkbox" value="yes" /> Запомнить меня</label>
+        <button type="submit">Войти</button>
+        <a href="${API_BASE}/oauth2/authorization/google">Google OAuth</a>
+      </form>`;
+  }
+
+  async submit(values) {
     try {
-      const { data } = await api.post('/api/auth/login', { usernameOrEmail, password });
-      if (data.requiresEmailVerification) {
-        navigate('/verify-email', { state: { email: data.email, rememberMe } });
-      } else {
-        await login(data, rememberMe);
-        navigate('/');
+      if (this.mode === 'register') {
+        await api.post('/api/auth/register', values);
+        this.scene.restart({ mode: 'verify' });
+        return;
       }
-    } catch (err) {
-      let msg = err.response?.data?.message;
-      if (!msg) {
-        if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
-          msg = 'Сервер недоступен. Проверьте подключение к интернету и URL API.';
-        } else if (err.response?.status === 400) {
-          msg = 'Неверный логин или пароль.';
-        } else if (err.response?.status === 401) {
-          msg = 'Требуется авторизация.';
-        } else if (err.response?.status === 403) {
-          msg = 'Доступ запрещён.';
-        } else if (err.response?.status >= 500) {
-          msg = 'Ошибка сервера. Попробуйте позже.';
+      if (this.mode === 'verify') {
+        const { data } = await api.post('/api/auth/verify-email', values);
+        setTokens(data.accessToken, data.refreshToken, true);
+        await loadCurrentUser();
+        this.goto('MenuScene');
+        return;
+      }
+      if (this.mode === 'forgot') {
+        if (values.code && values.newPassword) {
+          await api.post('/api/auth/reset-password', values);
+          this.scene.restart({ mode: 'login' });
         } else {
-          msg = err.message || 'Ошибка входа.';
+          await api.post('/api/auth/forgot-password', { email: values.email });
+          this.render('Код отправлен на email. Введите код и новый пароль.');
         }
-      } else if (msg === 'Invalid username/email or password') {
-        msg = 'Неверный логин или пароль.';
+        return;
       }
-      setError(msg);
-    } finally {
-      setLoading(false);
+      await loginUser(values.usernameOrEmail, values.password, values.rememberMe === 'yes');
+      this.goto('MenuScene');
+    } catch (err) {
+      this.render(err.response?.data?.message || err.message || 'Ошибка');
     }
-  };
-
-  return (
-    <div className="auth-page">
-      <div className="auth-wrapper">
-        <div className="auth-illustration">
-          <img src="/login-illustration.svg" alt="" />
-        </div>
-        <div className="auth-card">
-          <h1>Вход</h1>
-          {error && <div className="auth-error-top">{error}</div>}
-          {loading && <div className="auth-loading">Вход...</div>}
-          <div className="auth-google-section">
-            <a
-              href={loading ? '#' : `${API_BASE}/oauth2/authorization/google`}
-              className={`btn btn-google ${loading ? 'disabled' : ''}`}
-              type="button"
-              onClick={(e) => loading && e.preventDefault()}
-              aria-disabled={loading}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
-                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 6.168-2.172l-2.908-2.258c-.806.54-1.837.86-3.26.86-2.513 0-4.646-1.697-5.696-4.03H.276v2.33C1.98 15.983 5.316 18 9 18z"/>
-                <path fill="#FBBC05" d="M3.304 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V6.29H.276C-.23 7.174-.5 8.068-.5 9c0 .932.27 1.826.744 2.62l2.56-1.97z"/>
-                <path fill="#EA4335" d="M9 3.58c1.414 0 2.69.486 3.696 1.418l2.76-2.764C13.463.696 11.426 0 9 0 5.316 0 1.98 2.017.276 4.83L3.304 7.1C4.354 4.767 6.487 3.07 9 3.07z"/>
-              </svg>
-              Войти через Google
-            </a>
-          </div>
-          <div className="auth-divider">или</div>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Имя пользователя <span className="required">*</span></label>
-              <input
-                type="text"
-                placeholder="Введите имя пользователя"
-                value={usernameOrEmail}
-                onChange={(e) => setUsernameOrEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Пароль <span className="required">*</span></label>
-              <input
-                type="password"
-                placeholder="Введите пароль"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <label className="form-check">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              Запомнить меня
-            </label>
-            <button type="submit" disabled={loading}>
-              {loading ? 'Вход...' : 'Авторизоваться'}
-            </button>
-          </form>
-          <div className="auth-links">
-            <Link to="/forgot-password">Забыли пароль?</Link>
-            <Link to="/register">У вас нет аккаунта?</Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  }
 }
+
+export default AuthScene;

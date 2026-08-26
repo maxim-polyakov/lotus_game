@@ -1,0 +1,21 @@
+.admin-phaser-form,
+.admin-create-form {
+  width: 300px;
+  gap: 8px;
+  padding: 14px;
+}
+
+.admin-phaser-form input,
+.admin-phaser-form select,
+.admin-phaser-form button,
+.admin-create-form input,
+.admin-create-form select,
+.admin-create-form button {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.admin-phaser-form input[type='file'] {
+  background: #f8f3e8;
+  padding: 7px;
+}

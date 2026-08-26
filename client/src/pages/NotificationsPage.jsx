@@ -1,87 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { GAME_WIDTH, palette } from '../game/shared';
+import { ListScene } from '../components/TutorialModal';
 
-function rewardIcon(type) {
-  if (type === 'REWARD_GOLD') return '💰';
-  if (type === 'REWARD_DUST') return '✨';
-  if (type === 'CARD_UNLOCK') return '🃏';
-  if (type === 'HERO_UNLOCK') return '🎖️';
-  return '🎁';
-}
+export class NotificationsScene extends ListScene {
+  constructor() {
+    super('NotificationsScene', 'Уведомления', async () => [], () => '');
+  }
 
-export default function NotificationsPage() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  create() {
+    this.loadNotifications();
+  }
 
-  useEffect(() => {
+  loadNotifications(message = '') {
+    this.drawBackground('Уведомления');
+    this.addBackButton();
+    this.addMessage('Загрузка уведомлений...', palette.text, 120);
     api.get('/api/notifications')
-      .then(({ data }) => setItems(data || []))
-      .catch((e) => setError(e.response?.data?.message || e.message || 'Не удалось загрузить уведомления'))
-      .finally(() => setLoading(false));
-  }, []);
+      .then(({ data }) => this.renderNotifications(data || [], message))
+      .catch((err) => this.renderNotifications([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
 
-  const markRead = async (id) => {
-    try {
-      await api.post(`/api/notifications/${id}/read`);
-      setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    } catch (_) {}
-  };
-
-  return (
-    <div className="notifications-page decks-list-page">
-      <div className="decks-page-header">
-        <h1>Уведомления</h1>
-        <div className="decks-page-actions">
-          <Link to="/" className="btn btn-secondary">На главную</Link>
-          <Link to="/profile" className="btn btn-outline">Профиль</Link>
-        </div>
-      </div>
-      <div className="notifications-content">
-        {loading && <p>Загрузка...</p>}
-        {error && <div className="error">{error}</div>}
-        {!loading && !error && items.length === 0 && (
-          <p className="notifications-empty">Пока уведомлений нет.</p>
-        )}
-        {!loading && !error && items.length > 0 && (
-          <ul className="notifications-list">
-            {items.map((n) => (
-              <li key={n.id} className={`notification-item ${n.read ? 'notification-item--read' : ''}`}>
-                <div className="notification-item-main">
-                  {n.type === 'HERO_UNLOCK' ? (
-                    <div className={`hero-card-portrait hero-card-portrait--${n.heroId || 'default'} notification-hero-portrait`}>
-                      {n.heroPortraitUrl ? (
-                        <img src={n.heroPortraitUrl} alt="" />
-                      ) : (
-                        <span>{(n.heroName || '?').charAt(0)}</span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="notification-reward-icon" aria-hidden>{rewardIcon(n.type)}</div>
-                  )}
-                  <div className="notification-text">
-                    <h3>{n.title}</h3>
-                    <p>{n.message}</p>
-                    {n.type === 'CARD_UNLOCK' && n.cardName && (
-                      <p className="notification-reward-amount">{n.cardName}</p>
-                    )}
-                    {n.rewardAmount != null && (
-                      <p className="notification-reward-amount">+{n.rewardAmount}</p>
-                    )}
-                    <small>{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</small>
-                  </div>
-                </div>
-                {!n.read && (
-                  <button type="button" className="btn btn-outline btn-sm" onClick={() => markRead(n.id)}>
-                    Прочитано
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
+  renderNotifications(items, message = '') {
+    this.clearScene();
+    this.drawBackground('Уведомления');
+    this.addBackButton();
+    if (message) this.addMessage(message, message.includes('Ошибка') ? '#ffb3b3' : palette.text, 655);
+    items.slice(0, 12).forEach((n, index) => {
+      const y = 130 + index * 44;
+      this.add.rectangle(GAME_WIDTH / 2, y + 12, 980, 36, n.read ? 0x1d2536 : 0x303f60, 0.94).setStrokeStyle(1, n.read ? 0x34445f : palette.primary);
+      this.add.text(170, y, `${n.read ? 'Прочитано' : 'Новое'}  ${n.title || n.type}: ${n.message || ''}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '16px',
+        color: palette.text,
+        wordWrap: { width: 760 },
+      });
+      if (!n.read) {
+        this.addButton(1030, y + 12, 130, 28, 'Прочитать', async () => {
+          await api.post(`/api/notifications/${n.id}/read`);
+          this.loadNotifications('Отмечено как прочитанное');
+        }, { fontSize: 14 });
+      }
+    });
+  }
 }
+
+export default NotificationsScene;
