@@ -112,6 +112,11 @@ function asArray(value) {
   return [];
 }
 
+function isMobilePortrait() {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 900 && window.innerHeight > window.innerWidth;
+}
+
 function errorMessage(err, fallback = 'Ошибка') {
   const message = err?.response?.data?.message || err?.message || fallback;
   if (/Batch update returned unexpected row count|ObjectOptimisticLockingFailureException|OptimisticLock/i.test(message)) {
@@ -293,6 +298,27 @@ class BaseScene extends Phaser.Scene {
       fontSize: '18px',
       color: palette.muted,
     }).setOrigin(1, 0);
+    this.drawMobileOrientationHint();
+  }
+
+  drawMobileOrientationHint() {
+    if (!isMobilePortrait()) return;
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x050812, 0.86)
+      .setDepth(10000);
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, 'Поверните устройство', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '42px',
+      color: palette.text,
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(10001);
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 28, 'Lotus Game лучше работает в горизонтальном режиме.', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '24px',
+      color: palette.muted,
+      align: 'center',
+      wordWrap: { width: 820 },
+    }).setOrigin(0.5).setDepth(10001);
   }
 
   addButton(x, y, width, height, label, onClick, options = {}) {
@@ -1618,6 +1644,8 @@ class PlayScene extends BaseScene {
   }
 
   create() {
+    this.cleanupWaiting();
+    this.events.once('shutdown', () => this.cleanupWaiting());
     this.drawBackground('Поиск матча');
     this.addBackButton();
     this.addMessage('Загрузка колод и героев...', palette.text, GAME_HEIGHT / 2);
@@ -1721,18 +1749,37 @@ class PlayScene extends BaseScene {
   }
 
   waitForMatch(matchId) {
+    this.cleanupWaiting();
     this.render(`Ожидание соперника. Матч #${matchId}`);
-    this.time.addEvent({
+    const openMatch = (match) => {
+      if (!match || match.status === 'WAITING') return;
+      this.cleanupWaiting();
+      this.scene.start('MatchScene', { match, cards: this.cards });
+    };
+    matchSocket.connect()
+      .then(() => {
+        this.waitingUnsubscribe = matchSocket.subscribeMatch(matchId, openMatch);
+      })
+      .catch(() => {});
+    this.waitingEvent = this.time.addEvent({
       delay: 2000,
       loop: true,
-      callback: async (event) => {
-        const { data } = await api.get(`/api/matches/${matchId}`);
-        if (data.status !== 'WAITING') {
-          event.remove();
-          this.scene.start('MatchScene', { match: data, cards: this.cards });
+      callback: async () => {
+        try {
+          const { data } = await api.get(`/api/matches/${matchId}`);
+          openMatch(data);
+        } catch (err) {
+          this.render(err.response?.data?.message || err.message || 'Ошибка ожидания матча');
         }
       },
     });
+  }
+
+  cleanupWaiting() {
+    this.waitingEvent?.remove(false);
+    this.waitingEvent = null;
+    this.waitingUnsubscribe?.();
+    this.waitingUnsubscribe = null;
   }
 }
 
@@ -2027,6 +2074,19 @@ export function createLotusGame(parent) {
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      fullscreenTarget: parent,
+      autoRound: true,
+    },
+    input: {
+      activePointers: 3,
+      touch: {
+        capture: true,
+      },
+    },
+    render: {
+      antialias: true,
+      pixelArt: false,
+      roundPixels: false,
     },
     dom: {
       createContainer: true,
