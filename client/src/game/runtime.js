@@ -71,6 +71,19 @@ function textureKey(card) {
   return `card-art-${cardKey(card)}`;
 }
 
+function hashString(value) {
+  let hash = 0;
+  const text = String(value || '');
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function imageTextureKey(url) {
+  return `remote-image-${hashString(url)}`;
+}
+
 function deckHeroId(deck) {
   return deck?.heroId || DEFAULT_HERO_ID;
 }
@@ -81,6 +94,14 @@ function escapeAttr(value) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.cards)) return value.cards;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
 }
 
 async function loadCurrentUser() {
@@ -232,13 +253,26 @@ class BaseScene extends Phaser.Scene {
 
   drawBackground(title) {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, palette.bg).setOrigin(0);
-    this.add.text(48, 34, title, {
+    const logoKey = this.textures.exists('lotus-logo') ? 'lotus-logo' : 'lotus-logo-fallback';
+    if (this.textures.exists(logoKey)) {
+      this.add.image(58, 52, logoKey).setDisplaySize(48, 48);
+    } else {
+      this.add.circle(58, 52, 24, palette.primaryDark).setStrokeStyle(2, palette.primary);
+      this.add.text(58, 52, 'L', {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '26px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+    }
+    this.add.text(94, 34, title, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '34px',
       color: palette.text,
       fontStyle: 'bold',
     });
-    this.add.text(GAME_WIDTH - 48, 42, session.user ? session.user.username : 'Guest', {
+    this.addAvatar(GAME_WIDTH - 78, 53, session.user?.avatarUrl, session.user?.username || 'Guest', 42);
+    this.add.text(GAME_WIDTH - 110, 42, session.user ? session.user.username : 'Guest', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '18px',
       color: palette.muted,
@@ -315,6 +349,32 @@ class BaseScene extends Phaser.Scene {
       this.load.start();
     });
   }
+
+  loadImageUrls(urls = []) {
+    const cleanUrls = urls.filter(Boolean);
+    const toLoad = cleanUrls.filter((url) => !this.textures.exists(imageTextureKey(url)));
+    if (!toLoad.length) return Promise.resolve();
+    return new Promise((resolve) => {
+      toLoad.forEach((url) => this.load.image(imageTextureKey(url), url));
+      this.load.once('complete', resolve);
+      this.load.start();
+    });
+  }
+
+  addAvatar(x, y, url, name = '?', size = 44) {
+    const radius = size / 2;
+    this.add.circle(x, y, radius, 0x2c3850).setStrokeStyle(2, palette.primary);
+    if (url && this.textures.exists(imageTextureKey(url))) {
+      this.add.image(x, y, imageTextureKey(url)).setDisplaySize(size - 4, size - 4);
+      return;
+    }
+    this.add.text(x, y, (name || '?').slice(0, 2).toUpperCase(), {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: `${Math.max(14, size / 2.4)}px`,
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+  }
 }
 
 class BootScene extends BaseScene {
@@ -322,10 +382,19 @@ class BootScene extends BaseScene {
     super('BootScene');
   }
 
+  preload() {
+    this.load.image('lotus-logo', '/lotus.jpg');
+    this.load.svg('lotus-logo-fallback', '/lotus.svg', { width: 256, height: 256 });
+  }
+
   create() {
     this.drawBackground('Lotus Game');
     this.addMessage('Загрузка профиля...', palette.text, GAME_HEIGHT / 2);
-    completeOAuthCallback().catch(() => null).then(() => loadCurrentUser()).then(() => {
+    completeOAuthCallback()
+      .catch(() => null)
+      .then(() => loadCurrentUser())
+      .then(() => this.loadImageUrls([session.user?.avatarUrl]))
+      .then(() => {
       const targetScene = sceneForCurrentRoute();
       if (!session.user && !['AuthScene', 'LeaderboardScene'].includes(targetScene)) {
         this.scene.start('AuthScene', { mode: authModeForCurrentRoute() });
@@ -581,11 +650,15 @@ class DecksScene extends ListScene {
     Promise.all([
       api.get('/api/decks').then(({ data }) => data || []),
       api.get('/api/cards').then(({ data }) => data || []),
-    ]).then(([decks, cards]) => this.loadCardTextures(cards).then(() => this.renderDecks(decks, cards)))
-      .catch((err) => this.renderDecks([], [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      api.get('/api/heroes').then(({ data }) => asArray(data)),
+    ]).then(([decks, cards, heroes]) => Promise.all([
+      this.loadCardTextures(cards),
+      this.loadImageUrls(heroes.map((h) => h.portraitUrl)),
+    ]).then(() => this.renderDecks(decks, cards, heroes)))
+      .catch((err) => this.renderDecks([], [], [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
-  renderDecks(decks, cards, error = '') {
+  renderDecks(decks, cards, heroes = [], error = '') {
     this.clearScene();
     this.drawBackground('Колоды');
     this.addBackButton();
@@ -595,6 +668,7 @@ class DecksScene extends ListScene {
     }, { fontSize: 16, fill: palette.primaryDark });
     if (error) this.addMessage(error, '#ffb3b3', 120);
     decks.slice(0, 6).forEach((deck, index) => {
+      const hero = heroes.find((h) => h.id === deckHeroId(deck));
       const x = 260 + (index % 2) * 510;
       const y = 165 + Math.floor(index / 2) * 170;
       this.add.rectangle(x, y, 460, 140, palette.panel, 0.92)
@@ -609,7 +683,8 @@ class DecksScene extends ListScene {
         fontSize: '22px',
         color: palette.text,
       });
-      this.add.text(x - 210, y - 26, `Герой: ${deckHeroId(deck)}  Карт: ${(deck.cards || []).reduce((sum, c) => sum + (c.count || 0), 0)}`, {
+      this.addAvatar(x - 195, y - 18, hero?.portraitUrl, hero?.name || deckHeroId(deck), 28);
+      this.add.text(x - 174, y - 28, `${hero?.name || deckHeroId(deck)}  |  Карт: ${(deck.cards || []).reduce((sum, c) => sum + (c.count || 0), 0)}`, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '15px',
         color: palette.muted,
@@ -639,13 +714,13 @@ class DeckEditorScene extends BaseScene {
     Promise.all([
       this.deckId ? api.get(`/api/decks/${this.deckId}`).then(({ data: deck }) => deck) : Promise.resolve(null),
       api.get('/api/cards').then(({ data: cards }) => cards || []),
-      api.get('/api/cards/collection').then(({ data: collection }) => data || []),
-      api.get('/api/heroes').then(({ data: heroes }) => data || []),
+      api.get('/api/cards/collection').then(({ data: collection }) => asArray(collection)),
+      api.get('/api/heroes').then(({ data: heroes }) => asArray(heroes)),
     ]).then(([deck, cards, collection, heroes]) => {
       this.deck = deck;
       this.cards = cards;
-      this.collection = collection;
-      this.heroes = heroes.filter((h) => h.unlocked !== false);
+      this.collection = asArray(collection);
+      this.heroes = asArray(heroes).filter((h) => h.unlocked !== false);
       this.deckName = deck?.name || 'Новая колода';
       this.heroId = deckHeroId(deck || { heroId: session.selectedHeroId });
       (deck?.cards || []).forEach((slot) => this.counts.set(cardKey(slot), slot.count || 0));
@@ -669,7 +744,7 @@ class DeckEditorScene extends BaseScene {
     this.clearScene();
     this.drawBackground(this.deckId ? 'Редактор колоды' : 'Новая колода');
     this.addBackButton('DecksScene');
-    const selectedCards = this.collection.filter((card) => (this.counts.get(cardKey(card)) || 0) > 0);
+    const selectedCards = asArray(this.collection).filter((card) => (this.counts.get(cardKey(card)) || 0) > 0);
     const total = [...this.counts.values()].reduce((sum, count) => sum + count, 0);
 
     this.addDomForm(255, 135, `
@@ -761,7 +836,7 @@ class ShopScene extends ListScene {
     Promise.all([
       api.get('/api/shop/status').then(({ data }) => data),
       api.get('/api/cards').then(({ data }) => data || []),
-      api.get('/api/cards/collection').then(({ data }) => data || []),
+      api.get('/api/cards/collection').then(({ data }) => asArray(data)),
     ]).then(([status, cards, collection]) => this.loadCardTextures(cards).then(() => this.renderShop(status, cards, collection)))
       .catch((err) => this.renderShop(null, [], [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
@@ -819,7 +894,7 @@ class ProfileScene extends ListScene {
     this.addBackButton();
     this.addMessage('Загрузка профиля...', palette.text, 120);
     Promise.all([api.get('/api/me'), api.get('/api/me/stats')])
-      .then(([meRes, statsRes]) => this.renderProfile(meRes.data, statsRes.data))
+      .then(([meRes, statsRes]) => this.loadImageUrls([meRes.data?.avatarUrl]).then(() => this.renderProfile(meRes.data, statsRes.data)))
       .catch((err) => this.renderProfile(null, null, err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
@@ -829,6 +904,7 @@ class ProfileScene extends ListScene {
     this.addBackButton();
     if (error) this.addMessage(error, '#ffb3b3', 120);
     this.addPanel(340, 280, 460, 300);
+    this.addAvatar(600, 205, me?.avatarUrl, me?.username, 96);
     this.add.text(150, 170, me ? me.username : 'Пользователь', { fontFamily: 'Segoe UI, Arial', fontSize: '30px', color: palette.text });
     this.add.text(150, 218, me?.email || '', { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.muted });
     this.add.text(150, 270, `Рейтинг: ${me?.rating ?? 0}`, { fontFamily: 'Segoe UI, Arial', fontSize: '22px', color: '#ffe18c' });
@@ -858,10 +934,30 @@ class ProfileScene extends ListScene {
 
 class LeaderboardScene extends ListScene {
   constructor() {
-    super('LeaderboardScene', 'Рейтинг', async () => {
-      const { data } = await api.get('/api/leaderboard');
-      return data;
-    }, (u, i) => `${i + 1}. ${u.username} — ${u.rating}`);
+    super('LeaderboardScene', 'Рейтинг', async () => [], () => '');
+  }
+
+  create() {
+    this.drawBackground('Рейтинг');
+    this.addBackButton();
+    this.addMessage('Загрузка рейтинга...', palette.text, 120);
+    api.get('/api/leaderboard')
+      .then(({ data }) => this.loadImageUrls(asArray(data).map((u) => u.avatarUrl)).then(() => this.renderLeaderboard(asArray(data))))
+      .catch((err) => this.renderLeaderboard([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
+
+  renderLeaderboard(players, error = '') {
+    this.clearScene();
+    this.drawBackground('Рейтинг');
+    this.addBackButton();
+    if (error) this.addMessage(error, '#ffb3b3', 120);
+    players.slice(0, 12).forEach((u, index) => {
+      const y = 135 + index * 42;
+      this.add.rectangle(GAME_WIDTH / 2, y + 10, 720, 36, palette.panel, 0.92).setStrokeStyle(1, 0x53627a);
+      this.addAvatar(310, y + 10, u.avatarUrl, u.username, 32);
+      this.add.text(350, y, `${index + 1}. ${u.username}`, { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.text });
+      this.add.text(780, y, String(u.rating), { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: '#ffe18c' });
+    });
   }
 }
 
@@ -879,7 +975,14 @@ class FriendsScene extends ListScene {
     this.addBackButton();
     this.addMessage('Загрузка друзей...', palette.text, 120);
     api.get('/api/friends')
-      .then(({ data }) => this.renderFriends(data, message))
+      .then(({ data }) => {
+        const urls = [
+          ...(data.friends || []).map((x) => x.avatarUrl),
+          ...(data.incoming || []).map((x) => x.avatarUrl),
+          ...(data.outgoing || []).map((x) => x.avatarUrl),
+        ];
+        return this.loadImageUrls(urls).then(() => this.renderFriends(data, message));
+      })
       .catch((err) => this.renderFriends({}, err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
@@ -903,12 +1006,13 @@ class FriendsScene extends ListScene {
     if (message) this.addMessage(message, message.includes('Не') || message.includes('Ошибка') ? '#ffb3b3' : palette.text, 655);
 
     const rows = [
-      ...(data.friends || []).map((x) => ({ kind: 'Друг', name: x.username, online: x.online })),
-      ...(data.incoming || []).map((x) => ({ kind: 'Входящая заявка', name: x.fromUsername || x.username, id: x.id, incoming: true })),
-      ...(data.outgoing || []).map((x) => ({ kind: 'Исходящая заявка', name: x.toUsername || x.username })),
+      ...(data.friends || []).map((x) => ({ kind: 'Друг', name: x.username, online: x.online, avatarUrl: x.avatarUrl })),
+      ...(data.incoming || []).map((x) => ({ kind: 'Входящая заявка', name: x.fromUsername || x.username, id: x.id, incoming: true, avatarUrl: x.avatarUrl })),
+      ...(data.outgoing || []).map((x) => ({ kind: 'Исходящая заявка', name: x.toUsername || x.username, avatarUrl: x.avatarUrl })),
     ];
     rows.slice(0, 14).forEach((row, index) => {
       const y = 230 + index * 34;
+      this.addAvatar(96, y + 10, row.avatarUrl, row.name, 28);
       this.add.text(120, y, `${row.kind}: ${row.name}${row.online ? ' онлайн' : ''}`, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '18px',
@@ -1019,7 +1123,7 @@ class ReplayViewerScene extends BaseScene {
     this.addMessage('Загрузка реплея...', palette.text, 120);
     Promise.all([
       api.get(`/api/matches/${this.matchId}/replay`).then(({ data: steps }) => steps || []),
-      api.get('/api/cards').then(({ data: cards }) => data || []),
+      api.get('/api/cards').then(({ data: cards }) => asArray(cards)),
     ]).then(([steps, cards]) => {
       this.steps = steps;
       this.cards = cards;
@@ -1314,39 +1418,45 @@ class CardGameObject extends Phaser.GameObjects.Container {
 
   build() {
     const isMinion = this.card?.cardType === 'MINION';
+    const compact = this.h < 125 || this.w < 90;
+    const manaRadius = compact ? 10 : 14;
+    const statRadius = compact ? 10 : 14;
+    const artHeight = compact ? Math.max(24, this.h - 50) : this.h - 48;
+    const artY = compact ? -this.h * 0.18 : -18;
+    const nameY = compact ? this.h / 2 - 30 : 33;
     const bg = this.scene.add.rectangle(0, 0, this.w, this.h, 0x26324a, 1)
       .setStrokeStyle(2, this.options.selected ? palette.primary : 0x5c6f95);
     this.add(bg);
 
     const key = textureKey(this.card);
     if (this.card?.imageUrl && this.scene.textures.exists(key)) {
-      const art = this.scene.add.image(0, -18, key).setDisplaySize(this.w - 12, this.h - 48);
+      const art = this.scene.add.image(0, artY, key).setDisplaySize(this.w - 12, artHeight);
       this.add(art);
     } else {
-      const fallback = this.scene.add.rectangle(0, -18, this.w - 12, this.h - 48, 0x35415a, 0.9);
+      const fallback = this.scene.add.rectangle(0, artY, this.w - 12, artHeight, 0x35415a, 0.9);
       this.add(fallback);
     }
 
-    const mana = this.scene.add.circle(-this.w / 2 + 13, -this.h / 2 + 13, 14, 0x235bd6)
+    const mana = this.scene.add.circle(-this.w / 2 + manaRadius, -this.h / 2 + manaRadius, manaRadius, 0x235bd6)
       .setStrokeStyle(2, 0xc9d6ff);
     const manaText = this.scene.add.text(mana.x, mana.y, String(this.card?.manaCost ?? 0), {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: '17px',
+      fontSize: compact ? '11px' : '17px',
       color: '#ffffff',
       fontStyle: 'bold',
     }).setOrigin(0.5);
     this.add([mana, manaText]);
 
-    this.add(this.scene.add.text(0, 33, this.card?.name || 'Карта', {
+    this.add(this.scene.add.text(0, nameY, this.card?.name || 'Карта', {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: '13px',
+      fontSize: compact ? '9px' : '13px',
       color: '#ffffff',
       align: 'center',
       wordWrap: { width: this.w - 12 },
     }).setOrigin(0.5));
 
     const desc = this.card?.description || '';
-    if (desc) {
+    if (desc && !compact) {
       this.add(this.scene.add.text(0, 62, desc, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '10px',
@@ -1357,21 +1467,21 @@ class CardGameObject extends Phaser.GameObjects.Container {
     }
 
     if (isMinion) {
-      this.addStat(-this.w / 2 + 17, this.h / 2 - 17, this.card?.attack ?? 0, 0xb33a32);
-      this.addStat(this.w / 2 - 17, this.h / 2 - 17, this.card?.health ?? this.card?.currentHealth ?? 0, 0x2e9a58);
+      this.addStat(-this.w / 2 + statRadius + 3, this.h / 2 - statRadius - 3, this.card?.attack ?? 0, 0xb33a32, statRadius);
+      this.addStat(this.w / 2 - statRadius - 3, this.h / 2 - statRadius - 3, this.card?.health ?? this.card?.currentHealth ?? 0, 0x2e9a58, statRadius);
     } else {
-      this.addStat(this.w / 2 - 17, this.h / 2 - 17, this.card?.damage ?? 0, 0x8a47cf);
+      this.addStat(this.w / 2 - statRadius - 3, this.h / 2 - statRadius - 3, this.card?.damage ?? 0, 0x8a47cf, statRadius);
     }
 
     this.setSize(this.w, this.h);
     this.setInteractive(new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h), Phaser.Geom.Rectangle.Contains);
   }
 
-  addStat(x, y, value, color) {
-    const circle = this.scene.add.circle(x, y, 14, color).setStrokeStyle(2, 0xffffff);
+  addStat(x, y, value, color, radius = 14) {
+    const circle = this.scene.add.circle(x, y, radius, color).setStrokeStyle(2, 0xffffff);
     const text = this.scene.add.text(x, y, String(value), {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: '15px',
+      fontSize: radius <= 10 ? '10px' : '15px',
       color: '#ffffff',
       fontStyle: 'bold',
     }).setOrigin(0.5);
