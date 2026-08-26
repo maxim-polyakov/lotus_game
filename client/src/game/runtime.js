@@ -112,6 +112,14 @@ function asArray(value) {
   return [];
 }
 
+function errorMessage(err, fallback = 'Ошибка') {
+  const message = err?.response?.data?.message || err?.message || fallback;
+  if (/Batch update returned unexpected row count|ObjectOptimisticLockingFailureException|OptimisticLock/i.test(message)) {
+    return 'Данные уже изменились. Обновите экран и повторите сохранение.';
+  }
+  return message;
+}
+
 async function loadCurrentUser() {
   const refresh = getRefreshToken();
   const access = getAccessToken();
@@ -847,6 +855,8 @@ class DeckEditorScene extends BaseScene {
   }
 
   async save(values) {
+    if (this.saving) return;
+    this.saving = true;
     try {
       const cards = [...this.counts.entries()].flatMap(([key, count]) => {
         const [cardType, rawId] = key.split(':');
@@ -863,7 +873,9 @@ class DeckEditorScene extends BaseScene {
       this.heroId = values.heroId;
       this.render('Колода сохранена');
     } catch (err) {
-      this.render(err.response?.data?.message || err.message || 'Не удалось сохранить');
+      this.render(errorMessage(err, 'Не удалось сохранить'));
+    } finally {
+      this.saving = false;
     }
   }
 }

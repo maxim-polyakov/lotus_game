@@ -1,6 +1,8 @@
 package com.lotus.game.controller;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -47,6 +49,18 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Ошибка загрузки")
                 .message(msg)
+                .path(req.getRequestURI())
+                .build());
+    }
+
+    @ExceptionHandler({OptimisticLockingFailureException.class, OptimisticLockException.class})
+    public ResponseEntity<ErrorBody> handleOptimisticLock(Exception ex, HttpServletRequest req) {
+        log.warning("Optimistic lock conflict [" + req.getRequestURI() + "]: " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorBody.builder()
+                .timestamp(Instant.now().toString())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Конфликт сохранения")
+                .message("Данные уже были изменены. Обновите экран и повторите действие.")
                 .path(req.getRequestURI())
                 .build());
     }
