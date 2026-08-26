@@ -20,7 +20,10 @@ export function resolveAssetUrl(url) {
 }
 
 export function textureKey(card) {
-  return `card-art-${cardKey(card)}-${hashString(resolveAssetUrl(card?.imageUrl))}`;
+  // Phaser treats ":" as key:frame, so never put cardType:id in texture keys.
+  const type = String(card?.cardType || 'CARD').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const id = card?.id ?? 'x';
+  return `card-art-${type}-${id}-${hashString(resolveAssetUrl(card?.imageUrl))}`;
 }
 
 export class CardGameObject extends Phaser.GameObjects.Container {

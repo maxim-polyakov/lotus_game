@@ -17,6 +17,7 @@ export class AdminScene extends ListScene {
   }
 
   loadAdmin(message = '') {
+    this.clearScene();
     this.drawBackground('Админка');
     this.addBackButton();
     this.addMessage('Загрузка админки...', palette.text, 120);
@@ -39,26 +40,29 @@ export class AdminScene extends ListScene {
     this.drawBackground('Админка');
     this.addBackButton();
     if (message) this.addMessage(message, message.includes('Ошибка') || message.includes('Не') ? '#ffb3b3' : palette.text, layout.portrait ? 1225 : 670);
+
     this.add.text(80, 95, 'Карты: клик для редактирования', { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.muted });
-    const actionY = layout.portrait ? 145 : 105;
-    this.addButton(layout.portrait ? 160 : 760, actionY, 140, 34, 'Новая карта', () => {
+
+    // Keep mode buttons on the left so the right panel never covers them.
+    const actionY = layout.portrait ? 145 : 130;
+    this.addButton(layout.portrait ? 160 : 150, actionY, 150, 34, 'Новая карта', () => {
       this.formMode = 'create-card';
       this.renderAdmin();
     }, { fontSize: 15 });
-    this.addButton(layout.portrait ? 360 : 920, actionY, 140, 34, 'Новый герой', () => {
+    this.addButton(layout.portrait ? 360 : 320, actionY, 150, 34, 'Новый герой', () => {
       this.formMode = 'create-hero';
       this.renderAdmin();
     }, { fontSize: 15 });
-    this.addButton(layout.portrait ? 560 : 1080, actionY, 120, 34, 'Редакт.', () => {
+    this.addButton(layout.portrait ? 560 : 490, actionY, 130, 34, 'Редакт.', () => {
       this.formMode = 'edit';
       this.renderAdmin();
     }, { fontSize: 15 });
 
-    const columns = layout.portrait ? 4 : 7;
-    const cardLimit = layout.portrait ? 12 : 21;
+    const columns = layout.portrait ? 4 : 6;
+    const cardLimit = layout.portrait ? 12 : 18;
     const startX = layout.portrait ? 105 : 88;
-    const startY = layout.portrait ? 235 : 170;
-    const gapX = layout.portrait ? 168 : 84;
+    const startY = layout.portrait ? 235 : 210;
+    const gapX = layout.portrait ? 168 : 100;
     const gapY = layout.portrait ? 120 : 125;
     (this.cards || []).slice(0, cardLimit).forEach((card, index) => {
       const x = startX + (index % columns) * gapX;
@@ -75,15 +79,29 @@ export class AdminScene extends ListScene {
       });
     });
 
-    this.addPanel(layout.portrait ? layout.centerX : 955, layout.portrait ? 855 : 365, layout.portrait ? 620 : 430, layout.portrait ? 700 : 520);
+    const panelX = layout.portrait ? layout.centerX : 1000;
+    const panelY = layout.portrait ? 855 : 400;
+    this.addPanel(panelX, panelY, layout.portrait ? 620 : 400, layout.portrait ? 700 : 480);
+
+    const modeLabel = this.formMode === 'create-card'
+      ? 'Режим: создание карты'
+      : this.formMode === 'create-hero'
+        ? 'Режим: создание героя'
+        : 'Режим: редактирование';
+    this.add.text(panelX, layout.portrait ? 520 : 175, modeLabel, {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '16px',
+      color: palette.muted,
+    }).setOrigin(0.5);
+
     if (this.formMode === 'create-card') {
-      this.renderCreateCardForm();
+      this.renderCreateCardForm(panelX, panelY);
     } else if (this.formMode === 'create-hero') {
-      this.renderCreateHeroForm();
+      this.renderCreateHeroForm(panelX, panelY);
     } else if (this.selected) {
-      this.renderSelectedCardForm(this.selected);
+      this.renderSelectedCardForm(this.selected, panelX, panelY);
     } else {
-      this.add.text(layout.portrait ? layout.centerX : 955, layout.portrait ? 820 : 335, 'Выберите карту слева', {
+      this.add.text(panelX, panelY, 'Выберите карту слева', {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '20px',
         color: palette.text,
@@ -91,10 +109,10 @@ export class AdminScene extends ListScene {
     }
   }
 
-  renderSelectedCardForm(card) {
+  renderSelectedCardForm(card, panelX, panelY) {
     const isMinion = card.cardType === 'MINION';
     const layout = layoutInfo();
-    const editDom = this.addDomForm(layout.portrait ? layout.centerX : 955, layout.portrait ? 850 : 355, `
+    const editDom = this.addDomForm(panelX, panelY - 20, `
       <form class="phaser-form admin-phaser-form">
         <strong>${escapeAttr(card.cardType)} #${card.id}</strong>
         <input name="name" placeholder="Название" value="${escapeAttr(card.name)}" required />
@@ -117,12 +135,11 @@ export class AdminScene extends ListScene {
     const form = editDom.node?.querySelector('form');
     form?.querySelector('[data-upload-assets]')?.addEventListener('click', () => this.uploadCardAssets(card, form));
 
-    this.addButton(layout.portrait ? layout.centerX : 955, layout.portrait ? 1205 : 630, 190, 34, 'Удалить карту', () => this.deleteCard(card), { fill: 0x52303a, stroke: palette.danger, fontSize: 15 });
+    this.addButton(panelX, layout.portrait ? 1205 : 645, 190, 34, 'Удалить карту', () => this.deleteCard(card), { fill: 0x52303a, stroke: palette.danger, fontSize: 15 });
   }
 
-  renderCreateCardForm() {
-    const layout = layoutInfo();
-    this.addDomForm(layout.portrait ? layout.centerX : 955, layout.portrait ? 805 : 360, `
+  renderCreateCardForm(panelX, panelY) {
+    this.addDomForm(panelX, panelY, `
       <form class="phaser-form admin-create-form">
         <strong>Создать карту</strong>
         <select name="cardType"><option value="MINION">Миньон</option><option value="SPELL">Заклинание</option></select>
@@ -137,9 +154,8 @@ export class AdminScene extends ListScene {
     `, (values) => this.createCard(values));
   }
 
-  renderCreateHeroForm() {
-    const layout = layoutInfo();
-    this.addDomForm(layout.portrait ? layout.centerX : 955, layout.portrait ? 760 : 330, `
+  renderCreateHeroForm(panelX, panelY) {
+    this.addDomForm(panelX, panelY, `
       <form class="phaser-form admin-create-form">
         <strong>Создать героя</strong>
         <input name="id" placeholder="hero_id" required />
@@ -198,6 +214,7 @@ export class AdminScene extends ListScene {
       const { data } = await api.post(isMinion ? '/api/admin/cards/minions' : '/api/admin/cards/spells', payload);
       this.cards = [...this.cards, data];
       this.selected = data;
+      this.formMode = 'edit';
       await this.loadCardTextures([data]);
       this.renderAdmin('Карта создана');
     } catch (err) {

@@ -13,8 +13,25 @@ import './TutorialModal.css';
 
 export class BaseScene extends Phaser.Scene {
   clearScene() {
+    // DOMElement HTML nodes can survive removeAll and stack on top of each other.
+    [...(this.children?.list || [])].forEach((child) => {
+      if (child?.type === 'DOMElement') {
+        try {
+          child.setVisible(false);
+          child.destroy(true);
+        } catch {
+          // ignore already-destroyed nodes
+        }
+      }
+    });
     this.children.removeAll(true);
     this.input.removeAllListeners();
+    const domContainer = this.sys?.game?.domContainer;
+    if (domContainer) {
+      while (domContainer.firstChild) {
+        domContainer.removeChild(domContainer.firstChild);
+      }
+    }
   }
 
   drawBackground(title) {
@@ -112,28 +129,53 @@ export class BaseScene extends Phaser.Scene {
     const toLoad = cards.filter((c) => c.imageUrl && !this.textures.exists(textureKey(c)));
     if (!toLoad.length) return Promise.resolve();
     return new Promise((resolve) => {
-      toLoad.forEach((card) => this.load.image(textureKey(card), resolveAssetUrl(card.imageUrl)));
-      this.load.once('complete', resolve);
+      const onDone = () => {
+        this.load.off('complete', onDone);
+        this.load.off('loaderror', onDone);
+        resolve();
+      };
+      toLoad.forEach((card) => {
+        this.load.image({
+          key: textureKey(card),
+          url: resolveAssetUrl(card.imageUrl),
+          crossOrigin: 'anonymous',
+        });
+      });
+      this.load.once('complete', onDone);
+      this.load.once('loaderror', onDone);
       this.load.start();
     });
   }
 
   loadImageUrls(urls = []) {
-    const cleanUrls = urls.filter(Boolean);
+    const cleanUrls = [...new Set(urls.filter(Boolean).map((url) => resolveAssetUrl(url)))];
     const toLoad = cleanUrls.filter((url) => !this.textures.exists(imageTextureKey(url)));
     if (!toLoad.length) return Promise.resolve();
     return new Promise((resolve) => {
-      toLoad.forEach((url) => this.load.image(imageTextureKey(url), url));
-      this.load.once('complete', resolve);
+      const onDone = () => {
+        this.load.off('complete', onDone);
+        this.load.off('loaderror', onDone);
+        resolve();
+      };
+      toLoad.forEach((url) => {
+        this.load.image({
+          key: imageTextureKey(url),
+          url,
+          crossOrigin: 'anonymous',
+        });
+      });
+      this.load.once('complete', onDone);
+      this.load.once('loaderror', onDone);
       this.load.start();
     });
   }
 
   addAvatar(x, y, url, name = '?', size = 44) {
     const radius = size / 2;
+    const resolved = resolveAssetUrl(url);
     this.add.circle(x, y, radius, 0x2c3850);
-    if (url && this.textures.exists(imageTextureKey(url))) {
-      const key = this.ensureCircularAvatarTexture(url, size - 4);
+    if (resolved && this.textures.exists(imageTextureKey(resolved))) {
+      const key = this.ensureCircularAvatarTexture(resolved, size - 4);
       this.add.image(x, y, key).setDisplaySize(size - 4, size - 4);
       this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
       return;
@@ -148,10 +190,11 @@ export class BaseScene extends Phaser.Scene {
   }
 
   ensureCircularAvatarTexture(url, size) {
-    const outputKey = circularAvatarKey(url, size);
+    const resolved = resolveAssetUrl(url);
+    const outputKey = circularAvatarKey(resolved, size);
     if (this.textures.exists(outputKey)) return outputKey;
 
-    const source = this.textures.get(imageTextureKey(url))?.getSourceImage();
+    const source = this.textures.get(imageTextureKey(resolved))?.getSourceImage();
     const texture = this.textures.createCanvas(outputKey, size, size);
     const ctx = texture.getContext();
     const sourceWidth = source?.naturalWidth || source?.width || size;
