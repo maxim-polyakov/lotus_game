@@ -1,7 +1,31 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../utils/tokenStorage';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+function isLocalhostUrl(url) {
+  try {
+    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : undefined);
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
+function resolveApiBase() {
+  const configured = process.env.REACT_APP_API_URL;
+  if (typeof window === 'undefined') return configured || 'http://localhost:8080';
+
+  const browserIsLocal =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
+
+  if (!browserIsLocal && (!configured || isLocalhostUrl(configured))) {
+    return window.location.origin;
+  }
+
+  return configured || 'http://localhost:8080';
+}
+
+const API_BASE = resolveApiBase();
 
 /** WebSocket URL. В production с nginx: /ws на том же домене. Локально: API_BASE/ws */
 const WS_URL = process.env.REACT_APP_WS_URL || (() => {

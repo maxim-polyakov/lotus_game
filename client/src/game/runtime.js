@@ -115,6 +115,25 @@ async function loginUser(usernameOrEmail, password, rememberMe) {
   return me;
 }
 
+async function completeOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const accessToken = params.get('accessToken');
+  const refreshToken = params.get('refreshToken');
+  if (params.get('oauth') === 'google' && code) {
+    const { data } = await api.get(`/api/auth/oauth-tokens?code=${encodeURIComponent(code)}`);
+    setTokens(data.accessToken, data.refreshToken, true);
+    window.history.replaceState({}, '', '/');
+    return loadCurrentUser();
+  }
+  if (accessToken && refreshToken) {
+    setTokens(accessToken, refreshToken, true);
+    window.history.replaceState({}, '', '/');
+    return loadCurrentUser();
+  }
+  return null;
+}
+
 class MatchSocket {
   constructor() {
     this.client = null;
@@ -306,7 +325,7 @@ class BootScene extends BaseScene {
   create() {
     this.drawBackground('Lotus Game');
     this.addMessage('Загрузка профиля...', palette.text, GAME_HEIGHT / 2);
-    loadCurrentUser().then(() => {
+    completeOAuthCallback().catch(() => null).then(() => loadCurrentUser()).then(() => {
       const targetScene = sceneForCurrentRoute();
       if (!session.user && !['AuthScene', 'LeaderboardScene'].includes(targetScene)) {
         this.scene.start('AuthScene', { mode: authModeForCurrentRoute() });

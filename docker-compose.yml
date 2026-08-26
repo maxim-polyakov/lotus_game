@@ -3,8 +3,8 @@ services:
     build:
       context: ./client
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5497}
-        REACT_APP_WS_URL: ${REACT_APP_WS_URL:-http://localhost:5497/ws}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-https://lotusapi.baxic.ru}
+        REACT_APP_WS_URL: ${REACT_APP_WS_URL:-https://lotusapi.baxic.ru/ws}
     container_name: lotus-client
     restart: unless-stopped
     ports:
@@ -30,7 +30,8 @@ services:
     ports:
       - "5497:8080"
     env_file:
-      - ./server/.env
+      - path: ./server/.env
+        required: false
     depends_on:
       - lotus-redis
     networks:
@@ -44,7 +45,8 @@ services:
       - NODE_OPTIONS=--no-warnings=DeprecationWarning
       - DEBUG=maildev*
     env_file:
-      - ./server/.env
+      - path: ./server/.env
+        required: false
     entrypoint:
       - /bin/sh
     command:
