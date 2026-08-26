@@ -88,6 +88,10 @@ function imageTextureKey(url) {
   return `remote-image-${hashString(url)}`;
 }
 
+function circularAvatarKey(url, size) {
+  return `avatar-circle-${hashString(url)}-${Math.round(size)}`;
+}
+
 function deckHeroId(deck) {
   return deck?.heroId || DEFAULT_HERO_ID;
 }
@@ -369,11 +373,8 @@ class BaseScene extends Phaser.Scene {
     const radius = size / 2;
     this.add.circle(x, y, radius, 0x2c3850);
     if (url && this.textures.exists(imageTextureKey(url))) {
-      const image = this.add.image(x, y, imageTextureKey(url)).setDisplaySize(size - 4, size - 4);
-      const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
-      maskShape.fillStyle(0xffffff);
-      maskShape.fillCircle(x, y, radius - 2);
-      image.setMask(maskShape.createGeometryMask());
+      const key = this.ensureCircularAvatarTexture(url, size - 4);
+      this.add.image(x, y, key).setDisplaySize(size - 4, size - 4);
       this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
       return;
     }
@@ -384,6 +385,37 @@ class BaseScene extends Phaser.Scene {
       color: '#ffffff',
       fontStyle: 'bold',
     }).setOrigin(0.5);
+  }
+
+  ensureCircularAvatarTexture(url, size) {
+    const outputKey = circularAvatarKey(url, size);
+    if (this.textures.exists(outputKey)) return outputKey;
+
+    const source = this.textures.get(imageTextureKey(url))?.getSourceImage();
+    const texture = this.textures.createCanvas(outputKey, size, size);
+    const ctx = texture.getContext();
+    const sourceWidth = source?.naturalWidth || source?.width || size;
+    const sourceHeight = source?.naturalHeight || source?.height || size;
+    const scale = Math.max(size / sourceWidth, size / sourceHeight);
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
+    const drawX = (size - drawWidth) / 2;
+    const drawY = (size - drawHeight) / 2;
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    try {
+      ctx.drawImage(source, drawX, drawY, drawWidth, drawHeight);
+    } catch {
+      ctx.fillStyle = '#2c3850';
+      ctx.fillRect(0, 0, size, size);
+    }
+    ctx.restore();
+    texture.refresh();
+    return outputKey;
   }
 }
 
@@ -772,20 +804,20 @@ class DeckEditorScene extends BaseScene {
     });
     if (message) this.addMessage(message, palette.text, 665);
 
-    this.add.text(80, 250, 'Коллекция: нажмите карту, чтобы добавить', {
+    this.add.text(80, 245, 'Коллекция: нажмите карту, чтобы добавить', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '18px',
       color: palette.muted,
     });
     this.collection.slice(0, 18).forEach((card, index) => {
-      const x = 105 + (index % 9) * 92;
-      const y = 340 + Math.floor(index / 9) * 135;
-      const view = new CardGameObject(this, x, y, card, { width: 78, height: 110 });
+      const x = 95 + (index % 7) * 78;
+      const y = 310 + Math.floor(index / 7) * 112;
+      const view = new CardGameObject(this, x, y, card, { width: 62, height: 88 });
       const key = cardSlotKey(card);
       const count = this.counts.get(key) || 0;
       if (count > 0) {
-        this.add.circle(x + 34, y - 48, 13, palette.primaryDark);
-        this.add.text(x + 34, y - 48, String(count), { fontFamily: 'Segoe UI, Arial', fontSize: '14px', color: '#fff' }).setOrigin(0.5);
+        this.add.circle(x + 27, y - 38, 11, palette.primaryDark);
+        this.add.text(x + 27, y - 38, String(count), { fontFamily: 'Segoe UI, Arial', fontSize: '12px', color: '#fff' }).setOrigin(0.5);
       }
       view.on('pointerdown', () => {
         this.counts.set(key, Math.min(2, count + 1));
@@ -794,17 +826,17 @@ class DeckEditorScene extends BaseScene {
       });
     });
 
-    this.add.text(930, 250, 'В колоде: нажмите карту, чтобы убрать', {
+    this.add.text(720, 245, 'В колоде: нажмите карту, чтобы убрать', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '18px',
       color: palette.muted,
     });
-    selectedCards.slice(0, 10).forEach((card, index) => {
-      const x = 955 + (index % 3) * 92;
-      const y = 340 + Math.floor(index / 3) * 135;
-      const view = new CardGameObject(this, x, y, card, { width: 78, height: 110 });
+    selectedCards.slice(0, 30).forEach((card, index) => {
+      const x = 735 + (index % 6) * 78;
+      const y = 300 + Math.floor(index / 6) * 78;
+      const view = new CardGameObject(this, x, y, card, { width: 56, height: 76 });
       const key = cardSlotKey(card);
-      this.add.text(x, y + 68, `x${this.counts.get(key)}`, { fontFamily: 'Segoe UI, Arial', fontSize: '15px', color: palette.text }).setOrigin(0.5);
+      this.add.text(x, y + 46, `x${this.counts.get(key)}`, { fontFamily: 'Segoe UI, Arial', fontSize: '13px', color: palette.text }).setOrigin(0.5);
       view.on('pointerdown', () => {
         const next = (this.counts.get(key) || 0) - 1;
         if (next <= 0) this.counts.delete(key);
