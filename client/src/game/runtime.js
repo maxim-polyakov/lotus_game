@@ -797,15 +797,27 @@ class DeckEditorScene extends BaseScene {
     const selectedCards = asArray(this.collection).filter((card) => (this.counts.get(cardSlotKey(card)) || 0) > 0);
     const total = [...this.counts.values()].reduce((sum, count) => sum + count, 0);
 
-    this.addDomForm(255, 145, `
-      <form class="phaser-form phaser-form-inline">
-        <input name="name" placeholder="Название колоды" value="${this.deckName.replace(/"/g, '&quot;')}" required />
-        <select name="heroId">${this.heroes.map((h) => `<option value="${h.id}" ${h.id === this.heroId ? 'selected' : ''}>${h.name}</option>`).join('')}</select>
-        <button type="submit">Сохранить</button>
-      </form>
-    `, (values) => this.save(values));
+    this.addPanel(380, 145, 620, 92, 0.82);
+    const hero = this.heroes.find((h) => h.id === this.heroId);
+    this.addButton(210, 145, 220, 42, `Название: ${this.deckName}`, () => {
+      const nextName = window.prompt('Название колоды', this.deckName);
+      if (nextName && nextName.trim()) {
+        this.deckName = nextName.trim();
+        this.render();
+      }
+    }, { fontSize: 15 });
+    this.addButton(455, 145, 220, 42, hero?.name || this.heroId, () => {
+      if (!this.heroes.length) return;
+      const currentIndex = Math.max(0, this.heroes.findIndex((h) => h.id === this.heroId));
+      this.heroId = this.heroes[(currentIndex + 1) % this.heroes.length].id;
+      this.render();
+    }, { fontSize: 15 });
+    this.addButton(690, 145, 150, 42, 'Сохранить', () => this.save({ name: this.deckName, heroId: this.heroId }), {
+      fontSize: 15,
+      fill: palette.primaryDark,
+    });
 
-    this.add.text(510, 125, `Карт в колоде: ${total}`, {
+    this.add.text(510, 94, `Карт в колоде: ${total}`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '22px',
       color: total > 0 ? palette.text : '#ffb3b3',
@@ -828,7 +840,7 @@ class DeckEditorScene extends BaseScene {
         this.add.text(x + 27, y - 38, String(count), { fontFamily: 'Segoe UI, Arial', fontSize: '12px', color: '#fff' }).setOrigin(0.5);
       }
       view.on('pointerdown', () => {
-        this.counts.set(key, Math.min(2, count + 1));
+        this.counts.set(key, count + 1);
         view.playCardEffect();
         this.render();
       });
