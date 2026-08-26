@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createLotusGame } from './runtime';
+import './phaser.css';
 
 export default function PhaserApp() {
   const hostRef = useRef(null);
