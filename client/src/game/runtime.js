@@ -365,7 +365,11 @@ class BaseScene extends Phaser.Scene {
     const radius = size / 2;
     this.add.circle(x, y, radius, 0x2c3850).setStrokeStyle(2, palette.primary);
     if (url && this.textures.exists(imageTextureKey(url))) {
-      this.add.image(x, y, imageTextureKey(url)).setDisplaySize(size - 4, size - 4);
+      const image = this.add.image(x, y, imageTextureKey(url)).setDisplaySize(size - 4, size - 4);
+      const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+      maskShape.fillStyle(0xffffff);
+      maskShape.fillCircle(x, y, radius - 2);
+      image.setMask(maskShape.createGeometryMask());
       return;
     }
     this.add.text(x, y, (name || '?').slice(0, 2).toUpperCase(), {
@@ -670,8 +674,8 @@ class DecksScene extends ListScene {
     decks.slice(0, 6).forEach((deck, index) => {
       const hero = heroes.find((h) => h.id === deckHeroId(deck));
       const x = 260 + (index % 2) * 510;
-      const y = 165 + Math.floor(index / 2) * 170;
-      this.add.rectangle(x, y, 460, 140, palette.panel, 0.92)
+      const y = 170 + Math.floor(index / 2) * 178;
+      this.add.rectangle(x, y, 460, 156, palette.panel, 0.92)
         .setStrokeStyle(2, 0x53627a)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => {
@@ -692,8 +696,8 @@ class DecksScene extends ListScene {
       (deck.cards || []).slice(0, 4).forEach((slot, cardIndex) => {
         const card = cards.find((c) => c.cardType === slot.cardType && c.id === slot.cardId);
         if (!card) return;
-        const view = new CardGameObject(this, x - 115 + cardIndex * 72, y + 34, card, { width: 62, height: 86 });
-        view.setScale(0.92);
+        const view = new CardGameObject(this, x - 116 + cardIndex * 72, y + 26, card, { width: 58, height: 80 });
+        view.setScale(0.9);
       });
     });
   }
@@ -747,7 +751,7 @@ class DeckEditorScene extends BaseScene {
     const selectedCards = asArray(this.collection).filter((card) => (this.counts.get(cardKey(card)) || 0) > 0);
     const total = [...this.counts.values()].reduce((sum, count) => sum + count, 0);
 
-    this.addDomForm(255, 135, `
+    this.addDomForm(255, 145, `
       <form class="phaser-form phaser-form-inline">
         <input name="name" placeholder="Название колоды" value="${this.deckName.replace(/"/g, '&quot;')}" required />
         <select name="heroId">${this.heroes.map((h) => `<option value="${h.id}" ${h.id === this.heroId ? 'selected' : ''}>${h.name}</option>`).join('')}</select>
@@ -755,21 +759,21 @@ class DeckEditorScene extends BaseScene {
       </form>
     `, (values) => this.save(values));
 
-    this.add.text(480, 105, `Карт в колоде: ${total}`, {
+    this.add.text(510, 125, `Карт в колоде: ${total}`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '22px',
       color: total > 0 ? palette.text : '#ffb3b3',
     });
     if (message) this.addMessage(message, palette.text, 665);
 
-    this.add.text(80, 210, 'Коллекция: нажмите карту, чтобы добавить', {
+    this.add.text(80, 250, 'Коллекция: нажмите карту, чтобы добавить', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '18px',
       color: palette.muted,
     });
     this.collection.slice(0, 18).forEach((card, index) => {
       const x = 105 + (index % 9) * 92;
-      const y = 295 + Math.floor(index / 9) * 150;
+      const y = 340 + Math.floor(index / 9) * 135;
       const view = new CardGameObject(this, x, y, card, { width: 78, height: 110 });
       const count = this.counts.get(cardKey(card)) || 0;
       if (count > 0) {
@@ -783,14 +787,14 @@ class DeckEditorScene extends BaseScene {
       });
     });
 
-    this.add.text(930, 210, 'В колоде: нажмите карту, чтобы убрать', {
+    this.add.text(930, 250, 'В колоде: нажмите карту, чтобы убрать', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '18px',
       color: palette.muted,
     });
     selectedCards.slice(0, 10).forEach((card, index) => {
       const x = 955 + (index % 3) * 92;
-      const y = 295 + Math.floor(index / 3) * 150;
+      const y = 340 + Math.floor(index / 3) * 135;
       const view = new CardGameObject(this, x, y, card, { width: 78, height: 110 });
       this.add.text(x, y + 68, `x${this.counts.get(cardKey(card))}`, { fontFamily: 'Segoe UI, Arial', fontSize: '15px', color: palette.text }).setOrigin(0.5);
       view.on('pointerdown', () => {
