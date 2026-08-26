@@ -67,6 +67,10 @@ function cardKey(card) {
   return `${card?.cardType || 'CARD'}:${card?.id}`;
 }
 
+function cardSlotKey(cardOrSlot) {
+  return `${cardOrSlot?.cardType || 'CARD'}:${cardOrSlot?.cardId ?? cardOrSlot?.id}`;
+}
+
 function textureKey(card) {
   return `card-art-${cardKey(card)}`;
 }
@@ -363,15 +367,17 @@ class BaseScene extends Phaser.Scene {
 
   addAvatar(x, y, url, name = '?', size = 44) {
     const radius = size / 2;
-    this.add.circle(x, y, radius, 0x2c3850).setStrokeStyle(2, palette.primary);
+    this.add.circle(x, y, radius, 0x2c3850);
     if (url && this.textures.exists(imageTextureKey(url))) {
       const image = this.add.image(x, y, imageTextureKey(url)).setDisplaySize(size - 4, size - 4);
       const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
       maskShape.fillStyle(0xffffff);
       maskShape.fillCircle(x, y, radius - 2);
       image.setMask(maskShape.createGeometryMask());
+      this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
       return;
     }
+    this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
     this.add.text(x, y, (name || '?').slice(0, 2).toUpperCase(), {
       fontFamily: 'Segoe UI, Arial',
       fontSize: `${Math.max(14, size / 2.4)}px`,
@@ -727,7 +733,7 @@ class DeckEditorScene extends BaseScene {
       this.heroes = asArray(heroes).filter((h) => h.unlocked !== false);
       this.deckName = deck?.name || 'Новая колода';
       this.heroId = deckHeroId(deck || { heroId: session.selectedHeroId });
-      (deck?.cards || []).forEach((slot) => this.counts.set(cardKey(slot), slot.count || 0));
+      (deck?.cards || []).forEach((slot) => this.counts.set(cardSlotKey(slot), slot.count || 0));
       return this.loadCardTextures(cards);
     }).then(() => this.render()).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
@@ -748,7 +754,7 @@ class DeckEditorScene extends BaseScene {
     this.clearScene();
     this.drawBackground(this.deckId ? 'Редактор колоды' : 'Новая колода');
     this.addBackButton('DecksScene');
-    const selectedCards = asArray(this.collection).filter((card) => (this.counts.get(cardKey(card)) || 0) > 0);
+    const selectedCards = asArray(this.collection).filter((card) => (this.counts.get(cardSlotKey(card)) || 0) > 0);
     const total = [...this.counts.values()].reduce((sum, count) => sum + count, 0);
 
     this.addDomForm(255, 145, `
@@ -775,13 +781,14 @@ class DeckEditorScene extends BaseScene {
       const x = 105 + (index % 9) * 92;
       const y = 340 + Math.floor(index / 9) * 135;
       const view = new CardGameObject(this, x, y, card, { width: 78, height: 110 });
-      const count = this.counts.get(cardKey(card)) || 0;
+      const key = cardSlotKey(card);
+      const count = this.counts.get(key) || 0;
       if (count > 0) {
         this.add.circle(x + 34, y - 48, 13, palette.primaryDark);
         this.add.text(x + 34, y - 48, String(count), { fontFamily: 'Segoe UI, Arial', fontSize: '14px', color: '#fff' }).setOrigin(0.5);
       }
       view.on('pointerdown', () => {
-        this.counts.set(cardKey(card), Math.min(2, count + 1));
+        this.counts.set(key, Math.min(2, count + 1));
         view.playCardEffect();
         this.render();
       });
@@ -796,11 +803,12 @@ class DeckEditorScene extends BaseScene {
       const x = 955 + (index % 3) * 92;
       const y = 340 + Math.floor(index / 3) * 135;
       const view = new CardGameObject(this, x, y, card, { width: 78, height: 110 });
-      this.add.text(x, y + 68, `x${this.counts.get(cardKey(card))}`, { fontFamily: 'Segoe UI, Arial', fontSize: '15px', color: palette.text }).setOrigin(0.5);
+      const key = cardSlotKey(card);
+      this.add.text(x, y + 68, `x${this.counts.get(key)}`, { fontFamily: 'Segoe UI, Arial', fontSize: '15px', color: palette.text }).setOrigin(0.5);
       view.on('pointerdown', () => {
-        const next = (this.counts.get(cardKey(card)) || 0) - 1;
-        if (next <= 0) this.counts.delete(cardKey(card));
-        else this.counts.set(cardKey(card), next);
+        const next = (this.counts.get(key) || 0) - 1;
+        if (next <= 0) this.counts.delete(key);
+        else this.counts.set(key, next);
         this.render();
       });
     });
@@ -1942,7 +1950,7 @@ class MatchScene extends BaseScene {
 
 export function createLotusGame(parent) {
   return new Phaser.Game({
-    type: Phaser.AUTO,
+    type: Phaser.WEBGL,
     parent,
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
