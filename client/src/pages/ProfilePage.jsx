@@ -1,5 +1,5 @@
 import api from '../api/client';
-import { palette, session, layoutInfo, GAME_WIDTH, GAME_HEIGHT } from '../game/shared';
+import { palette, session, layoutInfo, GAME_HEIGHT } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
 import { escapeAttr, imageTextureKey, circularAvatarKey } from '../components/ErrorDetail';
 import { resolveTextureUrl } from '../components/CardDisplay';
@@ -17,21 +17,19 @@ export class ProfileScene extends ListScene {
     Promise.all([
       api.get('/api/me'),
       api.get('/api/me/stats').catch(() => ({ data: { wins: 0, losses: 0, draws: 0, totalMatches: 0, rating: 1000, rank: 'Новичок' } })),
-      api.get('/api/matches').catch(() => ({ data: [] })),
     ])
-      .then(async ([meRes, statsRes, matchesRes]) => {
+      .then(async ([meRes, statsRes]) => {
         const me = meRes.data;
         const stats = statsRes.data;
-        const matches = (matchesRes.data || []).filter((m) => m.status === 'FINISHED').slice(0, 10);
-        this.renderProfile(me, stats, matches);
+        this.renderProfile(me, stats);
         try {
           await this.loadImageUrls([me?.avatarUrl]);
-          if (me?.avatarUrl && this.sys?.isActive()) this.renderProfile(me, stats, matches);
+          if (me?.avatarUrl && this.sys?.isActive()) this.renderProfile(me, stats);
         } catch {
           // keep profile without avatar art
         }
       })
-      .catch((err) => this.renderProfile(null, null, [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderProfile(null, null, err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
   forgetAvatarTextures(url) {
@@ -49,13 +47,7 @@ export class ProfileScene extends ListScene {
     });
   }
 
-  matchResultLabel(match, userId) {
-    if (match.winnerId == null) return { text: 'Ничья', color: '#ffe18c' };
-    if (userId != null && Number(match.winnerId) === Number(userId)) return { text: 'Победа', color: '#9cffb5' };
-    return { text: 'Поражение', color: '#ffb3b3' };
-  }
-
-  renderProfile(me, stats, matches = [], error = '') {
+  renderProfile(me, stats, error = '') {
     this.clearScene();
     const layout = layoutInfo();
     this.drawBackground('Профиль');
@@ -140,9 +132,9 @@ export class ProfileScene extends ListScene {
           username: values.username.trim(),
         });
         session.user = { ...session.user, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl };
-        this.renderProfile({ ...me, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl }, stats, matches, 'Профиль сохранён');
+        this.renderProfile({ ...me, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl }, stats, 'Профиль сохранён');
       } catch (err) {
-        this.renderProfile(me, stats, matches, err.response?.data?.message || err.message || 'Не удалось сохранить');
+        this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось сохранить');
       }
     });
 
@@ -152,42 +144,13 @@ export class ProfileScene extends ListScene {
       const file = event.target.files?.[0];
       if (nameNode) nameNode.textContent = file?.name || 'Файл не выбран';
     });
-    form?.querySelector('[data-upload-avatar]')?.addEventListener('click', () => this.uploadAvatar(me, stats, matches, form));
-
-    // Match history
-    const histY = layout.portrait ? 980 : 620;
-    this.add.text(layout.portrait ? 50 : 160, histY - 28, 'Последние матчи', {
-      fontFamily: 'Segoe UI, Arial',
-      fontSize: '18px',
-      color: palette.text,
-    });
-    if (!matches.length) {
-      this.add.text(layout.portrait ? 50 : 160, histY + 8, 'Пока нет завершённых матчей', {
-        fontFamily: 'Segoe UI, Arial',
-        fontSize: '15px',
-        color: palette.muted,
-      });
-      return;
-    }
-    matches.slice(0, layout.portrait ? 6 : 8).forEach((match, index) => {
-      const y = histY + index * (layout.portrait ? 38 : 32);
-      const result = this.matchResultLabel(match, me?.id);
-      this.add.text(layout.portrait ? 50 : 160, y, `#${match.id}  ${result.text}`, {
-        fontFamily: 'Segoe UI, Arial',
-        fontSize: '15px',
-        color: result.color,
-      });
-      this.addButton(layout.portrait ? GAME_WIDTH - 90 : 520, y + 8, 110, 26, 'Реплей', () => {
-        window.history.pushState({}, '', `/replay/${match.id}`);
-        this.scene.start('ReplayViewerScene', { matchId: match.id });
-      }, { fontSize: 13 });
-    });
+    form?.querySelector('[data-upload-avatar]')?.addEventListener('click', () => this.uploadAvatar(me, stats, form));
   }
 
-  async uploadAvatar(me, stats, matches, form) {
+  async uploadAvatar(me, stats, form) {
     const file = form?.elements?.avatar?.files?.[0];
     if (!file) {
-      this.renderProfile(me, stats, matches, 'Выберите файл аватара');
+      this.renderProfile(me, stats, 'Выберите файл аватара');
       return;
     }
     try {
@@ -198,9 +161,9 @@ export class ProfileScene extends ListScene {
       this.forgetAvatarTextures(data?.avatarUrl);
       session.user = { ...session.user, ...data };
       await this.loadImageUrls([data?.avatarUrl]);
-      this.renderProfile({ ...me, ...data }, stats, matches, 'Аватар загружен');
+      this.renderProfile({ ...me, ...data }, stats, 'Аватар загружен');
     } catch (err) {
-      this.renderProfile(me, stats, matches, err.response?.data?.message || err.message || 'Не удалось загрузить аватар');
+      this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось загрузить аватар');
     }
   }
 }

@@ -73,30 +73,32 @@ export class ReplayViewerScene extends BaseScene {
     const p2 = step.gameState.player2;
 
     if (layout.portrait) {
-      this.renderReplayHero(p2, GAME_WIDTH / 2, 150);
-      this.renderReplayBoard(p2, 280, false);
-      this.renderReplayBoard(p1, 520, true);
-      this.renderReplayHand(p1, 760);
-      this.renderReplayHero(p1, GAME_WIDTH / 2, 980);
-      this.addButton(GAME_WIDTH / 2 - 120, 1180, 140, 40, 'Шаг назад', () => {
+      // Vertical stack with clear gaps: enemy hero → enemy board → player board → hand → player hero → controls
+      this.renderReplayHero(p2, GAME_WIDTH / 2, 155);
+      this.renderReplayBoard(p2, 310, false);
+      this.renderReplayBoard(p1, 500, true);
+      this.renderReplayHand(p1, 700);
+      this.renderReplayHero(p1, GAME_WIDTH / 2, 900);
+      this.addButton(GAME_WIDTH / 2 - 120, 1120, 140, 40, 'Шаг назад', () => {
         this.stepIndex = Math.max(0, this.stepIndex - 1);
         this.renderReplay();
       });
-      this.addButton(GAME_WIDTH / 2 + 120, 1180, 140, 40, 'Шаг вперёд', () => {
+      this.addButton(GAME_WIDTH / 2 + 120, 1120, 140, 40, 'Шаг вперёд', () => {
         this.stepIndex = Math.min(this.steps.length - 1, this.stepIndex + 1);
         this.renderReplay();
       });
     } else {
-      this.renderReplayHero(p2, 160, 130);
-      this.renderReplayBoard(p2, 200, false);
-      this.renderReplayBoard(p1, 400, true);
-      this.renderReplayHand(p1, 560);
-      this.renderReplayHero(p1, 160, 620);
-      this.addButton(500, 680, 140, 40, 'Шаг назад', () => {
+      // Landscape: heroes on the left column, boards/hand to the right — no overlap
+      this.renderReplayHero(p2, 150, 155);
+      this.renderReplayBoard(p2, 175, false);
+      this.renderReplayBoard(p1, 360, true);
+      this.renderReplayHand(p1, 545);
+      this.renderReplayHero(p1, 150, 545);
+      this.addButton(GAME_WIDTH / 2 - 100, 680, 140, 40, 'Шаг назад', () => {
         this.stepIndex = Math.max(0, this.stepIndex - 1);
         this.renderReplay();
       });
-      this.addButton(780, 680, 140, 40, 'Шаг вперёд', () => {
+      this.addButton(GAME_WIDTH / 2 + 100, 680, 140, 40, 'Шаг вперёд', () => {
         this.stepIndex = Math.min(this.steps.length - 1, this.stepIndex + 1);
         this.renderReplay();
       });
@@ -106,19 +108,20 @@ export class ReplayViewerScene extends BaseScene {
   renderReplayHero(player, x, y) {
     if (!player) return;
     const layout = layoutInfo();
-    const width = layout.portrait ? 300 : 260;
-    this.add.rectangle(x, y, width, 88, palette.panel2, 0.95).setStrokeStyle(2, 0x53627a);
-    this.addAvatar(layout.portrait ? x - 100 : x - 90, y, player.portraitUrl, player.heroName || '?', 52);
-    const textX = layout.portrait ? x - 60 : x - 50;
-    this.add.text(textX, y - 24, player.heroName || 'Герой', {
+    const width = layout.portrait ? 300 : 240;
+    this.add.rectangle(x, y, width, 80, palette.panel2, 0.95).setStrokeStyle(2, 0x53627a);
+    const avatarX = layout.portrait ? x - 100 : x - 82;
+    this.addAvatar(avatarX, y, player.portraitUrl, player.heroName || '?', 48);
+    const textX = layout.portrait ? x - 60 : x - 48;
+    this.add.text(textX, y - 22, player.heroName || 'Герой', {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: '17px',
+      fontSize: '16px',
       color: palette.text,
-      wordWrap: { width: width - 90 },
+      wordWrap: { width: width - 100 },
     });
-    this.add.text(textX, y + 4, `HP ${player.health}${player.maxHeroHealth != null ? ` / ${player.maxHeroHealth}` : ''}  ·  Мана ${player.mana ?? '?'}`, {
+    this.add.text(textX, y + 6, `HP ${player.health}${player.maxHeroHealth != null ? ` / ${player.maxHeroHealth}` : ''}  ·  Мана ${player.mana ?? '?'}`, {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: '14px',
+      fontSize: '13px',
       color: palette.muted,
     });
   }
@@ -126,14 +129,15 @@ export class ReplayViewerScene extends BaseScene {
   renderReplayBoard(player, y, mine) {
     const layout = layoutInfo();
     const board = player?.board || [];
-    const gap = layout.portrait ? 92 : 110;
-    const cardW = layout.portrait ? 78 : 96;
-    const cardH = layout.portrait ? 110 : 132;
+    const gap = layout.portrait ? 92 : 108;
+    const cardW = layout.portrait ? 78 : 90;
+    const cardH = layout.portrait ? 110 : 124;
+    // Landscape: start to the right of the hero column (~270px)
     const startX = layout.portrait
-      ? GAME_WIDTH / 2 - ((Math.min(board.length, 7) - 1) * gap) / 2
-      : 250;
+      ? GAME_WIDTH / 2 - ((Math.max(board.length, 1) - 1) * gap) / 2
+      : 340;
     if (!board.length) {
-      this.add.text(layout.portrait ? GAME_WIDTH / 2 : 250, y, mine ? 'Стол пуст' : 'Стол соперника пуст', {
+      this.add.text(layout.portrait ? GAME_WIDTH / 2 : startX, y, mine ? 'Стол пуст' : 'Стол соперника пуст', {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '14px',
         color: palette.muted,
@@ -153,26 +157,27 @@ export class ReplayViewerScene extends BaseScene {
   renderReplayHand(player, y) {
     const layout = layoutInfo();
     const hand = player?.hand || [];
-    this.add.text(layout.portrait ? 40 : 80, y - 48, `Рука (${hand.length})`, {
+    const labelX = layout.portrait ? 40 : 340;
+    this.add.text(labelX, y - 58, `Рука (${hand.length})`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '16px',
       color: palette.muted,
     });
     if (!hand.length) {
-      this.add.text(layout.portrait ? GAME_WIDTH / 2 : 250, y, 'Пусто', {
+      this.add.text(layout.portrait ? GAME_WIDTH / 2 : 340, y, 'Пусто', {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '14px',
         color: palette.muted,
       }).setOrigin(layout.portrait ? 0.5 : 0, 0.5);
       return;
     }
-    const gap = layout.portrait ? 78 : 88;
-    const cardW = layout.portrait ? 66 : 78;
-    const cardH = layout.portrait ? 94 : 110;
+    const gap = layout.portrait ? 78 : 86;
+    const cardW = layout.portrait ? 66 : 74;
+    const cardH = layout.portrait ? 94 : 104;
     const visible = hand.slice(0, layout.portrait ? 8 : 10);
     const startX = layout.portrait
       ? GAME_WIDTH / 2 - ((visible.length - 1) * gap) / 2
-      : 220;
+      : 340;
     visible.forEach((c, index) => {
       const source = this.getCard(c.cardType, c.cardId) || { cardType: c.cardType, id: c.cardId, name: `#${c.cardId}` };
       new CardGameObject(this, startX + index * gap, y, source, { width: cardW, height: cardH });
