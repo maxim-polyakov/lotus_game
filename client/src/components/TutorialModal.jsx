@@ -114,13 +114,27 @@ export class BaseScene extends Phaser.Scene {
   }
 
   addDomForm(x, y, html, onSubmit) {
-    const dom = this.add.dom(x, y).createFromHTML(html);
+    const wrapped = `<div class="phaser-dom-wrap">${html}</div>`;
+    const dom = this.add.dom(x, y).createFromHTML(wrapped);
+    dom.setOrigin(0.5, 0.5);
+    if (typeof dom.updateSize === 'function') dom.updateSize();
     const node = dom.node;
     const form = node.querySelector('form');
     form?.addEventListener('submit', (event) => {
       event.preventDefault();
       const data = new FormData(form);
       onSubmit(Object.fromEntries(data.entries()));
+    });
+    // Re-measure after layout so origin centers the real box.
+    requestAnimationFrame(() => {
+      try {
+        if (dom.active && typeof dom.updateSize === 'function') {
+          dom.updateSize();
+          dom.setOrigin(0.5, 0.5);
+        }
+      } catch {
+        // destroyed between frames
+      }
     });
     return dom;
   }

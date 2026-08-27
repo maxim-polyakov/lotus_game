@@ -26,16 +26,13 @@ export class AuthScene extends BaseScene {
           : 'Вход';
     this.drawBackground(title);
 
-    const panelW = layout.portrait ? 520 : 460;
-    const panelH = layout.portrait ? 520 : 430;
-    const panelY = layout.portrait ? Math.round(layout.centerY - 30) : 350;
-    this.addPanel(layout.centerX, panelY, panelW, panelH);
-
-    const dom = this.addDomForm(layout.centerX, panelY, this.formHtml(), (values) => this.submit(values));
+    // Form has its own card chrome — no second Phaser panel behind it (that looked crooked).
+    const formY = layout.portrait ? Math.round(layout.centerY - 20) : Math.round(layout.centerY + 10);
+    const dom = this.addDomForm(layout.centerX, formY, this.formHtml(layout), (values) => this.submit(values));
     this.bindModeLinks(dom);
 
     if (error) {
-      this.addMessage(error, '#ffb3b3', panelY + panelH / 2 + (layout.portrait ? 36 : 28));
+      this.addMessage(error, '#ffb3b3', layout.portrait ? formY + 340 : formY + 300);
     }
   }
 
@@ -51,16 +48,18 @@ export class AuthScene extends BaseScene {
     });
   }
 
-  modeNavHtml() {
+  modeNavHtml(layout) {
+    const navClass = layout.portrait ? 'auth-mode-nav auth-mode-nav--stack' : 'auth-mode-nav auth-mode-nav--row';
     return `
-      <div class="auth-mode-nav">
+      <div class="${navClass}">
         <button type="button" data-auth-mode="login">Вход</button>
         <button type="button" data-auth-mode="register">Регистрация</button>
         <button type="button" data-auth-mode="forgot">Забыли пароль</button>
       </div>`;
   }
 
-  formHtml() {
+  formHtml(layout = layoutInfo()) {
+    const nav = this.modeNavHtml(layout);
     if (this.mode === 'register') {
       return `
         <form class="phaser-form auth-form">
@@ -68,7 +67,7 @@ export class AuthScene extends BaseScene {
           <input name="email" type="email" placeholder="Email" required />
           <input name="password" type="password" placeholder="Password" required />
           <button type="submit">Создать аккаунт</button>
-          ${this.modeNavHtml()}
+          ${nav}
         </form>`;
     }
     if (this.mode === 'verify') {
@@ -77,7 +76,7 @@ export class AuthScene extends BaseScene {
           <input name="email" type="email" placeholder="Email" required />
           <input name="code" placeholder="Код подтверждения" required />
           <button type="submit">Подтвердить</button>
-          ${this.modeNavHtml()}
+          ${nav}
         </form>`;
     }
     if (this.mode === 'forgot') {
@@ -87,7 +86,7 @@ export class AuthScene extends BaseScene {
           <input name="code" placeholder="Код, если уже пришёл" />
           <input name="newPassword" type="password" placeholder="Новый пароль" />
           <button type="submit">Отправить / сбросить</button>
-          ${this.modeNavHtml()}
+          ${nav}
         </form>`;
     }
     return `
@@ -100,7 +99,7 @@ export class AuthScene extends BaseScene {
         </label>
         <button type="submit">Войти</button>
         <a href="${API_BASE}/oauth2/authorization/google">Google OAuth</a>
-        ${this.modeNavHtml()}
+        ${nav}
       </form>`;
   }
 

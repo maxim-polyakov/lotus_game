@@ -1,3 +1,9 @@
+.phaser-dom-wrap {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
 .phaser-form {
   width: 320px;
   max-width: 100%;
@@ -59,11 +65,29 @@
 
 .auth-mode-nav {
   display: flex;
-  flex-direction: column;
   gap: 8px;
   margin-top: 4px;
   padding-top: 10px;
   border-top: 1px solid rgba(215, 170, 69, 0.35);
+}
+
+.auth-mode-nav--stack {
+  flex-direction: column;
+}
+
+.auth-mode-nav--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.auth-mode-nav--row button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+  font-size: 13px !important;
+  white-space: normal;
+  line-height: 1.15;
 }
 
 .auth-mode-nav button {
@@ -105,7 +129,7 @@
 }
 
 .auth-form {
-  width: 300px;
+  width: 320px;
 }
 
 @media (max-width: 768px) {
