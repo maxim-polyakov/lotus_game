@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -111,7 +110,7 @@ public class HeroCatalog {
                     .id(id)
                     .name(existing.getName())
                     .title(existing.getTitle() != null ? existing.getTitle() : "")
-                    .startingHealth(existing.getStartingHealth() != null ? existing.getStartingHealth() : 30)
+                    .startingHealth(existing.getStartingHealth() > 0 ? existing.getStartingHealth() : 30)
                     .portraitUrl(existing.getPortraitUrl() != null ? existing.getPortraitUrl() : "")
                     .build();
         }
