@@ -60,14 +60,23 @@ export class ShopScene extends ListScene {
     }
 
     // Show catalog immediately; art loads in background.
-    this.renderShop(this._shopError);
-    const cards = this.cards || [];
-    if (cards.length) {
-      this.loadCardTextures(cards)
-        .then(() => {
-          if (this.sys?.isActive?.()) this.renderShop(this._shopError);
-        })
-        .catch(() => {});
+    const finish = () => {
+      if (!this.sys?.isActive?.()) return;
+      this.renderShop(this._shopError);
+      const cards = this.cards || [];
+      if (cards.length) {
+        this.loadCardTextures(cards)
+          .then(() => {
+            if (this.sys?.isActive?.()) this.renderShop(this._shopError);
+          })
+          .catch(() => {});
+      }
+    };
+    const avatarUrl = session.user?.avatarUrl;
+    if (avatarUrl) {
+      this.loadImageUrls([avatarUrl]).finally(finish);
+    } else {
+      finish();
     }
   }
 
@@ -168,6 +177,7 @@ export class ShopScene extends ListScene {
       fontSize: layout.portrait ? '15px' : '18px',
       color: palette.muted,
     }).setOrigin(1, 0);
+    this.addAvatar(GAME_WIDTH - 58, 53, session.user?.avatarUrl, session.user?.username || 'Guest', 42);
 
     // Balance + buy buttons — stacked on portrait so they don't overlap.
     if (layout.portrait) {
