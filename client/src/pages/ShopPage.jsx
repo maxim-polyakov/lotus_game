@@ -40,11 +40,11 @@ export class ShopScene extends ListScene {
     });
   }
 
-  pin(obj) {
+  pin(obj, depth = 2000) {
     if (!obj) return obj;
     obj.setScrollFactor?.(0);
-    obj.setDepth?.(Math.max(obj.depth || 0, 2000));
-    if (obj.list) obj.list.forEach((child) => this.pin(child));
+    if (depth != null) obj.setDepth?.(depth);
+    if (obj.list) obj.list.forEach((child) => this.pin(child, depth));
     return obj;
   }
 
@@ -132,11 +132,14 @@ export class ShopScene extends ListScene {
     const collection = this.collection || [];
     const heroes = this.heroes || [];
 
-    // Full-screen bg stays put.
-    this.pin(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, palette.bg).setOrigin(0));
+    // Static page background (behind content, does not cover cards).
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT * 4, palette.bg)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(0);
 
-    // --- Sticky header (scrollFactor 0) ---
-    this.pin(this.add.rectangle(0, 0, GAME_WIDTH, HEADER_H, palette.bg, 1).setOrigin(0));
+    // Sticky header plate — only the top bar stays above scrolling content.
+    this.pin(this.add.rectangle(0, 0, GAME_WIDTH, HEADER_H, palette.bg, 1).setOrigin(0), 2000);
 
     const logoKey = this.textures.exists('lotus-logo') ? 'lotus-logo' : 'lotus-logo-fallback';
     if (this.textures.exists(logoKey)) {
