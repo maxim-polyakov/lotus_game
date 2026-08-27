@@ -4,6 +4,9 @@ import { ListScene } from '../components/TutorialModal';
 import { CardGameObject, cardKey } from '../components/CardDisplay';
 import { asArray } from '../components/ErrorDetail';
 
+const HEADER_H = 220;
+const FOOTER_H = 70;
+
 export class ShopScene extends ListScene {
   constructor() {
     super('ShopScene', 'Магазин', async () => [], () => '');
@@ -43,18 +46,34 @@ export class ShopScene extends ListScene {
     });
     this._scrollHandlers = [];
     this._dragScroll = null;
+    if (this._scrollMaskGfx) {
+      try { this._scrollMaskGfx.destroy(); } catch { /* ignore */ }
+      this._scrollMaskGfx = null;
+    }
   }
 
   setupScroll(contentBottom) {
     this.teardownScroll();
-    const maxScroll = Math.max(0, contentBottom - GAME_HEIGHT + 120);
+    const viewH = GAME_HEIGHT - HEADER_H - FOOTER_H;
+    const maxScroll = Math.max(0, contentBottom - viewH);
     this._maxScroll = maxScroll;
     this._scrollY = Math.min(this._scrollY || 0, maxScroll);
-    if (this.content) this.content.y = -this._scrollY;
+
+    // Clip scrollable content below the sticky header.
+    const maskGfx = this.make.graphics({ x: 0, y: 0 });
+    maskGfx.fillStyle(0xffffff);
+    maskGfx.fillRect(0, HEADER_H, GAME_WIDTH, viewH);
+    const mask = maskGfx.createGeometryMask();
+    maskGfx.setVisible(false);
+    this._scrollMaskGfx = maskGfx;
+    if (this.scrollLayer) {
+      this.scrollLayer.setMask(mask);
+      this.scrollLayer.y = HEADER_H - (this._scrollY || 0);
+    }
 
     const applyScroll = (next) => {
       this._scrollY = Math.max(0, Math.min(maxScroll, next));
-      if (this.content) this.content.y = -this._scrollY;
+      if (this.scrollLayer) this.scrollLayer.y = HEADER_H - this._scrollY;
     };
 
     const onWheel = (_pointer, _currentlyOver, _dx, dy) => {
@@ -63,7 +82,7 @@ export class ShopScene extends ListScene {
     this.input.on('wheel', onWheel);
 
     const onDown = (pointer) => {
-      if (pointer.y < 100) return;
+      if (pointer.y < HEADER_H || pointer.y > GAME_HEIGHT - FOOTER_H) return;
       this._dragScroll = {
         startY: pointer.y,
         startScroll: this._scrollY || 0,
@@ -96,17 +115,25 @@ export class ShopScene extends ListScene {
       () => this.input?.off('pointerupoutside', onUp),
     ];
 
-    if (maxScroll > 0) {
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 18, '↕ прокрутка', {
+    if (maxScroll > 0 && this.fixedLayer) {
+      const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 18, '↕ прокрутка', {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '13px',
         color: palette.muted,
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      }).setOrigin(0.5);
+      this.fixedLayer.add(hint);
     }
   }
 
   wasDragging() {
     return !!this._shopDragMoved || !!this._dragScroll?.moved;
+  }
+
+  addToScroll(...objs) {
+    objs.forEach((obj) => {
+      if (!obj || !this.scrollLayer) return;
+      this.scrollLayer.add(obj);
+    });
   }
 
   renderShop(error = '') {
@@ -118,105 +145,145 @@ export class ShopScene extends ListScene {
     const collection = this.collection || [];
     const heroes = this.heroes || [];
 
-    // Fixed chrome
-    this.drawBackground('Магазин');
-    this.children.list.forEach((child) => child.setScrollFactor?.(0));
-    this.addBackButton();
-    this.children.list[this.children.list.length - 1]?.setDepth?.(2000);
-    this.children.list[this.children.list.length - 1]?.setScrollFactor?.(0);
+    // Background (static)
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, palette.bg).setOrigin(0).setDepth(0);
 
-    this.addPanel(layout.portrait ? layout.centerX : 255, layout.portrait ? 150 : 150, layout.portrait ? 560 : 340, 110)
-      .setScrollFactor(0)
-      .setDepth(50);
-    this.add.text(layout.portrait ? 130 : 110, 118, `Золото: ${status.gold ?? 0}`, {
+    // Sticky chrome
+    this.fixedLayer = this.add.container(0, 0).setDepth(1000);
+    const headerBg = this.add.rectangle(0, 0, GAME_WIDTH, HEADER_H, palette.bg, 1).setOrigin(0);
+    this.fixedLayer.add(headerBg);
+
+    const logoKey = this.textures.exists('lotus-logo') ? 'lotus-logo' : 'lotus-logo-fallback';
+    if (this.textures.exists(logoKey)) {
+      this.fixedLayer.add(this.add.image(58, 52, logoKey).setDisplaySize(48, 48));
+    } else {
+      this.fixedLayer.add(this.add.circle(58, 52, 24, palette.primaryDark).setStrokeStyle(2, palette.primary));
+      this.fixedLayer.add(this.add.text(58, 52, 'L', {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '26px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5));
+    }
+    this.fixedLayer.add(this.add.text(94, 34, 'Магазин', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: layout.portrait ? '28px' : '34px',
+      color: palette.text,
+      fontStyle: 'bold',
+    }));
+    this.fixedLayer.add(this.add.text(GAME_WIDTH - 92, 42, session.user ? session.user.username : 'Guest', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: layout.portrait ? '15px' : '18px',
+      color: palette.muted,
+    }).setOrigin(1, 0));
+
+    const balance = this.add.rectangle(
+      layout.portrait ? layout.centerX : 255,
+      145,
+      layout.portrait ? 560 : 340,
+      100,
+      palette.panel,
+      0.95,
+    ).setStrokeStyle(1, 0x34445f);
+    this.fixedLayer.add(balance);
+    this.fixedLayer.add(this.add.text(layout.portrait ? 130 : 110, 112, `Золото: ${status.gold ?? 0}`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '22px',
       color: '#ffe18c',
-    }).setScrollFactor(0).setDepth(51);
-    this.add.text(layout.portrait ? 130 : 110, 150, `Пыль: ${status.dust ?? 0}`, {
+    }));
+    this.fixedLayer.add(this.add.text(layout.portrait ? 130 : 110, 142, `Пыль: ${status.dust ?? 0}`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '20px',
       color: '#b9d6ff',
-    }).setScrollFactor(0).setDepth(51);
-    this.add.text(layout.portrait ? 130 : 110, 178, `Неоткрыто: карт ${status.lockedCardsCount ?? 0}, героев ${status.lockedHeroesCount ?? 0}`, {
+    }));
+    this.fixedLayer.add(this.add.text(layout.portrait ? 130 : 110, 170, `Неоткрыто: карт ${status.lockedCardsCount ?? 0}, героев ${status.lockedHeroesCount ?? 0}`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '14px',
       color: palette.muted,
-    }).setScrollFactor(0).setDepth(51);
+    }));
 
     const buyCardBtn = this.addButton(
       layout.portrait ? layout.centerX : 760,
-      layout.portrait ? 130 : 130,
+      125,
       layout.portrait ? 300 : 280,
       44,
       `Случайная карта (${status.randomCardPrice ?? 100})`,
       () => this.buyRandomCard(),
       { fill: palette.primaryDark, fontSize: 15 },
     );
-    buyCardBtn.setScrollFactor(0).setDepth(52);
     const buyHeroBtn = this.addButton(
       layout.portrait ? layout.centerX : 760,
-      layout.portrait ? 185 : 185,
+      178,
       layout.portrait ? 300 : 280,
       44,
       `Случайный герой (${status.randomHeroPrice ?? 300})`,
       () => this.buyRandomHero(),
       { fill: palette.primaryDark, fontSize: 15 },
     );
-    buyHeroBtn.setScrollFactor(0).setDepth(52);
+    this.fixedLayer.add([buyCardBtn, buyHeroBtn]);
 
     if (error) {
-      this.add.text(layout.centerX, 228, error, {
+      this.fixedLayer.add(this.add.text(layout.centerX, 205, error, {
         fontFamily: 'Segoe UI, Arial',
-        fontSize: '16px',
+        fontSize: '15px',
         color: '#ffb3b3',
         align: 'center',
         wordWrap: { width: layout.portrait ? 640 : 900 },
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(53);
+      }).setOrigin(0.5));
     }
 
-    // Scrollable body
-    this.content = this.add.container(0, 0).setDepth(1);
-    let yCursor = layout.portrait ? 270 : 250;
+    const backBtn = this.addButton(
+      layout.portrait ? 100 : 82,
+      layout.portrait ? GAME_HEIGHT - 90 : GAME_HEIGHT - 44,
+      120,
+      40,
+      'Назад',
+      () => this.goto('MenuScene'),
+      { fontSize: 16 },
+    );
+    this.fixedLayer.add(backBtn);
 
+    // Scrollable layer: local Y starts at 0 under the header.
+    this.scrollLayer = this.add.container(0, HEADER_H).setDepth(10);
+
+    let y = 16;
     if (this.lastCard || this.lastHero) {
       const label = this.lastHero
         ? `Выпал герой: ${this.lastHero.name || this.lastHero.id}`
         : `Выпала карта: ${this.lastCard.name || 'карта'}`;
-      const t = this.add.text(layout.centerX, yCursor, label, {
+      this.addToScroll(this.add.text(layout.centerX, y, label, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '18px',
         color: '#9cffb5',
-      }).setOrigin(0.5);
-      this.content.add(t);
-      yCursor += 36;
+      }).setOrigin(0.5));
+      y += 36;
     }
 
-    const cardsTitle = this.add.text(layout.portrait ? 40 : 90, yCursor, 'Пул карт (покупка за пыль)', {
+    this.addToScroll(this.add.text(layout.portrait ? 40 : 90, y, 'Пул карт (покупка за пыль)', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '20px',
       color: palette.text,
-    });
-    this.content.add(cardsTitle);
-    yCursor += 28;
+    }));
+    y += 24;
 
     const owned = new Set((collection || []).map((c) => cardKey(c)));
     const cardCols = layout.portrait ? 3 : 8;
     const cardGapX = layout.portrait ? 200 : 125;
     const cardGapY = layout.portrait ? 200 : 195;
     const cardStartX = layout.portrait ? 160 : 185;
+    const cardTop = y + 80;
     cards.forEach((card, index) => {
       const x = cardStartX + (index % cardCols) * cardGapX;
-      const y = yCursor + 80 + Math.floor(index / cardCols) * cardGapY;
-      const view = new CardGameObject(this, x, y, card, { width: 100, height: 140 });
+      const cy = cardTop + Math.floor(index / cardCols) * cardGapY;
+      const view = new CardGameObject(this, x, cy, card, { width: 100, height: 140 });
       const isOwned = owned.has(cardKey(card));
       if (!isOwned) view.setAlpha(0.55);
-      const stateText = this.add.text(x, y + 92, isOwned ? 'Открыта' : `${status.specificCardDustPrice ?? 120} пыли`, {
+      const stateText = this.add.text(x, cy + 92, isOwned ? 'Открыта' : `${status.specificCardDustPrice ?? 120} пыли`, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '14px',
         color: isOwned ? '#9cffb5' : '#ffd38a',
       }).setOrigin(0.5);
-      this.content.add([view, stateText]);
+      this.addToScroll(view, stateText);
       view.on('pointerup', async () => {
         if (this.wasDragging()) return;
         if (isOwned) {
@@ -243,24 +310,23 @@ export class ShopScene extends ListScene {
     });
 
     const cardRows = Math.max(1, Math.ceil(Math.max(cards.length, 1) / cardCols));
-    yCursor += 80 + cardRows * cardGapY + 24;
+    y = cardTop + cardRows * cardGapY + 36;
 
-    const heroesTitle = this.add.text(layout.portrait ? 40 : 90, yCursor, 'Пул героев', {
+    this.addToScroll(this.add.text(layout.portrait ? 40 : 90, y, 'Пул героев', {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '20px',
       color: palette.text,
-    });
-    this.content.add(heroesTitle);
-    yCursor += 40;
+    }));
+    // Leave room so hero panels (height 140, centered) don't cover the title.
+    y += 100;
 
     if (!heroes.length) {
-      const empty = this.add.text(layout.portrait ? 40 : 90, yCursor + 20, 'Список героев пока пуст.', {
+      this.addToScroll(this.add.text(layout.portrait ? 40 : 90, y, 'Список героев пока пуст.', {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '16px',
         color: palette.muted,
-      });
-      this.content.add(empty);
-      this.setupScroll(yCursor + 80);
+      }));
+      this.setupScroll(y + 60);
       return;
     }
 
@@ -270,36 +336,34 @@ export class ShopScene extends ListScene {
     const heroStartX = layout.portrait ? 210 : 230;
     heroes.forEach((hero, index) => {
       const x = heroStartX + (index % heroCols) * heroGapX;
-      const y = yCursor + Math.floor(index / heroCols) * heroGapY;
+      const hy = y + Math.floor(index / heroCols) * heroGapY;
       const unlocked = hero.unlocked !== false;
-      const panel = this.add.rectangle(x, y, layout.portrait ? 260 : 230, 140, unlocked ? palette.panel2 : 0x252a36, 0.95)
+      const panel = this.add.rectangle(x, hy, layout.portrait ? 260 : 230, 140, unlocked ? palette.panel2 : 0x252a36, 0.95)
         .setStrokeStyle(2, unlocked ? palette.primary : 0x53627a);
-      const avatarY = y - 36;
-      const avatar = this.add.circle(x, avatarY, 34, unlocked ? palette.primaryDark : 0x3c4964);
-      const letter = this.add.text(x, avatarY, (hero.name || '?').slice(0, 1).toUpperCase(), {
+      const avatar = this.add.circle(x, hy - 36, 34, unlocked ? palette.primaryDark : 0x3c4964);
+      const letter = this.add.text(x, hy - 36, (hero.name || '?').slice(0, 1).toUpperCase(), {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '28px',
         color: '#ffffff',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      const name = this.add.text(x, y + 8, hero.name || hero.id, {
+      const name = this.add.text(x, hy + 8, hero.name || hero.id, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '18px',
         color: palette.text,
         align: 'center',
         wordWrap: { width: 200 },
       }).setOrigin(0.5);
-      const state = this.add.text(x, y + 42, unlocked ? `Открыт · HP ${hero.startingHealth ?? '-'}` : 'Не открыт', {
+      const state = this.add.text(x, hy + 42, unlocked ? `Открыт · HP ${hero.startingHealth ?? '-'}` : 'Не открыт', {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '14px',
         color: unlocked ? '#9cffb5' : '#ffb3b3',
       }).setOrigin(0.5);
-      this.content.add([panel, avatar, letter, name, state]);
+      this.addToScroll(panel, avatar, letter, name, state);
     });
 
     const heroRows = Math.max(1, Math.ceil(heroes.length / heroCols));
-    const contentBottom = yCursor + heroRows * heroGapY + 100;
-    this.setupScroll(contentBottom);
+    this.setupScroll(y + heroRows * heroGapY + 80);
   }
 
   async buyRandomCard() {
