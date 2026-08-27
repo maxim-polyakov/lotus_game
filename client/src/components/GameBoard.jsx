@@ -420,7 +420,7 @@ export class MatchScene extends BaseScene {
     const canTarget = canTargetSpell || canTargetAttack;
     const hero = this.add.container(x, y);
     const width = layout.portrait ? 280 : 230;
-    const rect = this.add.rectangle(0, 0, width, 76, canTarget ? 0x513a22 : palette.panel2, 0.95)
+    const rect = this.add.rectangle(0, 0, width, 92, canTarget ? 0x513a22 : palette.panel2, 0.95)
       .setStrokeStyle(2, canTarget ? palette.primary : 0x53627a);
     const label = this.add.text(layout.portrait ? 0 : -92, -22, state.heroName || (mine ? 'Я' : 'Соперник'), {
       fontFamily: 'Segoe UI, Arial',
@@ -429,13 +429,25 @@ export class MatchScene extends BaseScene {
       align: layout.portrait ? 'center' : 'left',
       wordWrap: { width: width - 24 },
     }).setOrigin(layout.portrait ? 0.5 : 0, 0);
-    const hp = this.add.text(layout.portrait ? 0 : -92, 10, `HP ${state.health}${state.maxHeroHealth ? `/${state.maxHeroHealth}` : ''}  Mana ${state.mana ?? '-'}`, {
+    const hpLine = `HP ${state.health}${state.maxHeroHealth ? `/${state.maxHeroHealth}` : ''}  Mana ${state.mana ?? '-'}`;
+    const deckSize = state.deck?.length ?? 0;
+    const fatigue = state.fatigueCounter || 0;
+    const deckLine = fatigue > 0
+      ? `Колода ${deckSize}  Усталость ${fatigue}`
+      : `Колода ${deckSize}`;
+    const hp = this.add.text(layout.portrait ? 0 : -92, 6, hpLine, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '15px',
       color: palette.muted,
       align: layout.portrait ? 'center' : 'left',
     }).setOrigin(layout.portrait ? 0.5 : 0, 0);
-    hero.add([rect, label, hp]);
+    const deck = this.add.text(layout.portrait ? 0 : -92, 26, deckLine, {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '13px',
+      color: fatigue > 0 ? '#ffb3b3' : palette.muted,
+      align: layout.portrait ? 'center' : 'left',
+    }).setOrigin(layout.portrait ? 0.5 : 0, 0);
+    hero.add([rect, label, hp, deck]);
     this.heroViews.push({ rect, mine, state });
     rect.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
       const p = this.selectedSpell?.card;
@@ -659,6 +671,19 @@ export class MatchScene extends BaseScene {
       if (!prev) view.playCardEffect('play', { sound: false });
       else if (prev.currentHealth !== next.currentHealth) view.playHitEffect();
     });
+
+    const isPlayer1 = this.match.player1Id === session.user?.id;
+    const prevMe = isPlayer1 ? previous.gameState.player1 : previous.gameState.player2;
+    const nextMe = isPlayer1 ? this.match.gameState.player1 : this.match.gameState.player2;
+    const prevFatigue = prevMe?.fatigueCounter || 0;
+    const nextFatigue = nextMe?.fatigueCounter || 0;
+    if (nextFatigue > prevFatigue) {
+      const lost = Math.max(0, (prevMe?.health || 0) - (nextMe?.health || 0));
+      this.addMessage(
+        lost > 0 ? `Усталость: −${lost} HP (колода пуста)` : 'Усталость: колода пуста',
+        '#ffb3b3',
+      );
+    }
   }
 }
 

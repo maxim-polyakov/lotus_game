@@ -347,24 +347,16 @@ public class MatchService {
             m.setAttacksThisTurn(0);
         });
 
-        int cardsToDraw = ThreadLocalRandom.current().nextInt(1, 4);
-        boolean diedFromFatigue = drawCardsWithFatigue(nextState, cardsToDraw);
+        // 1 карта за ход (как в классических карточных дуэлях). Раньше random 1–3
+        // опустошал колоду слишком быстро и давал несколько тиков усталости за один ход.
+        boolean diedFromFatigue = drawCardsWithFatigue(nextState, 1);
         if (diedFromFatigue) {
             match.setStatus(Match.MatchStatus.FINISHED);
             match.setWinnerId(userId);
         } else {
-            boolean bothDecksEmpty = state.getPlayer1().getDeck().isEmpty() && state.getPlayer2().getDeck().isEmpty();
-            boolean bothBoardsEmpty = state.getPlayer1().getBoard().isEmpty() && state.getPlayer2().getBoard().isEmpty();
-            if (bothDecksEmpty && bothBoardsEmpty) {
-                match.setStatus(Match.MatchStatus.FINISHED);
-                int p1Hp = state.getPlayer1().getHealth();
-                int p2Hp = state.getPlayer2().getHealth();
-                match.setWinnerId(p1Hp > p2Hp ? match.getPlayer1Id() : p2Hp > p1Hp ? match.getPlayer2Id() : null);
-            } else {
-                match.setCurrentTurnPlayerId(nextPlayer);
-                state.setTurnNumber(state.getTurnNumber() + 1);
-                state.setCurrentTurnPlayerId(nextPlayer);
-            }
+            match.setCurrentTurnPlayerId(nextPlayer);
+            state.setTurnNumber(state.getTurnNumber() + 1);
+            state.setCurrentTurnPlayerId(nextPlayer);
         }
         match.setGameState(state);
         addReplayStep(match, "END_TURN", userId, "End turn", state);
@@ -616,7 +608,7 @@ public class MatchService {
                 }
             } else {
                 enemy.setHealth(enemy.getHealth() - dmg);
-                if (enemy.getHealth() <= 0) {
+                if (enemy.getHealth() <= 0 && match.getStatus() != Match.MatchStatus.FINISHED) {
                     match.setStatus(Match.MatchStatus.FINISHED);
                     match.setWinnerId(state.getPlayer1() == owner ? match.getPlayer1Id() : match.getPlayer2Id());
                 }
