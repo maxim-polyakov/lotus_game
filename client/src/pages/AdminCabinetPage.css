@@ -19,3 +19,54 @@
   background: #f8f3e8;
   padding: 7px;
 }
+
+.admin-asset-status {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-asset-status span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font: 600 11px 'Segoe UI', system-ui, sans-serif;
+}
+
+.admin-asset-status .on {
+  background: rgba(46, 154, 88, 0.25);
+  color: #9cffb5;
+  border: 1px solid rgba(156, 255, 181, 0.45);
+}
+
+.admin-asset-status .off {
+  background: rgba(90, 100, 120, 0.25);
+  color: #aab4c8;
+  border: 1px solid rgba(170, 180, 200, 0.3);
+}
+
+.admin-asset-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-asset-link {
+  color: #ffe18c !important;
+  background: transparent !important;
+  border: 1px solid rgba(215, 170, 69, 0.55) !important;
+  padding: 7px 10px !important;
+  font-size: 13px !important;
+}
+
+.admin-asset-empty {
+  color: #aab4c8;
+  font: 13px 'Segoe UI', system-ui, sans-serif;
+}
+
+.admin-phaser-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #f6ead2;
+  font: 12px 'Segoe UI', system-ui, sans-serif;
+}

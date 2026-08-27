@@ -7,7 +7,7 @@ import {
   session,
 } from '../game/shared';
 import { BaseScene } from './TutorialModal';
-import { CardGameObject } from './CardDisplay';
+import { CardGameObject, playCardSound } from './CardDisplay';
 import { matchSocket } from './WaitingMatch';
 
 export class MatchScene extends BaseScene {
@@ -209,6 +209,10 @@ export class MatchScene extends BaseScene {
 
   async playCard(instanceId, targetPosition, targetInstanceId) {
     try {
+      this.cardViews.get(instanceId)?.playCardEffect();
+      if (!this.cardViews.has(instanceId)) {
+        playCardSound(this.findHandCard(instanceId));
+      }
       if (matchSocket.client?.connected) {
         matchSocket.publish(`/app/matches/${this.match.id}/play`, { instanceId, targetPosition, targetInstanceId });
       } else {
@@ -221,9 +225,18 @@ export class MatchScene extends BaseScene {
     }
   }
 
+  findHandCard(instanceId) {
+    const isPlayer1 = this.match?.player1Id === session.user?.id;
+    const me = isPlayer1 ? this.match?.gameState?.player1 : this.match?.gameState?.player2;
+    const slot = (me?.hand || []).find((item) => item.instanceId === instanceId);
+    if (!slot) return null;
+    return this.getCard(slot.cardType, slot.cardId) || slot;
+  }
+
   async attack(attackerInstanceId, targetInstanceId) {
     try {
-      this.cardViews.get(attackerInstanceId)?.playCardEffect();
+      const attackerView = this.cardViews.get(attackerInstanceId);
+      attackerView?.playCardEffect('attack');
       if (targetInstanceId !== 'hero') this.cardViews.get(targetInstanceId)?.playHitEffect();
       if (matchSocket.client?.connected) {
         matchSocket.publish(`/app/matches/${this.match.id}/attack`, { attackerInstanceId, targetInstanceId });

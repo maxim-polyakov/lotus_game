@@ -57,11 +57,15 @@ export class AdminScene extends ListScene {
       this.formMode = 'edit';
       this.renderAdmin();
     }, { fontSize: 15 });
+    this.addButton(layout.portrait ? 160 : 640, layout.portrait ? actionY + 42 : actionY, 150, 34, 'Пользователи', () => {
+      this.formMode = 'users';
+      this.renderAdmin();
+    }, { fontSize: 15 });
 
     const columns = layout.portrait ? 4 : 6;
     const cardLimit = layout.portrait ? 12 : 18;
     const startX = layout.portrait ? 105 : 88;
-    const startY = layout.portrait ? 235 : 210;
+    const startY = layout.portrait ? 280 : 210;
     const gapX = layout.portrait ? 168 : 100;
     const gapY = layout.portrait ? 120 : 125;
     (this.cards || []).slice(0, cardLimit).forEach((card, index) => {
@@ -77,6 +81,7 @@ export class AdminScene extends ListScene {
         this.formMode = 'edit';
         this.renderAdmin();
       });
+      this.addCardAssetBadges(x, y + 58, card);
     });
 
     const panelX = layout.portrait ? layout.centerX : 1000;
@@ -87,7 +92,9 @@ export class AdminScene extends ListScene {
       ? 'Режим: создание карты'
       : this.formMode === 'create-hero'
         ? 'Режим: создание героя'
-        : 'Режим: редактирование';
+        : this.formMode === 'users'
+          ? 'Режим: пользователи'
+          : 'Режим: редактирование';
     this.add.text(panelX, layout.portrait ? 520 : 175, modeLabel, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '16px',
@@ -98,6 +105,8 @@ export class AdminScene extends ListScene {
       this.renderCreateCardForm(panelX, panelY);
     } else if (this.formMode === 'create-hero') {
       this.renderCreateHeroForm(panelX, panelY);
+    } else if (this.formMode === 'users') {
+      this.renderUsersForm(panelX, panelY);
     } else if (this.selected) {
       this.renderSelectedCardForm(this.selected, panelX, panelY);
     } else {
@@ -112,9 +121,28 @@ export class AdminScene extends ListScene {
   renderSelectedCardForm(card, panelX, panelY) {
     const isMinion = card.cardType === 'MINION';
     const layout = layoutInfo();
-    const editDom = this.addDomForm(panelX, panelY - 20, `
+    const assets = this.assetStatus(card);
+    const assetLinks = [
+      assets.image && ['Картинка', card.imageUrl],
+      assets.sound && ['Звук розыгрыша', card.soundUrl],
+      assets.attackSound && ['Звук атаки', card.attackSoundUrl],
+      assets.playGif && ['GIF розыгрыша', card.playEffectUrl],
+      assets.attackGif && ['GIF атаки', card.attackEffectUrl],
+    ].filter(Boolean).map(([label, url]) => (
+      `<a class="admin-asset-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">${escapeAttr(label)}</a>`
+    )).join('');
+
+    const editDom = this.addDomForm(panelX, panelY - 10, `
       <form class="phaser-form admin-phaser-form">
         <strong>${escapeAttr(card.cardType)} #${card.id}</strong>
+        <div class="admin-asset-status">
+          <span class="${assets.image ? 'on' : 'off'}">IMG ${assets.image ? 'есть' : 'нет'}</span>
+          <span class="${assets.sound ? 'on' : 'off'}">SND ${assets.sound ? 'есть' : 'нет'}</span>
+          <span class="${assets.attackSound ? 'on' : 'off'}">ATK SND ${assets.attackSound ? 'есть' : 'нет'}</span>
+          <span class="${assets.playGif ? 'on' : 'off'}">GIF ${assets.playGif ? 'есть' : 'нет'}</span>
+          <span class="${assets.attackGif ? 'on' : 'off'}">ATK GIF ${assets.attackGif ? 'есть' : 'нет'}</span>
+        </div>
+        ${assetLinks ? `<div class="admin-asset-links">${assetLinks}</div>` : '<div class="admin-asset-empty">Ассеты ещё не загружены</div>'}
         <input name="name" placeholder="Название" value="${escapeAttr(card.name)}" required />
         <input name="manaCost" type="number" placeholder="Мана" value="${escapeAttr(card.manaCost)}" />
         ${isMinion ? `
@@ -125,9 +153,11 @@ export class AdminScene extends ListScene {
         `}
         <input name="description" placeholder="Описание" value="${escapeAttr(card.description)}" />
         <button type="submit">Сохранить карту</button>
-        <input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
-        <input name="sound" type="file" accept="audio/*" />
-        <input name="effect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" />
+        <label>Картинка<input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
+        <label>Звук розыгрыша<input name="sound" type="file" accept="audio/*" /></label>
+        ${isMinion ? '<label>Звук атаки<input name="attackSound" type="file" accept="audio/*" /></label>' : ''}
+        <label>GIF розыгрыша<input name="effect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" /></label>
+        ${isMinion ? '<label>GIF атаки<input name="attackEffect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" /></label>' : ''}
         <button type="button" data-upload-assets>Загрузить ассеты</button>
       </form>
     `, (values) => this.saveCard(card, values));
@@ -135,7 +165,38 @@ export class AdminScene extends ListScene {
     const form = editDom.node?.querySelector('form');
     form?.querySelector('[data-upload-assets]')?.addEventListener('click', () => this.uploadCardAssets(card, form));
 
-    this.addButton(panelX, layout.portrait ? 1205 : 645, 190, 34, 'Удалить карту', () => this.deleteCard(card), { fill: 0x52303a, stroke: palette.danger, fontSize: 15 });
+    this.addButton(panelX, layout.portrait ? 1205 : 655, 190, 34, 'Удалить карту', () => this.deleteCard(card), { fill: 0x52303a, stroke: palette.danger, fontSize: 15 });
+  }
+
+  assetStatus(card) {
+    return {
+      image: Boolean(card?.imageUrl),
+      sound: Boolean(card?.soundUrl),
+      attackSound: Boolean(card?.attackSoundUrl),
+      playGif: Boolean(card?.playEffectUrl),
+      attackGif: Boolean(card?.attackEffectUrl),
+      gif: Boolean(card?.playEffectUrl || card?.attackEffectUrl),
+    };
+  }
+
+  addCardAssetBadges(x, y, card) {
+    const assets = this.assetStatus(card);
+    const badges = [
+      ['I', assets.image, 0x2e9a58],
+      ['S', assets.sound || assets.attackSound, 0x235bd6],
+      ['G', assets.gif, 0xb46a38],
+    ];
+    badges.forEach(([label, enabled, color], index) => {
+      const bx = x - 22 + index * 22;
+      this.add.circle(bx, y, 9, enabled ? color : 0x3a455c, enabled ? 0.95 : 0.45)
+        .setStrokeStyle(1, enabled ? 0xffffff : 0x667089);
+      this.add.text(bx, y, label, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '10px',
+        color: enabled ? '#ffffff' : '#9aa6bd',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+    });
   }
 
   renderCreateCardForm(panelX, panelY) {
@@ -165,6 +226,48 @@ export class AdminScene extends ListScene {
         <button type="submit">Создать героя</button>
       </form>
     `, (values) => this.createHero(values));
+  }
+
+  renderUsersForm(panelX, panelY) {
+    this.addDomForm(panelX, panelY - 90, `
+      <form class="phaser-form admin-create-form" data-admin-promote>
+        <strong>Сделать админом</strong>
+        <input name="emailOrUsername" placeholder="Email или username" required />
+        <button type="submit">Выдать ROLE_ADMIN</button>
+      </form>
+    `, (values) => this.promoteAdmin(values));
+
+    this.addDomForm(panelX, panelY + 110, `
+      <form class="phaser-form admin-create-form" data-admin-gold>
+        <strong>Выдать золото</strong>
+        <input name="emailOrUsername" placeholder="Email или username" required />
+        <input name="amount" type="number" placeholder="Количество" value="100" min="1" required />
+        <button type="submit">Начислить золото</button>
+      </form>
+    `, (values) => this.grantGold(values));
+  }
+
+  async promoteAdmin(values) {
+    try {
+      await api.post('/api/admin/users/promote-admin', {
+        emailOrUsername: values.emailOrUsername.trim(),
+      });
+      this.renderAdmin(`Пользователь ${values.emailOrUsername.trim()} теперь админ`);
+    } catch (err) {
+      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось выдать админку');
+    }
+  }
+
+  async grantGold(values) {
+    try {
+      const { data } = await api.post('/api/admin/users/grant-gold', {
+        emailOrUsername: values.emailOrUsername.trim(),
+        amount: Number(values.amount) || 0,
+      });
+      this.renderAdmin(`Выдано ${data.grantedGold} золота пользователю ${data.username}. Итого: ${data.totalGold}`);
+    } catch (err) {
+      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось выдать золото');
+    }
   }
 
   async saveCard(card, values) {
@@ -254,7 +357,9 @@ export class AdminScene extends ListScene {
       const uploads = [
         ['image', form.elements.image?.files?.[0], isMinion ? `/api/cards/minions/${card.id}/image` : `/api/cards/spells/${card.id}/image`, 'image'],
         ['sound', form.elements.sound?.files?.[0], isMinion ? `/api/cards/minions/${card.id}/sound` : `/api/cards/spells/${card.id}/sound`, 'sound'],
+        ['attackSound', form.elements.attackSound?.files?.[0], `/api/cards/minions/${card.id}/attack-sound`, 'sound'],
         ['effect', form.elements.effect?.files?.[0], isMinion ? `/api/cards/minions/${card.id}/play-effect` : `/api/cards/spells/${card.id}/play-effect`, 'effect'],
+        ['attackEffect', form.elements.attackEffect?.files?.[0], `/api/cards/minions/${card.id}/attack-effect`, 'effect'],
       ].filter(([, file]) => file);
       for (const [, file, endpoint, field] of uploads) {
         const fd = new FormData();

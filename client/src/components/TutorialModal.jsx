@@ -128,45 +128,35 @@ export class BaseScene extends Phaser.Scene {
   loadCardTextures(cards = []) {
     const toLoad = cards.filter((c) => c.imageUrl && !this.textures.exists(textureKey(c)));
     if (!toLoad.length) return Promise.resolve();
-    return new Promise((resolve) => {
-      const onDone = () => {
-        this.load.off('complete', onDone);
-        this.load.off('loaderror', onDone);
-        resolve();
-      };
-      toLoad.forEach((card) => {
-        this.load.image({
-          key: textureKey(card),
-          url: resolveAssetUrl(card.imageUrl),
-          crossOrigin: 'anonymous',
-        });
-      });
-      this.load.once('complete', onDone);
-      this.load.once('loaderror', onDone);
-      this.load.start();
-    });
+    return Promise.all(toLoad.map((card) => this.loadRemoteTexture(textureKey(card), resolveAssetUrl(card.imageUrl))));
   }
 
   loadImageUrls(urls = []) {
     const cleanUrls = [...new Set(urls.filter(Boolean).map((url) => resolveAssetUrl(url)))];
     const toLoad = cleanUrls.filter((url) => !this.textures.exists(imageTextureKey(url)));
     if (!toLoad.length) return Promise.resolve();
+    return Promise.all(toLoad.map((url) => this.loadRemoteTexture(imageTextureKey(url), url)));
+  }
+
+  /**
+   * Yandex Object Storage often has no CORS headers. Phaser WebGL + crossOrigin=anonymous
+   * then fails silently, so load without CORS for display-only textures.
+   */
+  loadRemoteTexture(key, url) {
+    if (!key || !url) return Promise.resolve(false);
+    if (this.textures.exists(key)) return Promise.resolve(true);
     return new Promise((resolve) => {
-      const onDone = () => {
-        this.load.off('complete', onDone);
-        this.load.off('loaderror', onDone);
-        resolve();
+      const img = new Image();
+      img.onload = () => {
+        try {
+          if (!this.textures.exists(key)) this.textures.addImage(key, img);
+          resolve(true);
+        } catch {
+          resolve(false);
+        }
       };
-      toLoad.forEach((url) => {
-        this.load.image({
-          key: imageTextureKey(url),
-          url,
-          crossOrigin: 'anonymous',
-        });
-      });
-      this.load.once('complete', onDone);
-      this.load.once('loaderror', onDone);
-      this.load.start();
+      img.onerror = () => resolve(false);
+      img.src = url;
     });
   }
 

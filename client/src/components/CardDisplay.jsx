@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { API_BASE } from '../api/client';
-import { palette } from '../game/shared';
+import { palette, session } from '../game/shared';
 import { hashString } from './ErrorDetail';
+import { playSoundFromUrl } from '../utils/sound';
 
 export function cardKey(card) {
   return `${card?.cardType || 'CARD'}:${card?.id}`;
@@ -24,6 +25,15 @@ export function textureKey(card) {
   const type = String(card?.cardType || 'CARD').replace(/[^a-zA-Z0-9_-]/g, '_');
   const id = card?.id ?? 'x';
   return `card-art-${type}-${id}-${hashString(resolveAssetUrl(card?.imageUrl))}`;
+}
+
+export function playCardSound(card, kind = 'play') {
+  if (session.soundEnabled === false) return;
+  const preferred = kind === 'attack'
+    ? (card?.attackSoundUrl || card?.soundUrl)
+    : (card?.soundUrl || card?.attackSoundUrl);
+  const url = resolveAssetUrl(preferred);
+  if (url) playSoundFromUrl(url);
 }
 
 export class CardGameObject extends Phaser.GameObjects.Container {
@@ -136,7 +146,8 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     this.add([circle, text]);
   }
 
-  playCardEffect() {
+  playCardEffect(kind = 'play') {
+    playCardSound(this.card, kind);
     this.scene.tweens.add({
       targets: this,
       scale: { from: 1.18, to: 1 },
