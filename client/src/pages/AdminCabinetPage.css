@@ -15,6 +15,11 @@
   scrollbar-color: rgba(215, 170, 69, 0.7) rgba(20, 26, 38, 0.6);
 }
 
+.admin-phaser-form > strong {
+  color: #f6ead2;
+  font: 600 14px 'Segoe UI', system-ui, sans-serif;
+}
+
 .admin-phaser-form::-webkit-scrollbar {
   width: 8px;
 }
@@ -26,13 +31,31 @@
 
 .admin-phaser-form input:not([type='file']),
 .admin-phaser-form select,
-.admin-phaser-form button,
 .admin-create-form input,
-.admin-create-form select,
-.admin-create-form button {
-  padding: 7px 9px;
+.admin-create-form select {
+  flex: 0 0 auto;
+  padding: 8px 10px;
   font-size: 13px;
-  min-height: 0;
+  min-height: 36px;
+  box-sizing: border-box;
+}
+
+.admin-phaser-form button,
+.admin-create-form button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  height: auto;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .admin-upload-block {

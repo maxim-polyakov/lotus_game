@@ -217,7 +217,6 @@ export class AdminScene extends ListScene {
     this.addDomForm(panelX, panelY, `
       <form class="phaser-form admin-create-form">
         <strong>Создать героя</strong>
-        <input name="id" placeholder="hero_id" required />
         <input name="name" placeholder="Имя" required />
         <input name="title" placeholder="Титул" />
         <input name="startingHealth" type="number" placeholder="HP" value="30" />
@@ -325,13 +324,12 @@ export class AdminScene extends ListScene {
 
   async createHero(values) {
     try {
-      await api.post('/api/admin/heroes', {
-        id: values.id.trim().toLowerCase(),
+      const { data } = await api.post('/api/admin/heroes', {
         name: values.name.trim(),
         title: values.title?.trim() || '',
         startingHealth: Number(values.startingHealth) || 30,
       });
-      this.renderAdmin('Герой создан');
+      this.renderAdmin(`Герой создан (id: ${data?.id || 'ok'})`);
     } catch (err) {
       this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось создать героя');
     }

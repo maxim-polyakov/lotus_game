@@ -10,9 +10,8 @@ import lombok.Data;
 @Data
 public class CreateHeroRequest {
 
-    @NotBlank
-    @Size(min = 3, max = 64)
-    @Pattern(regexp = "^[a-z0-9_]+$", message = "ID героя: только a-z, 0-9 и _")
+    /** Optional. If blank, server generates id from name. */
+    @Pattern(regexp = "^$|^[a-z0-9_]{3,64}$", message = "ID героя: 3–64 символа a-z, 0-9 и _")
     private String id;
 
     @NotBlank

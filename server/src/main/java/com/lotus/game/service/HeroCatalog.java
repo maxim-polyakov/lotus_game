@@ -72,22 +72,114 @@ public class HeroCatalog {
         if (req == null) {
             throw new IllegalArgumentException("Пустые данные героя");
         }
-        String id = req.getId() == null ? "" : req.getId().trim();
-        if (id.isBlank()) {
-            throw new IllegalArgumentException("Укажите ID героя");
+        String name = req.getName() == null ? "" : req.getName().trim();
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Укажите имя героя");
         }
-        if (find(id).isPresent()) {
+
+        String id = req.getId() == null ? "" : req.getId().trim().toLowerCase();
+        if (id.isBlank()) {
+            id = generateUniqueHeroId(name);
+        } else if (find(id).isPresent()) {
             throw new IllegalArgumentException("Герой с таким ID уже существует");
         }
+
         int hp = req.getStartingHealth() == null ? 30 : req.getStartingHealth();
         GameHero saved = gameHeroRepository.save(GameHero.builder()
                 .id(id)
-                .name(req.getName().trim())
+                .name(name)
                 .title(req.getTitle() != null ? req.getTitle().trim() : "")
                 .startingHealth(hp)
                 .portraitUrl("")
                 .build());
         return toDto(saved);
+    }
+
+    private String generateUniqueHeroId(String name) {
+        String base = slugifyHeroId(name);
+        String candidate = base;
+        int suffix = 2;
+        while (find(candidate).isPresent()) {
+            candidate = base + "_" + suffix;
+            suffix++;
+            if (suffix > 9999) {
+                candidate = "hero_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+                break;
+            }
+        }
+        return candidate;
+    }
+
+    static String slugifyHeroId(String name) {
+        if (name == null || name.isBlank()) {
+            return "hero_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        }
+        StringBuilder sb = new StringBuilder();
+        String lower = name.trim().toLowerCase();
+        for (int i = 0; i < lower.length(); i++) {
+            char ch = lower.charAt(i);
+            String mapped = transliterateChar(ch);
+            if (mapped == null) continue;
+            for (int j = 0; j < mapped.length(); j++) {
+                char c = mapped.charAt(j);
+                if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                    sb.append(c);
+                } else if (c == '_' || c == '-' || c == ' ') {
+                    if (sb.length() > 0 && sb.charAt(sb.length() - 1) != '_') {
+                        sb.append('_');
+                    }
+                }
+            }
+        }
+        while (sb.length() > 0 && sb.charAt(sb.length() - 1) == '_') {
+            sb.setLength(sb.length() - 1);
+        }
+        String slug = sb.toString();
+        if (slug.length() < 3) {
+            slug = "hero_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        }
+        if (slug.length() > 64) {
+            slug = slug.substring(0, 64);
+            while (slug.endsWith("_")) {
+                slug = slug.substring(0, slug.length() - 1);
+            }
+        }
+        return slug;
+    }
+
+    private static String transliterateChar(char ch) {
+        return switch (ch) {
+            case 'а' -> "a";
+            case 'б' -> "b";
+            case 'в' -> "v";
+            case 'г' -> "g";
+            case 'д' -> "d";
+            case 'е', 'ё', 'э' -> "e";
+            case 'ж' -> "zh";
+            case 'з' -> "z";
+            case 'и', 'й' -> "i";
+            case 'к' -> "k";
+            case 'л' -> "l";
+            case 'м' -> "m";
+            case 'н' -> "n";
+            case 'о' -> "o";
+            case 'п' -> "p";
+            case 'р' -> "r";
+            case 'с' -> "s";
+            case 'т' -> "t";
+            case 'у' -> "u";
+            case 'ф' -> "f";
+            case 'х' -> "h";
+            case 'ц' -> "ts";
+            case 'ч' -> "ch";
+            case 'ш' -> "sh";
+            case 'щ' -> "sch";
+            case 'ы' -> "y";
+            case 'ю' -> "yu";
+            case 'я' -> "ya";
+            case 'ъ', 'ь' -> "";
+            default -> String.valueOf(ch);
+        };
     }
 
     private static HeroDto toDto(GameHero hero) {

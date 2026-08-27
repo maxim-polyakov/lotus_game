@@ -1,5 +1,6 @@
 .phaser-form {
   width: 320px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -8,9 +9,10 @@
   background: rgba(16, 20, 31, 0.92);
   border: 1px solid rgba(215, 170, 69, 0.55);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.36);
+  box-sizing: border-box;
 }
 
-.phaser-form input:not([type='file']),
+.phaser-form input:not([type='file']):not([type='checkbox']),
 .phaser-form select {
   width: 100%;
   padding: 11px 12px;
@@ -19,11 +21,23 @@
   background: #f8f3e8;
   color: #151922;
   font: 15px 'Segoe UI', system-ui, sans-serif;
+  box-sizing: border-box;
 }
 
 .phaser-form input[type='file'] {
-  /* Never show native "Choose File" chrome; admin uses .admin-file-picker */
   color: transparent;
+}
+
+.phaser-form input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: #936b22;
+  cursor: pointer;
 }
 
 .phaser-form-inline {
@@ -36,8 +50,41 @@
   font: 14px 'Segoe UI', system-ui, sans-serif;
 }
 
+.auth-remember {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.auth-mode-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(215, 170, 69, 0.35);
+}
+
+.auth-mode-nav button {
+  background: transparent !important;
+  border: 1px solid rgba(215, 170, 69, 0.75) !important;
+  color: #f6ead2 !important;
+  min-height: 40px;
+}
+
+.auth-mode-nav button:hover {
+  background: rgba(147, 107, 34, 0.35) !important;
+}
+
 .phaser-form button,
 .phaser-form a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
   padding: 11px 12px;
   border: 0;
   border-radius: 8px;
@@ -46,6 +93,9 @@
   text-align: center;
   text-decoration: none;
   font: 600 15px 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-sizing: border-box;
   cursor: pointer;
 }
 
@@ -54,14 +104,20 @@
   background: #b9872b;
 }
 
+.auth-form {
+  width: 300px;
+}
+
 @media (max-width: 768px) {
-  .phaser-form {
-    width: min(86vw, 320px);
+  .phaser-form,
+  .auth-form {
+    /* Avoid vw: Phaser DOM is already scaled with the canvas. */
+    width: 300px;
     gap: 10px;
     padding: 14px;
   }
 
-  .phaser-form input:not([type='file']),
+  .phaser-form input:not([type='file']):not([type='checkbox']),
   .phaser-form select,
   .phaser-form button,
   .phaser-form a {
@@ -69,7 +125,13 @@
     font-size: 16px;
   }
 
+  .phaser-form input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    min-height: 18px;
+  }
+
   .phaser-form-inline {
-    width: min(88vw, 360px);
+    width: 300px;
   }
 }
