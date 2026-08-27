@@ -7,6 +7,10 @@ export class MatchSocket {
   constructor() {
     this.client = null;
     this.connectPromise = null;
+    this.matchListeners = new Map(); // matchId -> Set<callback>
+    this.errorListeners = new Set();
+    this.matchSubs = new Map(); // matchId -> StompSubscription
+    this.errorSub = null;
   }
 
   connect() {
@@ -16,24 +20,47 @@ export class MatchSocket {
     if (this.connectPromise) return this.connectPromise;
 
     this.connectPromise = new Promise((resolve, reject) => {
+      let settled = false;
       const client = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
-        connectHeaders: { token },
-        reconnectDelay: 3000,
+        connectHeaders: { token: getAccessToken() || token },
+        reconnectDelay: 2500,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
+        beforeConnect: () => {
+          const next = getAccessToken();
+          if (next) client.connectHeaders = { token: next };
+        },
         onConnect: () => {
           this.client = client;
-          this.connectPromise = null;
-          resolve(client);
+          this.resubscribeAll();
+          if (!settled) {
+            settled = true;
+            this.connectPromise = null;
+            resolve(client);
+          }
         },
         onStompError: () => {
-          this.connectPromise = null;
-          reject(new Error('STOMP ошибка'));
+          if (!settled) {
+            settled = true;
+            this.connectPromise = null;
+            reject(new Error('STOMP ошибка'));
+          }
         },
         onWebSocketError: () => {
-          this.connectPromise = null;
-          reject(new Error('WebSocket ошибка'));
+          if (!settled) {
+            settled = true;
+            this.connectPromise = null;
+            reject(new Error('WebSocket ошибка'));
+          }
+        },
+        onDisconnect: () => {
+          this.matchSubs.clear();
+          this.errorSub = null;
+        },
+        onWebSocketClose: () => {
+          this.matchSubs.clear();
+          this.errorSub = null;
         },
       });
       this.client = client;
@@ -43,7 +70,55 @@ export class MatchSocket {
     return this.connectPromise;
   }
 
+  resubscribeAll() {
+    if (!this.client?.connected) return;
+
+    this.matchSubs.forEach((sub) => {
+      try { sub.unsubscribe(); } catch { /* ignore */ }
+    });
+    this.matchSubs.clear();
+    if (this.errorSub) {
+      try { this.errorSub.unsubscribe(); } catch { /* ignore */ }
+      this.errorSub = null;
+    }
+
+    this.matchListeners.forEach((listeners, matchId) => {
+      if (!listeners.size) return;
+      const sub = this.client.subscribe(`/topic/match/${matchId}`, (msg) => {
+        let match;
+        try {
+          match = JSON.parse(msg.body);
+        } catch {
+          return;
+        }
+        listeners.forEach((cb) => {
+          try { cb(match); } catch { /* ignore */ }
+        });
+      });
+      this.matchSubs.set(matchId, sub);
+    });
+
+    if (this.errorListeners.size) {
+      this.errorSub = this.client.subscribe('/user/queue/matches/errors', (msg) => {
+        let err;
+        try {
+          err = JSON.parse(msg.body);
+        } catch {
+          err = { error: 'Ошибка матча' };
+        }
+        const error = new Error(err?.error || 'Ошибка матча');
+        this.errorListeners.forEach((cb) => {
+          try { cb(error, err?.context || ''); } catch { /* ignore */ }
+        });
+      });
+    }
+  }
+
   disconnect() {
+    this.matchListeners.clear();
+    this.errorListeners.clear();
+    this.matchSubs.clear();
+    this.errorSub = null;
     this.client?.deactivate();
     this.client = null;
     this.connectPromise = null;
@@ -71,23 +146,68 @@ export class MatchSocket {
   }
 
   subscribeMatch(matchId, callback) {
-    if (!this.client?.connected) return () => {};
-    const sub = this.client.subscribe(`/topic/match/${matchId}`, (msg) => callback(JSON.parse(msg.body)));
-    return () => sub.unsubscribe();
+    if (!matchId || !callback) return () => {};
+    const id = String(matchId);
+    if (!this.matchListeners.has(id)) this.matchListeners.set(id, new Set());
+    this.matchListeners.get(id).add(callback);
+
+    if (this.client?.connected && !this.matchSubs.has(id)) {
+      const listeners = this.matchListeners.get(id);
+      const sub = this.client.subscribe(`/topic/match/${id}`, (msg) => {
+        let match;
+        try {
+          match = JSON.parse(msg.body);
+        } catch {
+          return;
+        }
+        listeners.forEach((cb) => {
+          try { cb(match); } catch { /* ignore */ }
+        });
+      });
+      this.matchSubs.set(id, sub);
+    } else {
+      this.connect().catch(() => {});
+    }
+
+    return () => {
+      const set = this.matchListeners.get(id);
+      if (!set) return;
+      set.delete(callback);
+      if (set.size === 0) {
+        this.matchListeners.delete(id);
+        const sub = this.matchSubs.get(id);
+        if (sub) {
+          try { sub.unsubscribe(); } catch { /* ignore */ }
+          this.matchSubs.delete(id);
+        }
+      }
+    };
   }
 
   subscribeErrors(callback) {
-    if (!this.client?.connected) return () => {};
-    const sub = this.client.subscribe('/user/queue/matches/errors', (msg) => {
-      const err = JSON.parse(msg.body);
-      callback(new Error(err?.error || 'Ошибка матча'), err?.context || '');
-    });
-    return () => sub.unsubscribe();
+    if (!callback) return () => {};
+    this.errorListeners.add(callback);
+    if (this.client?.connected && !this.errorSub) {
+      this.resubscribeAll();
+    } else {
+      this.connect().catch(() => {});
+    }
+    return () => {
+      this.errorListeners.delete(callback);
+      if (!this.errorListeners.size && this.errorSub) {
+        try { this.errorSub.unsubscribe(); } catch { /* ignore */ }
+        this.errorSub = null;
+      }
+    };
   }
 
   publish(destination, body = {}) {
     if (!this.client?.connected) throw new Error('WebSocket не подключён');
     this.client.publish({ destination, body: JSON.stringify(body) });
+  }
+
+  get connected() {
+    return !!this.client?.connected;
   }
 }
 

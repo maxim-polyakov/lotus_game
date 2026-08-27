@@ -24,18 +24,36 @@ export class MatchScene extends BaseScene {
     this.selectedSpell = null;
     this.unsubscribeMatch = null;
     this.unsubscribeErrors = null;
+    this.pollEvent = null;
+    this._onVisible = null;
   }
 
   create() {
+    this.events.once('shutdown', () => this.cleanup());
     this.loadData().then(() => this.prepareAssets()).then(() => {
       this.connectSocket();
+      this.startPolling();
+      this.bindVisibilityRefresh();
       this.render();
     }).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка матча'));
   }
 
-  shutdown() {
+  cleanup() {
     this.unsubscribeMatch?.();
     this.unsubscribeErrors?.();
+    this.unsubscribeMatch = null;
+    this.unsubscribeErrors = null;
+    this.pollEvent?.remove(false);
+    this.pollEvent = null;
+    if (this._onVisible) {
+      document.removeEventListener('visibilitychange', this._onVisible);
+      window.removeEventListener('pageshow', this._onVisible);
+      this._onVisible = null;
+    }
+  }
+
+  shutdown() {
+    this.cleanup();
   }
 
   async loadData() {
@@ -56,31 +74,102 @@ export class MatchScene extends BaseScene {
     return this.loadCardTextures(this.cards);
   }
 
+  applyMatchUpdate(match, previous = this.match) {
+    if (!match) return;
+    this.match = match;
+    if (match.status === 'FINISHED') {
+      sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+    }
+    this.render(previous);
+  }
+
   connectSocket() {
     if (!this.match?.id) return;
-    matchSocket.connect().then(() => {
-      this.unsubscribeMatch = matchSocket.subscribeMatch(this.match.id, (match) => {
-        const previous = this.match;
-        this.match = match;
-        this.render(previous);
+    matchSocket.connect()
+      .then(() => {
+        this.unsubscribeMatch?.();
+        this.unsubscribeErrors?.();
+        this.unsubscribeMatch = matchSocket.subscribeMatch(this.match.id, (match) => {
+          this.applyMatchUpdate(match, this.match);
+        });
+        this.unsubscribeErrors = matchSocket.subscribeErrors((err) => {
+          this.addMessage(err.message, '#ffb3b3');
+        });
+      })
+      .catch(() => {
+        // Polling below covers offline / failed WS.
       });
-      this.unsubscribeErrors = matchSocket.subscribeErrors((err) => this.addMessage(err.message, '#ffb3b3'));
-    }).catch(() => {
-      this.time.addEvent({
-        delay: 5000,
-        loop: true,
-        callback: async () => {
-          if (this.match?.status !== 'IN_PROGRESS') return;
-          const { data } = await api.get(`/api/matches/${this.match.id}`);
-          this.match = data;
-          this.render();
-        },
-      });
+  }
+
+  startPolling() {
+    this.pollEvent?.remove(false);
+    this.pollEvent = this.time.addEvent({
+      delay: 2500,
+      loop: true,
+      callback: () => this.refreshMatchFromApi(false),
     });
+  }
+
+  bindVisibilityRefresh() {
+    this._onVisible = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      this.connectSocket();
+      this.refreshMatchFromApi(true);
+    };
+    document.addEventListener('visibilitychange', this._onVisible);
+    window.addEventListener('pageshow', this._onVisible);
+  }
+
+  async refreshMatchFromApi(forceRender = false) {
+    if (!this.match?.id) return;
+    if (this.match.status === 'FINISHED') return;
+    try {
+      const { data } = await api.get(`/api/matches/${this.match.id}`);
+      if (!data) return;
+      const prev = this.match;
+      const changed = forceRender
+        || prev?.status !== data.status
+        || prev?.currentTurnPlayerId !== data.currentTurnPlayerId
+        || JSON.stringify(prev?.gameState) !== JSON.stringify(data.gameState);
+      if (changed) this.applyMatchUpdate(data, prev);
+    } catch {
+      // ignore transient mobile network blips
+    }
   }
 
   getCard(type, id) {
     return this.cards.find((c) => c.cardType === type && c.id === id);
+  }
+
+  /** @returns {'enemy'|'ally'|null} */
+  targetSide(card) {
+    if (!card) return null;
+    const battlecry = String(card.battlecryType || '').toUpperCase();
+    const battlecryVal = card.battlecryValue || 0;
+    if (battlecry === 'BUFF_ALLY' && battlecryVal > 0) return 'ally';
+    if (battlecry === 'HEAL' && battlecryVal > 0) return 'ally';
+    if (battlecry === 'DEAL_DAMAGE' && battlecryVal > 0) return 'enemy';
+    if (String(card.cardType || '').toUpperCase() === 'SPELL' && (card.damage || 0) > 0) return 'enemy';
+    return null;
+  }
+
+  needsTarget(card) {
+    return !!this.targetSide(card);
+  }
+
+  allowsHeroTarget(card) {
+    const side = this.targetSide(card);
+    if (!side) return false;
+    const battlecry = String(card.battlecryType || '').toUpperCase();
+    if (battlecry === 'BUFF_ALLY') return false;
+    return true;
+  }
+
+  targetHint(card) {
+    const side = this.targetSide(card);
+    if (side === 'ally') return 'Выберите союзную цель';
+    if (side === 'enemy') return 'Выберите цель соперника';
+    return '';
   }
 
   renderError(message) {
@@ -113,14 +202,19 @@ export class MatchScene extends BaseScene {
     const me = isPlayer1 ? this.match.gameState.player1 : this.match.gameState.player2;
     const enemy = isPlayer1 ? this.match.gameState.player2 : this.match.gameState.player1;
     const isMyTurn = this.match.currentTurnPlayerId === session.user?.id;
+    const pendingCard = this.selectedSpell?.card;
+    const turnLabel = this.selectedSpell
+      ? this.targetHint(pendingCard)
+      : (isMyTurn ? 'Ваш ход' : 'Ход соперника');
+    const turnColor = this.selectedSpell ? '#ffe18c' : (isMyTurn ? '#ffe18c' : palette.muted);
 
     if (layout.portrait) {
       this.renderHero(layout.centerX, 145, enemy, false);
       this.renderBoard(enemy, 300, false, isMyTurn);
-      this.add.text(layout.centerX, 470, isMyTurn ? 'Ваш ход' : 'Ход соперника', {
+      this.add.text(layout.centerX, 470, turnLabel, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '22px',
-        color: isMyTurn ? '#ffe18c' : palette.muted,
+        color: turnColor,
       }).setOrigin(0.5);
       if (isMyTurn) {
         this.addButton(layout.centerX, 525, 220, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
@@ -134,10 +228,10 @@ export class MatchScene extends BaseScene {
       this.renderBoard(enemy, 180, false, isMyTurn);
       this.renderBoard(me, 430, true, isMyTurn);
       this.renderHand(me, isMyTurn);
-      this.add.text(GAME_WIDTH / 2, 345, isMyTurn ? 'Ваш ход' : 'Ход соперника', {
+      this.add.text(GAME_WIDTH / 2, 345, turnLabel, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '24px',
-        color: isMyTurn ? '#ffe18c' : palette.muted,
+        color: turnColor,
       }).setOrigin(0.5);
       if (isMyTurn) {
         this.addButton(layout.centerX + 280, 350, 160, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
@@ -161,7 +255,15 @@ export class MatchScene extends BaseScene {
 
   renderHero(x, y, state, mine) {
     const layout = layoutInfo();
-    const canTarget = !mine && (this.selectedAttacker || this.selectedSpell) && !(state.board || []).length;
+    const pending = this.selectedSpell?.card;
+    const side = this.targetSide(pending);
+    const heroOk = this.allowsHeroTarget(pending);
+    const canTargetSpell = !!pending && heroOk && (
+      (side === 'enemy' && !mine && !(state.board || []).length)
+      || (side === 'ally' && mine)
+    );
+    const canTargetAttack = !mine && !!this.selectedAttacker && !(state.board || []).length;
+    const canTarget = canTargetSpell || canTargetAttack;
     const hero = this.add.container(x, y);
     const width = layout.portrait ? 280 : 230;
     const rect = this.add.rectangle(0, 0, width, 76, canTarget ? 0x513a22 : palette.panel2, 0.95)
@@ -193,24 +295,31 @@ export class MatchScene extends BaseScene {
     const startX = layout.portrait
       ? layout.centerX - totalW / 2
       : 430;
+    const pending = this.selectedSpell?.card;
+    const side = this.targetSide(pending);
     board.forEach((minion, index) => {
       const source = this.getCard('MINION', minion.cardId) || {};
       const card = { ...source, ...minion, health: minion.currentHealth };
+      const canBeSpellTarget = !!pending && (
+        (side === 'enemy' && !mine && !minion.stealth)
+        || (side === 'ally' && mine)
+      );
+      const canBeAttackTarget = !mine && !!this.selectedAttacker && !minion.stealth;
+      const canBeTarget = canBeSpellTarget || canBeAttackTarget;
       const view = new CardGameObject(this, startX + index * gap, y, card, {
         width: layout.portrait ? 88 : 105,
         height: layout.portrait ? 122 : 145,
-        selected: this.selectedAttacker === minion.instanceId,
+        selected: this.selectedAttacker === minion.instanceId || canBeTarget,
       });
       this.cardViews.set(minion.instanceId, view);
-      if (mine && isMyTurn && minion.canAttack) {
+      if (canBeTarget) {
+        view.on('pointerdown', () => this.useTarget(minion.instanceId));
+      } else if (mine && isMyTurn && minion.canAttack && !this.selectedSpell) {
         view.on('pointerdown', () => {
           this.selectedAttacker = this.selectedAttacker === minion.instanceId ? null : minion.instanceId;
           this.selectedSpell = null;
           this.render();
         });
-      }
-      if (!mine && (this.selectedAttacker || this.selectedSpell) && !minion.stealth) {
-        view.on('pointerdown', () => this.useTarget(minion.instanceId));
       }
     });
   }
@@ -243,14 +352,21 @@ export class MatchScene extends BaseScene {
       view.setAlpha(canPlay ? 1 : 0.48);
       if (canPlay) {
         view.on('pointerdown', () => {
-          if (slot.cardType === 'SPELL' && (card.damage || 0) > 0) {
-            this.selectedSpell = this.selectedSpell?.instanceId === slot.instanceId ? null : { ...slot, card };
+          if (this.needsTarget(card)) {
+            const side = this.targetSide(card);
+            if (side === 'ally' && !(me.board || []).length && !this.allowsHeroTarget(card)) {
+              this.addMessage('Нет союзных миньонов для бафа', '#ffb3b3');
+              return;
+            }
+            this.selectedSpell = this.selectedSpell?.instanceId === slot.instanceId
+              ? null
+              : { ...slot, card };
             this.selectedAttacker = null;
             this.render();
-          } else {
-            view.playCardEffect();
-            this.playCard(slot.instanceId, (me.board || []).length, null);
+            return;
           }
+          view.playCardEffect();
+          this.playCard(slot.instanceId, (me.board || []).length, null);
         });
       }
     });
@@ -262,13 +378,11 @@ export class MatchScene extends BaseScene {
       if (!this.cardViews.has(instanceId)) {
         playCardSound(this.findHandCard(instanceId));
       }
-      if (matchSocket.client?.connected) {
-        matchSocket.publish(`/app/matches/${this.match.id}/play`, { instanceId, targetPosition, targetInstanceId });
-      } else {
-        const { data } = await api.post(`/api/matches/${this.match.id}/play`, { instanceId, targetPosition, targetInstanceId });
-        this.match = data;
-        this.render();
-      }
+      await this.sendMatchAction(
+        `/app/matches/${this.match.id}/play`,
+        { instanceId, targetPosition, targetInstanceId },
+        () => api.post(`/api/matches/${this.match.id}/play`, { instanceId, targetPosition, targetInstanceId }),
+      );
     } catch (err) {
       this.addMessage(err.response?.data?.message || err.message || 'Ошибка розыгрыша', '#ffb3b3');
     }
@@ -287,13 +401,11 @@ export class MatchScene extends BaseScene {
       const attackerView = this.cardViews.get(attackerInstanceId);
       attackerView?.playCardEffect('attack');
       if (targetInstanceId !== 'hero') this.cardViews.get(targetInstanceId)?.playHitEffect();
-      if (matchSocket.client?.connected) {
-        matchSocket.publish(`/app/matches/${this.match.id}/attack`, { attackerInstanceId, targetInstanceId });
-      } else {
-        const { data } = await api.post(`/api/matches/${this.match.id}/attack`, { attackerInstanceId, targetInstanceId });
-        this.match = data;
-        this.render();
-      }
+      await this.sendMatchAction(
+        `/app/matches/${this.match.id}/attack`,
+        { attackerInstanceId, targetInstanceId },
+        () => api.post(`/api/matches/${this.match.id}/attack`, { attackerInstanceId, targetInstanceId }),
+      );
     } catch (err) {
       this.addMessage(err.response?.data?.message || err.message || 'Ошибка атаки', '#ffb3b3');
     }
@@ -307,24 +419,40 @@ export class MatchScene extends BaseScene {
       return;
     }
     if (this.selectedSpell) {
-      const spell = this.selectedSpell;
+      const pending = this.selectedSpell;
+      const isPlayer1 = this.match?.player1Id === session.user?.id;
+      const me = isPlayer1 ? this.match?.gameState?.player1 : this.match?.gameState?.player2;
       this.selectedSpell = null;
-      this.playCard(spell.instanceId, null, targetInstanceId);
+      this.playCard(pending.instanceId, (me?.board || []).length, targetInstanceId);
     }
   }
 
   async endTurn() {
     try {
-      if (matchSocket.client?.connected) {
-        matchSocket.publish(`/app/matches/${this.match.id}/end-turn`);
-      } else {
-        const { data } = await api.post(`/api/matches/${this.match.id}/end-turn`);
-        this.match = data;
-        this.render();
-      }
+      await this.sendMatchAction(
+        `/app/matches/${this.match.id}/end-turn`,
+        {},
+        () => api.post(`/api/matches/${this.match.id}/end-turn`),
+      );
     } catch (err) {
       this.addMessage(err.response?.data?.message || err.message || 'Ошибка завершения хода', '#ffb3b3');
     }
+  }
+
+  async sendMatchAction(wsDestination, wsBody, restCall) {
+    if (matchSocket.connected) {
+      try {
+        matchSocket.publish(wsDestination, wsBody);
+        // Mobile WS often drops the topic push — pull state shortly after action.
+        this.time.delayedCall(400, () => this.refreshMatchFromApi(true));
+        this.time.delayedCall(1200, () => this.refreshMatchFromApi(true));
+        return;
+      } catch {
+        // fall through to REST
+      }
+    }
+    const { data } = await restCall();
+    this.applyMatchUpdate(data, this.match);
   }
 
   animateDiff(previous) {
