@@ -58,10 +58,11 @@ export class PlayScene extends BaseScene {
         this.waitForMatch(data.id);
         return;
       }
-      if (data.status === 'IN_PROGRESS' || data.status === 'FINISHED') {
+      if (data.status === 'IN_PROGRESS') {
         this.scene.start('MatchScene', { match: data, cards: this.cards });
         return;
       }
+      // FINISHED / unknown — don't trap the player back into the match.
       sessionStorage.removeItem(ACTIVE_MATCH_KEY);
       this.render();
     } catch {
@@ -81,7 +82,19 @@ export class PlayScene extends BaseScene {
     this.clearScene();
     const layout = layoutInfo();
     this.drawBackground('Поиск матча');
-    this.addBackButton();
+    this.addButton(
+      layout.portrait ? 100 : 82,
+      layout.portrait ? GAME_HEIGHT - 90 : GAME_HEIGHT - 44,
+      120,
+      40,
+      'Назад',
+      () => {
+        this.cleanupWaiting();
+        sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+        this.goto('MenuScene');
+      },
+      { fontSize: 16 },
+    );
     const panelY = layout.portrait ? 420 : 360;
     const panelH = layout.portrait ? 560 : 450;
     this.addPanel(layout.centerX, panelY, layout.portrait ? 620 : 760, panelH);

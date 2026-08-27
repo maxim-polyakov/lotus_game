@@ -188,7 +188,7 @@ export class MatchScene extends BaseScene {
   renderError(message) {
     this.clearScene();
     this.drawBackground('Матч');
-    this.addBackButton('PlayScene');
+    this.addButton(100, GAME_HEIGHT - 90, 120, 40, 'Выход', () => this.leaveMatch(), { fontSize: 16 });
     this.addMessage(message, '#ffb3b3', GAME_HEIGHT / 2);
   }
 
@@ -203,7 +203,7 @@ export class MatchScene extends BaseScene {
       120,
       40,
       'Выход',
-      () => this.scene.start('PlayScene'),
+      () => this.leaveMatch(),
       { fontSize: 16 },
     );
     if (!this.match?.gameState) {
@@ -254,16 +254,26 @@ export class MatchScene extends BaseScene {
     if (this.match.status === 'FINISHED') {
       const result = this.match.winnerId === session.user?.id ? 'Победа!' : this.match.winnerId ? 'Поражение' : 'Ничья';
       this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, layout.portrait ? 520 : 500, 180, 0x000000, 0.78);
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, result, {
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 24, result, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: layout.portrait ? '40px' : '46px',
         color: this.match.winnerId === session.user?.id ? '#99ffb0' : '#ffb3b3',
         fontStyle: 'bold',
       }).setOrigin(0.5);
+      this.addButton(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 48, 200, 44, 'В меню', () => this.leaveMatch(), {
+        fill: palette.primaryDark,
+        fontSize: 18,
+      });
       sessionStorage.removeItem(ACTIVE_MATCH_KEY);
     }
 
     this.animateDiff(previous);
+  }
+
+  leaveMatch() {
+    this.cleanup();
+    sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+    this.scene.start('PlayScene');
   }
 
   renderHero(x, y, state, mine) {
