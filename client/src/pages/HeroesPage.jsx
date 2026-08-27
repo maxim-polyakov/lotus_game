@@ -30,12 +30,14 @@ export class HeroesScene extends ListScene {
       const panel = this.add.rectangle(x, y, layout.portrait ? 260 : 230, 140, hero.unlocked === false ? 0x252a36 : palette.panel2, 0.95)
         .setStrokeStyle(2, selected ? palette.primary : 0x53627a)
         .setInteractive({ useHandCursor: hero.unlocked !== false });
-      this.add.circle(x, y - 36, 34, selected ? palette.primaryDark : 0x3c4964);
-      this.add.text(x, y - 50, (hero.name || '?').slice(0, 1), {
+      const avatarY = y - 36;
+      this.add.circle(x, avatarY, 34, selected ? palette.primaryDark : 0x3c4964);
+      this.add.text(x, avatarY, (hero.name || '?').slice(0, 1).toUpperCase(), {
         fontFamily: 'Segoe UI, Arial',
-        fontSize: '34px',
+        fontSize: '30px',
         color: '#ffffff',
         fontStyle: 'bold',
+        align: 'center',
       }).setOrigin(0.5);
       this.add.text(x, y + 4, hero.name || hero.id, {
         fontFamily: 'Segoe UI, Arial',

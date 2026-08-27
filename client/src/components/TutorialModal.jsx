@@ -13,7 +13,8 @@ import './TutorialModal.css';
 
 export class BaseScene extends Phaser.Scene {
   clearScene() {
-    // DOMElement HTML nodes can survive removeAll and stack on top of each other.
+    // Destroy this scene's DOM nodes only — never wipe the shared game.domContainer
+    // (parallel scenes like ChatScene keep their own DOM there).
     [...(this.children?.list || [])].forEach((child) => {
       if (child?.type === 'DOMElement') {
         try {
@@ -26,12 +27,6 @@ export class BaseScene extends Phaser.Scene {
     });
     this.children.removeAll(true);
     this.input.removeAllListeners();
-    const domContainer = this.sys?.game?.domContainer;
-    if (domContainer) {
-      while (domContainer.firstChild) {
-        domContainer.removeChild(domContainer.firstChild);
-      }
-    }
   }
 
   drawBackground(title) {

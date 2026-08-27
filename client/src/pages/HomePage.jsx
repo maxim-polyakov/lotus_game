@@ -8,6 +8,7 @@ import { BaseScene } from '../components/TutorialModal';
 import { sceneForCurrentRoute, authModeForCurrentRoute } from '../components/NavDropdown';
 import { completeOAuthCallback, loadCurrentUser } from '../components/FriendOnlinePopup';
 import { matchSocket } from '../components/WaitingMatch';
+import { ensureChatScene, stopChatScene } from '../components/ChatWidget';
 import { clearTokens } from '../utils/tokenStorage';
 
 export class BootScene extends BaseScene {
@@ -33,6 +34,7 @@ export class BootScene extends BaseScene {
         this.scene.start('AuthScene', { mode: authModeForCurrentRoute() });
         return;
       }
+      if (session.user) ensureChatScene(this);
       this.scene.start(targetScene, targetScene === 'AuthScene' ? { mode: authModeForCurrentRoute() } : {});
     });
   }
@@ -46,6 +48,7 @@ export class MenuScene extends BaseScene {
   create() {
     const layout = layoutInfo();
     this.drawBackground('Lotus Game');
+    if (session.user) ensureChatScene(this);
     this.addPanel(layout.centerX, layout.portrait ? 630 : 370, layout.portrait ? 560 : 620, layout.portrait ? 900 : 520);
     this.add.text(layout.centerX, layout.portrait ? 170 : 150, session.user ? `Добро пожаловать, ${session.user.username}` : 'Гость', {
       fontFamily: 'Segoe UI, Arial',
@@ -81,6 +84,7 @@ export class MenuScene extends BaseScene {
       clearTokens();
       session.user = null;
       matchSocket.disconnect();
+      stopChatScene(this);
       this.goto('AuthScene');
     }, { fill: 0x52303a, stroke: palette.danger });
   }

@@ -22,6 +22,7 @@ import { ReplayViewerScene } from '../pages/ReplayPage';
 import { FriendsScene } from '../pages/FriendsPage';
 import { NotificationsScene } from '../pages/NotificationsPage';
 import { AdminScene } from '../pages/AdminCabinetPage';
+import { ChatScene } from '../components/ChatWidget';
 
 export {
   GAME_WIDTH,
@@ -77,6 +78,7 @@ export function createLotusGame(parent) {
       FriendsScene,
       NotificationsScene,
       AdminScene,
+      ChatScene,
     ],
   });
 }

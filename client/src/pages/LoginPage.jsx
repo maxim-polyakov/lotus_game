@@ -3,6 +3,7 @@ import { setTokens } from '../utils/tokenStorage';
 import { layoutInfo } from '../game/shared';
 import { BaseScene } from '../components/TutorialModal';
 import { loadCurrentUser, loginUser } from '../components/FriendOnlinePopup';
+import { ensureChatScene } from '../components/ChatWidget';
 
 export class AuthScene extends BaseScene {
   constructor() {
@@ -114,6 +115,7 @@ export class AuthScene extends BaseScene {
         const { data } = await api.post('/api/auth/verify-email', values);
         setTokens(data.accessToken, data.refreshToken, true);
         await loadCurrentUser();
+        ensureChatScene(this);
         this.goto('MenuScene');
         return;
       }
@@ -128,6 +130,7 @@ export class AuthScene extends BaseScene {
         return;
       }
       await loginUser(values.usernameOrEmail, values.password, values.rememberMe === 'yes');
+      ensureChatScene(this);
       this.goto('MenuScene');
     } catch (err) {
       this.render(err.response?.data?.message || err.message || 'Ошибка');
