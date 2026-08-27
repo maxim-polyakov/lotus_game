@@ -34,7 +34,7 @@ public class MeController {
         body.put("id", user.getId());
         body.put("username", user.getUsername());
         body.put("email", user.getEmail());
-        body.put("avatarUrl", user.getAvatarUrl());
+        body.put("avatarUrl", dbUser != null ? dbUser.getAvatarUrl() : user.getAvatarUrl());
         body.put("rating", dbUser != null ? dbUser.getRating() : 1000);
         body.put("gold", dbUser != null ? dbUser.getGold() : 0);
         body.put("dust", dbUser != null ? dbUser.getDust() : 0);

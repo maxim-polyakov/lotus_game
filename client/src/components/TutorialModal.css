@@ -132,6 +132,19 @@
   width: 320px;
 }
 
+.profile-form {
+  width: 300px;
+}
+
+.profile-form > strong {
+  color: #f6ead2;
+  font: 600 14px 'Segoe UI', system-ui, sans-serif;
+}
+
+.profile-form .admin-upload-field {
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .phaser-form,
   .auth-form {

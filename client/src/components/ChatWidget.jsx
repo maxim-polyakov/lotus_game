@@ -61,6 +61,12 @@ export class ChatScene extends Phaser.Scene {
     this.matchSub = null;
     this.matchPoll = null;
     this.dom = null;
+    this.dragX = null;
+    this.dragY = null;
+    this.sizeW = 360;
+    this.sizeH = 420;
+    this._dragCleanup = null;
+    this._resizeCleanup = null;
 
     this.events.once('shutdown', () => this.teardown());
     this.events.once('destroy', () => this.teardown());
@@ -93,12 +99,211 @@ export class ChatScene extends Phaser.Scene {
   }
 
   destroyDom() {
+    if (this._dragCleanup) {
+      try { this._dragCleanup(); } catch { /* ignore */ }
+      this._dragCleanup = null;
+    }
+    if (this._resizeCleanup) {
+      try { this._resizeCleanup(); } catch { /* ignore */ }
+      this._resizeCleanup = null;
+    }
     if (this.dom) {
       try {
         this.dom.destroy(true);
       } catch { /* ignore */ }
       this.dom = null;
     }
+  }
+
+  pointerToGame(clientX, clientY) {
+    const canvas = this.sys?.game?.canvas;
+    if (!canvas) return { x: clientX, y: clientY };
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { x: clientX, y: clientY };
+    return {
+      x: ((clientX - rect.left) / rect.width) * GAME_WIDTH,
+      y: ((clientY - rect.top) / rect.height) * GAME_HEIGHT,
+    };
+  }
+
+  clampPos(x, y) {
+    const margin = this.collapsed ? 50 : 120;
+    return {
+      x: Math.min(GAME_WIDTH - margin, Math.max(margin, x)),
+      y: Math.min(GAME_HEIGHT - margin, Math.max(margin, y)),
+    };
+  }
+
+  defaultPanel() {
+    const layout = layoutInfo();
+    if (this.collapsed) {
+      return {
+        x: layout.portrait ? GAME_WIDTH - 110 : GAME_WIDTH - 120,
+        y: layout.portrait ? GAME_HEIGHT - 70 : GAME_HEIGHT - 60,
+      };
+    }
+    return {
+      x: layout.portrait ? GAME_WIDTH / 2 : GAME_WIDTH - 210,
+      y: layout.portrait ? GAME_HEIGHT - 340 : GAME_HEIGHT - 300,
+    };
+  }
+
+  panelPosition() {
+    if (this.dragX != null && this.dragY != null) {
+      return this.clampPos(this.dragX, this.dragY);
+    }
+    return this.defaultPos();
+  }
+
+  bindDrag(root) {
+    const handle = root.querySelector('[data-chat-drag]');
+    if (!handle || !this.dom) return;
+
+    let dragging = false;
+    let moved = false;
+    let offsetX = 0;
+    let offsetY = 0;
+    let startClientX = 0;
+    let startClientY = 0;
+
+    const onDown = (event) => {
+      if (event.button != null && event.button !== 0) return;
+      if (event.target.closest('[data-chat-collapse], [data-chat-resize], input, textarea, select, a, [data-chat-tab], [data-open-private], [data-open-dialog], .chat-widget-send button')) {
+        return;
+      }
+      const pt = this.pointerToGame(event.clientX, event.clientY);
+      dragging = true;
+      moved = false;
+      startClientX = event.clientX;
+      startClientY = event.clientY;
+      offsetX = this.dom.x - pt.x;
+      offsetY = this.dom.y - pt.y;
+      handle.classList.add('is-dragging');
+      try { handle.setPointerCapture?.(event.pointerId); } catch { /* ignore */ }
+      event.preventDefault();
+    };
+
+    const onMove = (event) => {
+      if (!dragging || !this.dom || this._dead) return;
+      if (Math.abs(event.clientX - startClientX) + Math.abs(event.clientY - startClientY) > 4) {
+        moved = true;
+      }
+      const pt = this.pointerToGame(event.clientX, event.clientY);
+      const next = this.clampPos(pt.x + offsetX, pt.y + offsetY);
+      this.dom.x = next.x;
+      this.dom.y = next.y;
+      this.dragX = next.x;
+      this.dragY = next.y;
+    };
+
+    const onUp = (event) => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('is-dragging');
+      try { handle.releasePointerCapture?.(event.pointerId); } catch { /* ignore */ }
+      // Prevent accidental expand/collapse after a drag gesture.
+      if (moved) {
+        const blockClick = (clickEvent) => {
+          clickEvent.stopPropagation();
+          clickEvent.preventDefault();
+        };
+        handle.addEventListener('click', blockClick, { capture: true, once: true });
+      }
+    };
+
+    handle.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+
+    this._dragCleanup = () => {
+      handle.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      handle.classList.remove('is-dragging');
+    };
+  }
+
+  clampSize(width, height) {
+    const maxW = Math.min(620, GAME_WIDTH - 24);
+    const maxH = Math.min(720, GAME_HEIGHT - 24);
+    return {
+      width: Math.min(maxW, Math.max(280, width)),
+      height: Math.min(maxH, Math.max(300, height)),
+    };
+  }
+
+  bindResize(root) {
+    const handle = root.querySelector('[data-chat-resize]');
+    const widget = root.querySelector('.chat-widget--phaser:not(.chat-widget--collapsed)');
+    if (!handle || !widget || !this.dom) return;
+
+    let resizing = false;
+    let startClientX = 0;
+    let startClientY = 0;
+    let startW = 0;
+    let startH = 0;
+    let left = 0;
+    let top = 0;
+
+    const onDown = (event) => {
+      if (event.button != null && event.button !== 0) return;
+      resizing = true;
+      startClientX = event.clientX;
+      startClientY = event.clientY;
+      startW = this.sizeW;
+      startH = this.sizeH;
+      left = this.dom.x - this.sizeW / 2;
+      top = this.dom.y - this.sizeH / 2;
+      handle.classList.add('is-resizing');
+      try { handle.setPointerCapture?.(event.pointerId); } catch { /* ignore */ }
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    const onMove = (event) => {
+      if (!resizing || !this.dom || this._dead) return;
+      const canvas = this.sys?.game?.canvas;
+      const rect = canvas?.getBoundingClientRect?.();
+      const scaleX = rect?.width ? GAME_WIDTH / rect.width : 1;
+      const scaleY = rect?.height ? GAME_HEIGHT / rect.height : 1;
+      const next = this.clampSize(
+        startW + (event.clientX - startClientX) * scaleX,
+        startH + (event.clientY - startClientY) * scaleY,
+      );
+      this.sizeW = next.width;
+      this.sizeH = next.height;
+      widget.style.width = `${this.sizeW}px`;
+      widget.style.height = `${this.sizeH}px`;
+      const pos = this.clampPos(left + this.sizeW / 2, top + this.sizeH / 2);
+      this.dom.x = pos.x;
+      this.dom.y = pos.y;
+      this.dragX = pos.x;
+      this.dragY = pos.y;
+      if (typeof this.dom.updateSize === 'function') this.dom.updateSize();
+    };
+
+    const onUp = (event) => {
+      if (!resizing) return;
+      resizing = false;
+      handle.classList.remove('is-resizing');
+      try { handle.releasePointerCapture?.(event.pointerId); } catch { /* ignore */ }
+      if (typeof this.dom?.updateSize === 'function') this.dom.updateSize();
+    };
+
+    handle.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+
+    this._resizeCleanup = () => {
+      handle.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      handle.classList.remove('is-resizing');
+    };
   }
 
   currentChannelKey() {
@@ -322,20 +527,6 @@ export class ChatScene extends Phaser.Scene {
     }
   }
 
-  panelPosition() {
-    const layout = layoutInfo();
-    if (this.collapsed) {
-      return {
-        x: layout.portrait ? GAME_WIDTH - 110 : GAME_WIDTH - 120,
-        y: layout.portrait ? GAME_HEIGHT - 70 : GAME_HEIGHT - 60,
-      };
-    }
-    return {
-      x: layout.portrait ? GAME_WIDTH / 2 : GAME_WIDTH - 210,
-      y: layout.portrait ? GAME_HEIGHT - 340 : GAME_HEIGHT - 300,
-    };
-  }
-
   renderUi() {
     if (this._dead) return;
     this.destroyDom();
@@ -349,6 +540,8 @@ export class ChatScene extends Phaser.Scene {
     if (typeof this.dom.updateSize === 'function') this.dom.updateSize();
     this.dom.setDepth(1000);
     this.bindDom(this.dom.node);
+    this.bindDrag(this.dom.node);
+    this.bindResize(this.dom.node);
 
     requestAnimationFrame(() => {
       try {
@@ -366,7 +559,7 @@ export class ChatScene extends Phaser.Scene {
   collapsedHtml(unread) {
     return `
       <div class="chat-widget chat-widget--collapsed chat-widget--phaser">
-        <button type="button" class="chat-fab" data-chat-expand>
+        <button type="button" class="chat-fab" data-chat-expand data-chat-drag title="Перетащите или откройте">
           Чат${unread > 0 ? ` (${unread})` : ''}
         </button>
       </div>`;
@@ -406,8 +599,9 @@ export class ChatScene extends Phaser.Scene {
     }).join('');
 
     return `
-      <div class="chat-widget chat-widget--phaser chat-widget--theme-${this.activeTab.toLowerCase()}">
-        <div class="chat-widget-head">
+      <div class="chat-widget chat-widget--phaser chat-widget--theme-${this.activeTab.toLowerCase()}"
+        style="width:${Math.round(this.sizeW)}px;height:${Math.round(this.sizeH)}px;max-width:none;">
+        <div class="chat-widget-head" data-chat-drag title="Перетащите окно">
           <div class="chat-widget-title-wrap">
             <span class="chat-widget-title">Lotus Chat</span>
             <span class="chat-widget-conn ${this.connected ? 'chat-widget-conn--online' : 'chat-widget-conn--offline'}">
@@ -445,6 +639,7 @@ export class ChatScene extends Phaser.Scene {
           <input type="text" name="text" maxlength="500" placeholder="Сообщение..." autocomplete="off" />
           <button type="submit">➤</button>
         </form>
+        <div class="chat-resize" data-chat-resize title="Растянуть"></div>
       </div>`;
   }
 

@@ -2,12 +2,16 @@
   --chat-accent: #d7aa45;
   --chat-accent-soft: rgba(215, 170, 69, 0.14);
   --chat-accent-border: rgba(215, 170, 69, 0.45);
+  position: relative;
   width: 360px;
   max-width: min(360px, 92vw);
+  min-width: 280px;
+  min-height: 300px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 12px;
+  padding-bottom: 18px;
   border-radius: 14px;
   background: rgba(16, 20, 31, 0.96);
   border: 1px solid var(--chat-accent-border);
@@ -16,6 +20,7 @@
   font: 13px 'Segoe UI', system-ui, sans-serif;
   box-sizing: border-box;
   pointer-events: auto;
+  overflow: hidden;
 }
 
 .chat-widget--theme-general {
@@ -53,7 +58,9 @@
   background: rgba(28, 36, 52, 0.95);
   color: #f6ead2;
   font: 600 14px 'Segoe UI', system-ui, sans-serif;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .chat-fab:hover {
@@ -65,6 +72,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  padding: 2px 0 4px;
+}
+
+.chat-widget-head.is-dragging,
+.chat-fab.is-dragging {
+  cursor: grabbing;
 }
 
 .chat-widget-title-wrap {
@@ -237,7 +253,9 @@
 }
 
 .chat-widget-messages {
-  height: 180px;
+  flex: 1 1 auto;
+  min-height: 100px;
+  height: auto;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -246,6 +264,26 @@
   border-radius: 10px;
   background: rgba(10, 14, 22, 0.72);
   border: 1px solid rgba(84, 98, 122, 0.45);
+}
+
+.chat-resize {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-radius: 0 0 12px 0;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(215, 170, 69, 0.35) 50%),
+    linear-gradient(135deg, transparent 65%, rgba(215, 170, 69, 0.7) 65%);
+}
+
+.chat-resize.is-resizing {
+  background:
+    linear-gradient(135deg, transparent 45%, rgba(215, 170, 69, 0.55) 45%),
+    linear-gradient(135deg, transparent 60%, rgba(255, 225, 140, 0.95) 60%);
 }
 
 .chat-msg {
@@ -304,10 +342,6 @@
 
 @media (max-width: 768px) {
   .chat-widget--phaser:not(.chat-widget--collapsed) {
-    width: 300px;
-  }
-
-  .chat-widget-messages {
-    height: 150px;
+    min-width: 260px;
   }
 }
