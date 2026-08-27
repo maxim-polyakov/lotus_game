@@ -152,7 +152,7 @@ export class ChatScene extends Phaser.Scene {
     if (this.dragX != null && this.dragY != null) {
       return this.clampPos(this.dragX, this.dragY);
     }
-    return this.defaultPos();
+    return this.defaultPanel();
   }
 
   bindDrag(root) {
