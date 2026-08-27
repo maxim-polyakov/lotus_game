@@ -25,10 +25,26 @@ export const session = {
   selectedHeroId: localStorage.getItem('lotus_selected_hero_id') || DEFAULT_HERO_ID,
 };
 
+function viewportSize() {
+  if (typeof window === 'undefined') {
+    return { width: LANDSCAPE_WIDTH, height: LANDSCAPE_HEIGHT };
+  }
+  const vv = window.visualViewport;
+  return {
+    width: Math.round(vv?.width || window.innerWidth || LANDSCAPE_WIDTH),
+    height: Math.round(vv?.height || window.innerHeight || LANDSCAPE_HEIGHT),
+  };
+}
+
+export function isPortraitViewport() {
+  const { width, height } = viewportSize();
+  return height > width;
+}
+
 export function resolveGameSize() {
-  if (typeof window === 'undefined') return { width: LANDSCAPE_WIDTH, height: LANDSCAPE_HEIGHT };
-  const portrait = window.innerHeight > window.innerWidth && window.innerWidth <= 820;
-  if (portrait) return { width: PORTRAIT_WIDTH, height: PORTRAIT_HEIGHT };
+  if (isPortraitViewport()) {
+    return { width: PORTRAIT_WIDTH, height: PORTRAIT_HEIGHT };
+  }
   return { width: LANDSCAPE_WIDTH, height: LANDSCAPE_HEIGHT };
 }
 

@@ -140,7 +140,7 @@ export class MatchScene extends BaseScene {
         color: isMyTurn ? '#ffe18c' : palette.muted,
       }).setOrigin(0.5);
       if (isMyTurn) {
-        this.addButton(GAME_WIDTH - 140, 350, 160, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
+        this.addButton(layout.centerX + 280, 350, 160, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
       }
     }
 

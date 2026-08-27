@@ -1,6 +1,5 @@
 import api from '../api/client';
 import {
-  GAME_WIDTH,
   GAME_HEIGHT,
   ACTIVE_MATCH_KEY,
   DEFAULT_HERO_ID,
@@ -98,8 +97,9 @@ export class PlayScene extends BaseScene {
 
     if (layout.portrait) {
       const btnY = 380;
-      this.addButton(layout.centerX - 150, btnY, 180, 48, 'Герой +', cycleHero);
-      this.addButton(layout.centerX + 150, btnY, 180, 48, 'Колода +', cycleDeck);
+      const gap = 200;
+      this.addButton(layout.centerX - gap / 2, btnY, 180, 48, 'Герой +', cycleHero);
+      this.addButton(layout.centerX + gap / 2, btnY, 180, 48, 'Колода +', cycleDeck);
       this.addButton(layout.centerX, btnY + 70, 200, 48, 'Режим', cycleMode);
       this.addButton(layout.centerX, btnY + 160, 280, 56, 'Найти матч', () => this.findMatch(deck, hero), {
         fill: palette.primaryDark,
@@ -108,10 +108,11 @@ export class PlayScene extends BaseScene {
       });
       if (status) this.addMessage(status, palette.text, btnY + 250);
     } else {
-      this.addButton(440, 360, 170, 44, 'Герой +', cycleHero);
-      this.addButton(640, 360, 170, 44, 'Колода +', cycleDeck);
-      this.addButton(840, 360, 170, 44, 'Режим', cycleMode);
-      this.addButton(GAME_WIDTH / 2, 460, 260, 56, 'Найти матч', () => this.findMatch(deck, hero), {
+      const rowY = 360;
+      this.addButton(layout.centerX - 200, rowY, 170, 44, 'Герой +', cycleHero);
+      this.addButton(layout.centerX, rowY, 170, 44, 'Колода +', cycleDeck);
+      this.addButton(layout.centerX + 200, rowY, 170, 44, 'Режим', cycleMode);
+      this.addButton(layout.centerX, 460, 260, 56, 'Найти матч', () => this.findMatch(deck, hero), {
         fill: palette.primaryDark,
         stroke: palette.primary,
         fontSize: 22,
