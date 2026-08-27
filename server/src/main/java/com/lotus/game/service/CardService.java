@@ -94,10 +94,10 @@ public class CardService {
                 .battlecryType(req.getBattlecryType() == null || req.getBattlecryType().isBlank() ? null : req.getBattlecryType().trim())
                 .battlecryValue(req.getBattlecryValue())
                 .battlecryTarget(req.getBattlecryTarget() == null || req.getBattlecryTarget().isBlank() ? null : req.getBattlecryTarget().trim())
-                .battlecrySummonCardId(req.getBattlecrySummonCardId())
+                .battlecrySummonCardId(req.getBattlecrySummonCardId() == null || req.getBattlecrySummonCardId() <= 0 ? null : req.getBattlecrySummonCardId())
                 .deathrattleType(req.getDeathrattleType() == null || req.getDeathrattleType().isBlank() ? null : req.getDeathrattleType().trim())
                 .deathrattleValue(req.getDeathrattleValue())
-                .deathrattleSummonCardId(req.getDeathrattleSummonCardId())
+                .deathrattleSummonCardId(req.getDeathrattleSummonCardId() == null || req.getDeathrattleSummonCardId() <= 0 ? null : req.getDeathrattleSummonCardId())
                 .build();
         return CardDto.fromMinion(minionRepository.save(m));
     }
@@ -144,10 +144,14 @@ public class CardService {
         if (req.getBattlecryType() != null) m.setBattlecryType(req.getBattlecryType().isBlank() ? null : req.getBattlecryType());
         if (req.getBattlecryValue() != null) m.setBattlecryValue(req.getBattlecryValue());
         if (req.getBattlecryTarget() != null) m.setBattlecryTarget(req.getBattlecryTarget().isBlank() ? null : req.getBattlecryTarget());
-        if (req.getBattlecrySummonCardId() != null) m.setBattlecrySummonCardId(req.getBattlecrySummonCardId());
+        if (req.getBattlecrySummonCardId() != null) {
+            m.setBattlecrySummonCardId(req.getBattlecrySummonCardId() <= 0 ? null : req.getBattlecrySummonCardId());
+        }
         if (req.getDeathrattleType() != null) m.setDeathrattleType(req.getDeathrattleType().isBlank() ? null : req.getDeathrattleType());
         if (req.getDeathrattleValue() != null) m.setDeathrattleValue(req.getDeathrattleValue());
-        if (req.getDeathrattleSummonCardId() != null) m.setDeathrattleSummonCardId(req.getDeathrattleSummonCardId());
+        if (req.getDeathrattleSummonCardId() != null) {
+            m.setDeathrattleSummonCardId(req.getDeathrattleSummonCardId() <= 0 ? null : req.getDeathrattleSummonCardId());
+        }
         return CardDto.fromMinion(minionRepository.save(m));
     }
 

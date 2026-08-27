@@ -38,3 +38,12 @@ body,
   display: block;
   touch-action: none;
 }
+
+/* DOM layer sits above the canvas; only real widgets should capture taps. */
+#lotus-game-root .dom-container {
+  pointer-events: none !important;
+}
+
+#lotus-game-root .dom-container > * {
+  pointer-events: auto;
+}

@@ -2,6 +2,19 @@
   display: block;
   margin: 0;
   padding: 0;
+  pointer-events: none;
+}
+
+.phaser-dom-wrap > *:not(.chat-widget--collapsed) {
+  pointer-events: auto;
+}
+
+.phaser-dom-wrap > .chat-widget--collapsed {
+  pointer-events: none;
+}
+
+.phaser-dom-wrap > .chat-widget--collapsed .chat-fab {
+  pointer-events: auto;
 }
 
 .phaser-form {

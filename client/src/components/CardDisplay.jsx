@@ -46,6 +46,25 @@ export function playCardSound(card, kind = 'play') {
   if (url) playSoundFromUrl(url);
 }
 
+/** Short Russian labels for keywords / battlecry / deathrattle. */
+export function cardEffectLabels(card) {
+  if (!card) return [];
+  const labels = [];
+  if (card.taunt) labels.push('Провокация');
+  if (card.charge) labels.push('Рывок');
+  if (card.divineShield) labels.push('Щит');
+  if (card.windfury) labels.push('Ветроярость');
+  if (card.stealth) labels.push('Стелс');
+  if (card.poisonous) labels.push('Яд');
+  if (card.lifesteal) labels.push('Вампиризм');
+  if (card.rush) labels.push('Натиск');
+  const battlecry = String(card.battlecryType || '').toUpperCase();
+  if (battlecry && battlecry !== 'NONE') labels.push('Боевой клич');
+  const deathrattle = String(card.deathrattleType || '').toUpperCase();
+  if (deathrattle && deathrattle !== 'NONE') labels.push('Предсмертный');
+  return labels;
+}
+
 export class CardGameObject extends Phaser.GameObjects.Container {
   constructor(scene, x, y, card, options = {}) {
     super(scene, x, y);
@@ -53,8 +72,9 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     this.options = options;
     this.w = options.width || 105;
     this.h = options.height || 145;
-    this.build();
+    // Must be in the display list before setInteractive, or hits are unreliable.
     scene.add.existing(this);
+    this.build();
   }
 
   build() {
@@ -97,6 +117,8 @@ export class CardGameObject extends Phaser.GameObjects.Container {
       wordWrap: { width: this.w - 12 },
     }).setOrigin(0.5));
 
+    this.addEffectLabels(compact, artY, artHeight);
+
     const desc = this.card?.description || '';
     if (desc && !compact) {
       this.add(this.scene.add.text(0, 62, desc, {
@@ -116,12 +138,42 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     }
 
     this.setSize(this.w, this.h);
-    this.setInteractive(
-      new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h),
-      Phaser.Geom.Rectangle.Contains,
-    );
-    // Prefer immediate press feedback on touch devices.
-    this.input.cursor = 'pointer';
+    // Hit the card body directly — more reliable on mobile than a custom geom on the container.
+    this.bg.setInteractive({ useHandCursor: true });
+    this.bg.on('pointerdown', (pointer, localX, localY, event) => {
+      this.emit('pointerdown', pointer, localX, localY, event);
+    });
+  }
+
+  addEffectLabels(compact, artY, artHeight) {
+    const labels = cardEffectLabels(this.card);
+    if (!labels.length) return;
+    const max = compact ? 2 : 4;
+    const shown = labels.slice(0, max);
+    const fontSize = compact ? '8px' : '10px';
+    const lineH = compact ? 10 : 12;
+    const startY = artY + artHeight / 2 - (shown.length * lineH) / 2;
+    shown.forEach((label, index) => {
+      const y = startY + index * lineH;
+      const w = Math.min(this.w - 10, 4 + label.length * (compact ? 5.2 : 6.2));
+      const badge = this.scene.add.rectangle(0, y, w, lineH - 1, 0x1a2233, 0.9)
+        .setStrokeStyle(1, palette.primary);
+      const text = this.scene.add.text(0, y, label, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize,
+        color: '#ffe9a8',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.add([badge, text]);
+    });
+    if (labels.length > max) {
+      const more = this.scene.add.text(0, startY + shown.length * lineH, `+${labels.length - max}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: compact ? '8px' : '10px',
+        color: '#c9b27a',
+      }).setOrigin(0.5);
+      this.add(more);
+    }
   }
 
   setSelected(selected) {

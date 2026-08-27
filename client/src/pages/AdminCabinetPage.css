@@ -79,10 +79,44 @@
 .admin-upload-block {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(84, 98, 122, 0.55);
+}
+
+.admin-effects {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  margin-top: 2px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(215, 170, 69, 0.35);
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(84, 98, 122, 0.55);
+}
+
+.admin-check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+
+.admin-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f6ead2;
+  font: 12px 'Segoe UI', system-ui, sans-serif;
+  width: auto !important;
+}
+
+.admin-check input[type='checkbox'] {
+  width: 16px !important;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px !important;
+  padding: 0 !important;
+  margin: 0;
+  accent-color: #d7aa45;
 }
 
 .admin-upload-title {

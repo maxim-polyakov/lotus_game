@@ -179,6 +179,7 @@ export class AdminScene extends ListScene {
           <input name="damage" type="number" placeholder="Урон" value="${escapeAttr(card.damage)}" />
         `}
         <input name="description" placeholder="Описание" value="${escapeAttr(card.description)}" />
+        ${isMinion ? this.minionEffectsFieldsHtml(card) : ''}
         <button type="submit">Сохранить карту</button>
 
         <div class="admin-upload-block">
@@ -213,6 +214,101 @@ export class AdminScene extends ListScene {
     });
   }
 
+  keywordCheckbox(name, label, checked) {
+    return `<label class="admin-check"><input type="checkbox" name="${name}" value="true" ${checked ? 'checked' : ''}/> ${label}</label>`;
+  }
+
+  selectOption(value, label, current) {
+    const selected = String(current || '') === String(value) ? 'selected' : '';
+    return `<option value="${escapeAttr(value)}" ${selected}>${escapeAttr(label)}</option>`;
+  }
+
+  minionSummonOptions(selectedId) {
+    const minions = (this.cards || []).filter((c) => c.cardType === 'MINION');
+    const options = [this.selectOption('0', '— нет —', selectedId || 0)];
+    minions.forEach((m) => {
+      options.push(this.selectOption(String(m.id), `${m.name} (#${m.id})`, selectedId));
+    });
+    return options.join('');
+  }
+
+  minionEffectsFieldsHtml(card = {}) {
+    return `
+      <div class="admin-effects">
+        <strong class="admin-upload-title">Ключевые слова</strong>
+        <div class="admin-check-grid">
+          ${this.keywordCheckbox('taunt', 'Провокация', card.taunt)}
+          ${this.keywordCheckbox('charge', 'Рывок', card.charge)}
+          ${this.keywordCheckbox('divineShield', 'Бож. щит', card.divineShield)}
+          ${this.keywordCheckbox('windfury', 'Ветроярость', card.windfury)}
+          ${this.keywordCheckbox('stealth', 'Стелс', card.stealth)}
+          ${this.keywordCheckbox('poisonous', 'Яд', card.poisonous)}
+          ${this.keywordCheckbox('lifesteal', 'Вампиризм', card.lifesteal)}
+          ${this.keywordCheckbox('rush', 'Натиск', card.rush)}
+        </div>
+        <strong class="admin-upload-title">Боевой клич</strong>
+        <select name="battlecryType">
+          ${this.selectOption('', 'Нет', card.battlecryType)}
+          ${this.selectOption('DEAL_DAMAGE', 'Урон', card.battlecryType)}
+          ${this.selectOption('HEAL', 'Лечение', card.battlecryType)}
+          ${this.selectOption('BUFF_ALLY', 'Баф союзника', card.battlecryType)}
+          ${this.selectOption('SUMMON', 'Призыв', card.battlecryType)}
+        </select>
+        <input name="battlecryValue" type="number" placeholder="Значение клича" value="${escapeAttr(card.battlecryValue ?? '')}" />
+        <select name="battlecryTarget">
+          ${this.selectOption('', 'Цель: авто', card.battlecryTarget)}
+          ${this.selectOption('ANY', 'Любая', card.battlecryTarget)}
+          ${this.selectOption('ENEMY', 'Враг', card.battlecryTarget)}
+          ${this.selectOption('FRIENDLY', 'Союзник', card.battlecryTarget)}
+        </select>
+        <select name="battlecrySummonCardId">
+          ${this.minionSummonOptions(card.battlecrySummonCardId)}
+        </select>
+        <strong class="admin-upload-title">Предсмертный хрип</strong>
+        <select name="deathrattleType">
+          ${this.selectOption('', 'Нет', card.deathrattleType)}
+          ${this.selectOption('DEAL_DAMAGE', 'Урон', card.deathrattleType)}
+          ${this.selectOption('SUMMON', 'Призыв', card.deathrattleType)}
+        </select>
+        <input name="deathrattleValue" type="number" placeholder="Значение хрипа" value="${escapeAttr(card.deathrattleValue ?? '')}" />
+        <select name="deathrattleSummonCardId">
+          ${this.minionSummonOptions(card.deathrattleSummonCardId)}
+        </select>
+      </div>
+    `;
+  }
+
+  flagValue(values, key) {
+    const v = values?.[key];
+    return v === true || v === 'true' || v === 'on' || v === '1';
+  }
+
+  minionEffectsPayload(values) {
+    const battlecryType = String(values.battlecryType || '').trim();
+    const deathrattleType = String(values.deathrattleType || '').trim();
+    return {
+      taunt: this.flagValue(values, 'taunt'),
+      charge: this.flagValue(values, 'charge'),
+      divineShield: this.flagValue(values, 'divineShield'),
+      windfury: this.flagValue(values, 'windfury'),
+      stealth: this.flagValue(values, 'stealth'),
+      poisonous: this.flagValue(values, 'poisonous'),
+      lifesteal: this.flagValue(values, 'lifesteal'),
+      rush: this.flagValue(values, 'rush'),
+      battlecryType: battlecryType || '',
+      battlecryValue: values.battlecryValue === '' || values.battlecryValue == null
+        ? 0
+        : Number(values.battlecryValue) || 0,
+      battlecryTarget: String(values.battlecryTarget || '').trim(),
+      battlecrySummonCardId: Number(values.battlecrySummonCardId) || 0,
+      deathrattleType: deathrattleType || '',
+      deathrattleValue: values.deathrattleValue === '' || values.deathrattleValue == null
+        ? 0
+        : Number(values.deathrattleValue) || 0,
+      deathrattleSummonCardId: Number(values.deathrattleSummonCardId) || 0,
+    };
+  }
+
   uploadFieldHtml(name, label, accept, exists) {
     return `
       <label class="admin-upload-field">
@@ -240,7 +336,7 @@ export class AdminScene extends ListScene {
 
   renderCreateCardForm(panelX, panelY) {
     this.addDomForm(panelX, panelY, `
-      <form class="phaser-form admin-create-form">
+      <form class="phaser-form admin-create-form admin-phaser-form" style="max-height:520px">
         <strong>Создать карту</strong>
         <select name="cardType"><option value="MINION">Миньон</option><option value="SPELL">Заклинание</option></select>
         <input name="name" placeholder="Название" required />
@@ -249,6 +345,7 @@ export class AdminScene extends ListScene {
         <input name="health" type="number" placeholder="HP миньона" value="1" />
         <input name="damage" type="number" placeholder="Урон заклинания" value="1" />
         <input name="description" placeholder="Описание" />
+        ${this.minionEffectsFieldsHtml({})}
         <button type="submit">Создать</button>
       </form>
     `, (values) => this.createCard(values));
@@ -318,6 +415,7 @@ export class AdminScene extends ListScene {
             attack: Number(values.attack) || 0,
             health: Number(values.health) || 1,
             description: values.description || '',
+            ...this.minionEffectsPayload(values),
           }
         : {
             name: values.name,
@@ -345,6 +443,7 @@ export class AdminScene extends ListScene {
             attack: Number(values.attack) || 0,
             health: Number(values.health) || 1,
             description: values.description || '',
+            ...this.minionEffectsPayload(values),
           }
         : {
             name: values.name,

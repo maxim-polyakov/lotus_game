@@ -124,13 +124,34 @@ export class MatchScene extends BaseScene {
     this._pendingPrevious = previous ?? this._pendingPrevious ?? null;
     if (this._renderQueued) return;
     this._renderQueued = true;
-    requestAnimationFrame(() => {
+    const run = () => {
+      // Don't rebuild the board under an active finger — clicks feel "missed".
+      if (this.input?.activePointer?.isDown || this.input?.pointer1?.isDown) {
+        requestAnimationFrame(run);
+        return;
+      }
       this._renderQueued = false;
       if (!this.sys?.isActive?.()) return;
       const prev = this._pendingPrevious;
       this._pendingPrevious = null;
       this.render(prev);
+    };
+    requestAnimationFrame(run);
+  }
+
+  clearMatchScene() {
+    [...(this.children?.list || [])].forEach((child) => {
+      if (child?.type === 'DOMElement') {
+        try {
+          child.setVisible(false);
+          child.destroy(true);
+        } catch {
+          // ignore
+        }
+      }
     });
+    // Avoid input.removeAllListeners() — it makes the next taps flaky on mobile.
+    this.children.removeAll(true);
   }
 
   updateSelectionVisuals() {
@@ -289,7 +310,7 @@ export class MatchScene extends BaseScene {
   }
 
   render(previous) {
-    this.clearScene();
+    this.clearMatchScene();
     this.cardViews.clear();
     this.heroViews = [];
     this.turnLabel = null;
@@ -441,6 +462,7 @@ export class MatchScene extends BaseScene {
         height: layout.portrait ? 122 : 145,
         selected: this.selectedAttacker === minion.instanceId || canBeTarget,
       });
+      view.setDepth(mine ? 12 : 8);
       this.cardViews.set(minion.instanceId, view);
       view.on('pointerdown', () => this.handleBoardCardClick(minion, mine, isMyTurn));
     });
@@ -486,6 +508,7 @@ export class MatchScene extends BaseScene {
         height: cardH,
         selected: this.selectedSpell?.instanceId === slot.instanceId,
       });
+      view.setDepth(20);
       this.cardViews.set(slot.instanceId, view);
       const hasMana = me.mana >= (card.manaCost ?? 0);
       const boardFull = (me.board || []).length >= 7;
@@ -538,8 +561,12 @@ export class MatchScene extends BaseScene {
   async attack(attackerInstanceId, targetInstanceId) {
     try {
       const attackerView = this.cardViews.get(attackerInstanceId);
-      // Attack animation without the "play from hand" card sound.
-      attackerView?.playCardEffect('attack', { sound: false });
+      // Attack action plays attack sound (not the hand-play sound).
+      attackerView?.playCardEffect('attack', { sound: true });
+      if (!attackerView) {
+        const source = this.getCard('MINION', this.findBoardMinion(attackerInstanceId)?.cardId);
+        playCardSound(source, 'attack');
+      }
       if (targetInstanceId !== 'hero') this.cardViews.get(targetInstanceId)?.playHitEffect();
       await this.sendMatchAction(
         `/app/matches/${this.match.id}/attack`,
@@ -549,6 +576,12 @@ export class MatchScene extends BaseScene {
     } catch (err) {
       this.addMessage(err.response?.data?.message || err.message || 'Ошибка атаки', '#ffb3b3');
     }
+  }
+
+  findBoardMinion(instanceId) {
+    const gs = this.match?.gameState;
+    return [...(gs?.player1?.board || []), ...(gs?.player2?.board || [])]
+      .find((m) => m.instanceId === instanceId) || null;
   }
 
   useTarget(targetInstanceId) {

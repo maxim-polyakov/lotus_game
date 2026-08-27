@@ -43,10 +43,21 @@
 
 .chat-widget--collapsed {
   width: auto;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
   padding: 0;
+  gap: 0;
   background: transparent;
   border: 0;
   box-shadow: none;
+  overflow: visible;
+  /* Only the FAB should capture clicks — not a large invisible box over the board. */
+  pointer-events: none;
+}
+
+.chat-widget--collapsed .chat-fab {
+  pointer-events: auto;
 }
 
 .chat-fab {

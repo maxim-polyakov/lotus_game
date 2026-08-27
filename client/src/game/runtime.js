@@ -49,8 +49,9 @@ export function createLotusGame(parent) {
     },
     input: {
       activePointers: 3,
+      windowEvents: true,
       touch: {
-        capture: true,
+        capture: false,
       },
     },
     render: {
