@@ -84,8 +84,11 @@ export class AdminScene extends ListScene {
     });
 
     const panelX = layout.portrait ? layout.centerX : 1000;
-    const panelY = layout.portrait ? 855 : 400;
-    this.addPanel(panelX, panelY, layout.portrait ? 620 : 400, layout.portrait ? 700 : 480);
+    const panelW = layout.portrait ? 620 : 420;
+    const panelH = layout.portrait ? 720 : 560;
+    const panelY = layout.portrait ? 860 : 390;
+    this._adminPanel = { x: panelX, y: panelY, w: panelW, h: panelH };
+    this.addPanel(panelX, panelY, panelW, panelH);
 
     const modeLabel = this.formMode === 'create-card'
       ? 'Режим: создание карты'
@@ -94,9 +97,9 @@ export class AdminScene extends ListScene {
         : this.formMode === 'users'
           ? 'Режим: пользователи'
           : 'Режим: редактирование';
-    this.add.text(panelX, layout.portrait ? 520 : 175, modeLabel, {
+    this.add.text(panelX, panelY - panelH / 2 - 14, modeLabel, {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: '16px',
+      fontSize: '15px',
       color: palette.muted,
     }).setOrigin(0.5);
 
@@ -121,9 +124,11 @@ export class AdminScene extends ListScene {
     const isMinion = card.cardType === 'MINION';
     const layout = layoutInfo();
     const assets = this.assetStatus(card);
+    const panelH = this._adminPanel?.h || (layout.portrait ? 720 : 560);
+    const formMaxH = Math.max(280, panelH - 36);
 
-    const editDom = this.addDomForm(panelX, panelY - 10, `
-      <form class="phaser-form admin-phaser-form">
+    const editDom = this.addDomForm(panelX, panelY, `
+      <form class="phaser-form admin-phaser-form" style="max-height:${formMaxH}px">
         <strong>${escapeAttr(card.cardType)} #${card.id}</strong>
         <input name="name" placeholder="Название" value="${escapeAttr(card.name)}" required />
         <input name="manaCost" type="number" placeholder="Мана" value="${escapeAttr(card.manaCost)}" />
@@ -157,7 +162,14 @@ export class AdminScene extends ListScene {
     });
     form?.querySelector('[data-upload-assets]')?.addEventListener('click', () => this.uploadCardAssets(card, form));
 
-    this.addButton(panelX, layout.portrait ? 1205 : 655, 190, 34, 'Удалить карту', () => this.deleteCard(card), { fill: 0x52303a, stroke: palette.danger, fontSize: 15 });
+    const deleteY = layout.portrait
+      ? panelY + panelH / 2 + 28
+      : Math.min(690, panelY + panelH / 2 + 28);
+    this.addButton(panelX, deleteY, 190, 34, 'Удалить карту', () => this.deleteCard(card), {
+      fill: 0x52303a,
+      stroke: palette.danger,
+      fontSize: 15,
+    });
   }
 
   uploadFieldHtml(name, label, accept, exists) {

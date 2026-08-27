@@ -8,7 +8,7 @@ import {
 } from '../game/shared';
 import { sceneToRoute } from './NavDropdown';
 import { textureKey, resolveTextureUrl } from './CardDisplay';
-import { imageTextureKey } from './ErrorDetail';
+import { imageTextureKey, circularAvatarKey } from './ErrorDetail';
 import './TutorialModal.css';
 
 export class BaseScene extends Phaser.Scene {
@@ -190,19 +190,55 @@ export class BaseScene extends Phaser.Scene {
     ).catch(() => false);
   }
 
+  /**
+   * Draw source texture into a circular canvas texture (corners clipped).
+   * Geometry masks are unreliable here; canvas clip always crops square art.
+   */
+  ensureCircularAvatarTexture(sourceKey, destKey, size) {
+    if (this.textures.exists(destKey)) return true;
+    if (!this.textures.exists(sourceKey)) return false;
+    const src = this.textures.get(sourceKey)?.getSourceImage?.();
+    if (!src) return false;
+
+    const pixelSize = Math.max(64, Math.round(size * 2));
+    const canvas = document.createElement('canvas');
+    canvas.width = pixelSize;
+    canvas.height = pixelSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+
+    ctx.beginPath();
+    ctx.arc(pixelSize / 2, pixelSize / 2, pixelSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    const sw = src.naturalWidth || src.width || pixelSize;
+    const sh = src.naturalHeight || src.height || pixelSize;
+    const scale = Math.max(pixelSize / sw, pixelSize / sh);
+    const dw = sw * scale;
+    const dh = sh * scale;
+    ctx.drawImage(src, (pixelSize - dw) / 2, (pixelSize - dh) / 2, dw, dh);
+
+    this.textures.addCanvas(destKey, canvas);
+    return this.textures.exists(destKey);
+  }
+
   addAvatar(x, y, url, name = '?', size = 44) {
     const radius = size / 2;
     const resolved = resolveTextureUrl(url);
+    const sourceKey = resolved ? imageTextureKey(resolved) : '';
     this.add.circle(x, y, radius, 0x2c3850);
-    if (resolved && this.textures.exists(imageTextureKey(resolved))) {
-      const image = this.add.image(x, y, imageTextureKey(resolved)).setDisplaySize(size - 4, size - 4);
-      const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
-      maskShape.fillStyle(0xffffff);
-      maskShape.fillCircle(x, y, radius - 2);
-      image.setMask(maskShape.createGeometryMask());
-      this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
-      return;
+
+    if (resolved && this.textures.exists(sourceKey)) {
+      const circleKey = circularAvatarKey(resolved, size);
+      this.ensureCircularAvatarTexture(sourceKey, circleKey, size);
+      if (this.textures.exists(circleKey)) {
+        this.add.image(x, y, circleKey).setDisplaySize(size, size);
+        this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
+        return;
+      }
     }
+
     this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
     this.add.text(x, y, (name || '?').slice(0, 2).toUpperCase(), {
       fontFamily: 'Segoe UI, Arial',

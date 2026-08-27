@@ -1,8 +1,27 @@
 .admin-phaser-form,
 .admin-create-form {
-  width: 300px;
-  gap: 8px;
-  padding: 14px;
+  width: 320px;
+  max-width: 100%;
+  gap: 6px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.admin-phaser-form {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(215, 170, 69, 0.7) rgba(20, 26, 38, 0.6);
+}
+
+.admin-phaser-form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-phaser-form::-webkit-scrollbar-thumb {
+  background: rgba(215, 170, 69, 0.7);
+  border-radius: 8px;
 }
 
 .admin-phaser-form input:not([type='file']),
@@ -11,28 +30,29 @@
 .admin-create-form input,
 .admin-create-form select,
 .admin-create-form button {
-  padding: 8px 10px;
-  font-size: 14px;
+  padding: 7px 9px;
+  font-size: 13px;
+  min-height: 0;
 }
 
 .admin-upload-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-  padding-top: 8px;
+  gap: 6px;
+  margin-top: 2px;
+  padding-top: 6px;
   border-top: 1px solid rgba(215, 170, 69, 0.35);
 }
 
 .admin-upload-title {
   color: #ffe18c;
-  font: 600 14px 'Segoe UI', system-ui, sans-serif;
+  font: 600 13px 'Segoe UI', system-ui, sans-serif;
 }
 
 .admin-upload-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .admin-upload-label {
@@ -41,13 +61,13 @@
   align-items: center;
   gap: 8px;
   color: #f6ead2;
-  font: 600 13px 'Segoe UI', system-ui, sans-serif;
+  font: 600 12px 'Segoe UI', system-ui, sans-serif;
 }
 
 .admin-upload-label em {
   font-style: normal;
-  font-size: 11px;
-  padding: 2px 7px;
+  font-size: 10px;
+  padding: 1px 6px;
   border-radius: 999px;
 }
 
@@ -68,8 +88,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 6px 8px;
+  min-height: 32px;
+  padding: 4px 6px;
   border: 1px solid rgba(215, 170, 69, 0.45);
   border-radius: 8px;
   background: rgba(28, 36, 52, 0.95);
@@ -93,11 +113,11 @@
 
 .admin-file-btn {
   flex: 0 0 auto;
-  padding: 7px 10px;
+  padding: 5px 8px;
   border-radius: 6px;
   background: #936b22;
   color: #fff;
-  font: 600 12px 'Segoe UI', system-ui, sans-serif;
+  font: 600 11px 'Segoe UI', system-ui, sans-serif;
   pointer-events: none;
 }
 
@@ -107,6 +127,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #c6d0e2;
-  font: 12px 'Segoe UI', system-ui, sans-serif;
+  font: 11px 'Segoe UI', system-ui, sans-serif;
   pointer-events: none;
 }
