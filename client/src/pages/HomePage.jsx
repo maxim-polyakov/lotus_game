@@ -24,19 +24,37 @@ export class BootScene extends BaseScene {
   create() {
     this.drawBackground('Lotus Game');
     this.addMessage('Загрузка профиля...', palette.text, GAME_HEIGHT / 2);
+
+    const finish = (targetScene, data = {}) => {
+      try {
+        if (session.user) ensureChatScene(this);
+      } catch {
+        // chat must never block boot
+      }
+      this.scene.start(targetScene, data);
+    };
+
     completeOAuthCallback()
       .catch(() => null)
       .then(() => loadCurrentUser())
-      .then(() => this.loadImageUrls([session.user?.avatarUrl]))
+      .catch(() => {
+        session.user = null;
+        return null;
+      })
       .then(() => {
-      const targetScene = sceneForCurrentRoute();
-      if (!session.user && !['AuthScene', 'LeaderboardScene'].includes(targetScene)) {
-        this.scene.start('AuthScene', { mode: authModeForCurrentRoute() });
-        return;
-      }
-      if (session.user) ensureChatScene(this);
-      this.scene.start(targetScene, targetScene === 'AuthScene' ? { mode: authModeForCurrentRoute() } : {});
-    });
+        // Avatar preload must not block navigation (proxy/S3 can hang).
+        this.loadImageUrls([session.user?.avatarUrl]).catch(() => {});
+        const targetScene = sceneForCurrentRoute();
+        if (!session.user && !['AuthScene', 'LeaderboardScene'].includes(targetScene)) {
+          finish('AuthScene', { mode: authModeForCurrentRoute() });
+          return;
+        }
+        finish(targetScene, targetScene === 'AuthScene' ? { mode: authModeForCurrentRoute() } : {});
+      })
+      .catch(() => {
+        session.user = null;
+        finish('AuthScene', { mode: 'login' });
+      });
   }
 }
 

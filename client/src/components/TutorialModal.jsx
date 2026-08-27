@@ -162,33 +162,40 @@ export class BaseScene extends Phaser.Scene {
       reader.readAsDataURL(blob);
     });
 
-    const tryUrl = (candidate) => fetch(candidate, { mode: 'cors', credentials: 'omit' })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.blob();
-      })
-      .then((blob) => {
-        if (!blob || !blob.size) throw new Error('empty image');
-        return blobToDataUrl(blob);
-      })
-      .then((dataUrl) => new Promise((resolve, reject) => {
-        if (this.textures.exists(key)) {
-          resolve(true);
-          return;
-        }
-        const img = new Image();
-        img.decoding = 'async';
-        img.onload = () => {
-          try {
-            if (!this.textures.exists(key)) this.textures.addImage(key, img);
-            resolve(this.textures.exists(key));
-          } catch (err) {
-            reject(err);
+    const tryUrl = (candidate) => {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 12000) : null;
+      return fetch(candidate, { mode: 'cors', credentials: 'omit', signal: controller?.signal })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.blob();
+        })
+        .then((blob) => {
+          if (!blob || !blob.size) throw new Error('empty image');
+          return blobToDataUrl(blob);
+        })
+        .then((dataUrl) => new Promise((resolve, reject) => {
+          if (this.textures.exists(key)) {
+            resolve(true);
+            return;
           }
-        };
-        img.onerror = () => reject(new Error('image decode failed'));
-        img.src = dataUrl;
-      }));
+          const img = new Image();
+          img.decoding = 'async';
+          img.onload = () => {
+            try {
+              if (!this.textures.exists(key)) this.textures.addImage(key, img);
+              resolve(this.textures.exists(key));
+            } catch (err) {
+              reject(err);
+            }
+          };
+          img.onerror = () => reject(new Error('image decode failed'));
+          img.src = dataUrl;
+        }))
+        .finally(() => {
+          if (timer) clearTimeout(timer);
+        });
+    };
 
     const directMatch = String(url).match(/[?&]url=([^&]+)/);
     const directUrl = directMatch ? decodeURIComponent(directMatch[1]) : null;

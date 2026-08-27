@@ -15,7 +15,18 @@ export class ProfileScene extends ListScene {
     this.addBackButton();
     this.addMessage('Загрузка профиля...', palette.text, 120);
     Promise.all([api.get('/api/me'), api.get('/api/me/stats')])
-      .then(([meRes, statsRes]) => this.loadImageUrls([meRes.data?.avatarUrl]).then(() => this.renderProfile(meRes.data, statsRes.data)))
+      .then(async ([meRes, statsRes]) => {
+        const me = meRes.data;
+        const stats = statsRes.data;
+        // Show profile immediately; avatar texture can arrive later.
+        this.renderProfile(me, stats);
+        try {
+          await this.loadImageUrls([me?.avatarUrl]);
+          if (me?.avatarUrl && this.sys?.isActive()) this.renderProfile(me, stats);
+        } catch {
+          // keep profile without avatar art
+        }
+      })
       .catch((err) => this.renderProfile(null, null, err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 

@@ -36,6 +36,7 @@ const WS_URL = process.env.REACT_APP_WS_URL || (() => {
 
 const api = axios.create({
   baseURL: API_BASE,
+  timeout: 15000,
 });
 
 let refreshPromise = null;
@@ -47,7 +48,7 @@ async function refreshAccessToken() {
     const refreshToken = getRefreshToken();
     if (!refreshToken) throw new Error('NO_REFRESH_TOKEN');
     refreshPromise = axios
-      .post(`${API_BASE}/api/auth/refresh`, { refreshToken })
+      .post(`${API_BASE}/api/auth/refresh`, { refreshToken }, { timeout: 15000 })
       .then(({ data }) => {
         const rememberMe = localStorage.getItem('rememberMe') === 'true';
         setTokens(data.accessToken, data.refreshToken, rememberMe);
