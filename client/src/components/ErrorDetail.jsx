@@ -42,5 +42,14 @@ export function errorMessage(err, fallback = 'Ошибка') {
   if (/Batch update returned unexpected row count|ObjectOptimisticLockingFailureException|OptimisticLock/i.test(message)) {
     return 'Данные уже изменились. Обновите экран и повторите сохранение.';
   }
+  if (
+    err?.code === 'ECONNABORTED'
+    || err?.code === 'ERR_CANCELED'
+    || /timeout/i.test(String(message))
+    || /ms exceeded/i.test(String(message))
+    || /ms executed/i.test(String(message))
+  ) {
+    return 'Сервер не ответил вовремя. Проверьте сеть и попробуйте ещё раз.';
+  }
   return message;
 }

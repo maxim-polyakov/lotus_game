@@ -9,7 +9,7 @@ import {
 } from '../game/shared';
 import { BaseScene } from '../components/TutorialModal';
 import { matchSocket } from '../components/WaitingMatch';
-import { deckHeroId } from '../components/ErrorDetail';
+import { deckHeroId, errorMessage } from '../components/ErrorDetail';
 
 export class PlayScene extends BaseScene {
   constructor() {
@@ -36,7 +36,7 @@ export class PlayScene extends BaseScene {
       const heroIndex = this.heroes.findIndex((h) => h.id === session.selectedHeroId);
       this.selectedHeroIndex = Math.max(0, heroIndex);
       this.resumeActiveMatchOrRender();
-    }).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка загрузки'));
+    }).catch((err) => this.renderError(errorMessage(err, 'Ошибка загрузки')));
   }
 
   async resumeActiveMatchOrRender() {
@@ -194,7 +194,7 @@ export class PlayScene extends BaseScene {
         this.scene.start('MatchScene', { match, cards: this.cards });
       }
     } catch (err) {
-      this.render(err.response?.data?.message || err.message || 'Не удалось найти матч');
+      this.render(errorMessage(err, 'Не удалось найти матч'));
     }
   }
 
@@ -214,7 +214,11 @@ export class PlayScene extends BaseScene {
       })
       .catch(() => {});
 
+    this._waitingPollInFlight = false;
     const poll = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (this._waitingPollInFlight) return;
+      this._waitingPollInFlight = true;
       try {
         const { data } = await api.get(`/api/matches/${matchId}`, {
           params: { _: Date.now() },
@@ -222,27 +226,40 @@ export class PlayScene extends BaseScene {
         });
         openMatch(data);
       } catch (err) {
-        // Keep waiting UI; transient mobile blips shouldn't abort matchmaking.
+        // Keep waiting UI; only leave on hard auth/not-found errors.
         if (err.response?.status === 403 || err.response?.status === 404) {
           sessionStorage.removeItem(ACTIVE_MATCH_KEY);
           this.cleanupWaiting();
-          this.render(err.response?.data?.message || 'Матч больше недоступен');
+          this.render(errorMessage(err, 'Матч больше недоступен'));
         }
+      } finally {
+        this._waitingPollInFlight = false;
       }
     };
+
     poll();
-    this.waitingEvent = this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => { poll(); },
-    });
+    // Wall-clock interval: Phaser timers catch up after long background and spam requests.
+    this.waitingInterval = window.setInterval(poll, 2000);
+    this._onWaitingVisible = () => {
+      if (document.visibilityState === 'visible') poll();
+    };
+    document.addEventListener('visibilitychange', this._onWaitingVisible);
   }
 
   cleanupWaiting() {
+    if (this.waitingInterval) {
+      window.clearInterval(this.waitingInterval);
+      this.waitingInterval = null;
+    }
     this.waitingEvent?.remove(false);
     this.waitingEvent = null;
     this.waitingUnsubscribe?.();
     this.waitingUnsubscribe = null;
+    if (this._onWaitingVisible) {
+      document.removeEventListener('visibilitychange', this._onWaitingVisible);
+      this._onWaitingVisible = null;
+    }
+    this._waitingPollInFlight = false;
   }
 }
 

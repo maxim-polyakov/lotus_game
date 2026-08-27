@@ -25,6 +25,8 @@ export class MatchScene extends BaseScene {
     this.unsubscribeMatch = null;
     this.unsubscribeErrors = null;
     this.pollEvent = null;
+    this.pollInterval = null;
+    this._pollInFlight = false;
     this._onVisible = null;
   }
 
@@ -53,8 +55,13 @@ export class MatchScene extends BaseScene {
     this.unsubscribeErrors?.();
     this.unsubscribeMatch = null;
     this.unsubscribeErrors = null;
+    if (this.pollInterval) {
+      window.clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
     this.pollEvent?.remove(false);
     this.pollEvent = null;
+    this._pollInFlight = false;
     if (this._onVisible) {
       document.removeEventListener('visibilitychange', this._onVisible);
       window.removeEventListener('pageshow', this._onVisible);
@@ -112,12 +119,17 @@ export class MatchScene extends BaseScene {
   }
 
   startPolling() {
+    if (this.pollInterval) {
+      window.clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
     this.pollEvent?.remove(false);
-    this.pollEvent = this.time.addEvent({
-      delay: 2500,
-      loop: true,
-      callback: () => this.refreshMatchFromApi(false),
-    });
+    this.pollEvent = null;
+    this._pollInFlight = false;
+    this.pollInterval = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      this.refreshMatchFromApi(false);
+    }, 2500);
   }
 
   bindVisibilityRefresh() {
@@ -133,6 +145,8 @@ export class MatchScene extends BaseScene {
   async refreshMatchFromApi(forceRender = false) {
     if (!this.match?.id) return;
     if (this.match.status === 'FINISHED') return;
+    if (this._pollInFlight) return;
+    this._pollInFlight = true;
     try {
       const { data } = await api.get(`/api/matches/${this.match.id}`, {
         params: { _: Date.now() },
@@ -147,6 +161,8 @@ export class MatchScene extends BaseScene {
       if (changed) this.applyMatchUpdate(data, prev);
     } catch {
       // ignore transient mobile network blips
+    } finally {
+      this._pollInFlight = false;
     }
   }
 
