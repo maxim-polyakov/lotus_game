@@ -356,3 +356,37 @@
     min-width: 260px;
   }
 }
+
+.chat-widget--portrait:not(.chat-widget--collapsed) {
+  min-width: 280px;
+  font-size: 15px;
+}
+
+.chat-widget--portrait .chat-widget-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+}
+
+.chat-widget--portrait .chat-widget-tabs button {
+  min-height: 36px;
+  font-size: 13px;
+  padding: 6px 4px;
+}
+
+.chat-widget--portrait .chat-widget-messages {
+  min-height: 180px;
+}
+
+.chat-widget--portrait .chat-widget-send input {
+  min-height: 40px;
+  font-size: 16px;
+}
+
+.chat-widget--portrait .chat-widget-private-open {
+  flex-wrap: wrap;
+}
+
+.chat-widget--portrait .chat-dialog {
+  min-height: 48px;
+}

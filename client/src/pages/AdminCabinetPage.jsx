@@ -87,10 +87,17 @@ export class AdminScene extends ListScene {
       this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
+    this.addButton(layout.portrait ? 520 : 960, layout.portrait ? actionY + 42 : actionY, 150, 34, 'Настройки', () => {
+      this.formMode = 'settings';
+      this.selected = null;
+      this.selectedHero = null;
+      this.panelCollapsed = false;
+      this.loadSettings().then(() => this.renderAdmin());
+    }, { fontSize: 15 });
 
     if (this.formMode === 'heroes' || this.formMode === 'create-hero') {
       this.renderHeroGrid(layout);
-    } else if (this.formMode !== 'users') {
+    } else if (this.formMode !== 'users' && this.formMode !== 'settings') {
       this.renderCardGrid(layout);
     }
     if (this.panelCollapsed) {
@@ -106,7 +113,9 @@ export class AdminScene extends ListScene {
                 ? 'Развернуть: герои'
                 : this.formMode === 'users'
                   ? 'Развернуть: пользователи'
-                  : 'Развернуть панель';
+                  : this.formMode === 'settings'
+                    ? 'Развернуть: настройки'
+                    : 'Развернуть панель';
       this.addButton(
         layout.centerX,
         layout.portrait ? 1185 : 680,
@@ -116,6 +125,11 @@ export class AdminScene extends ListScene {
         () => this.setPanelCollapsed(false),
         { fontSize: 16 },
       );
+      return;
+    }
+
+    if (this.formMode === 'settings') {
+      this.renderSettingsPanel(layout);
       return;
     }
 
@@ -171,6 +185,212 @@ export class AdminScene extends ListScene {
         color: palette.text,
       }).setOrigin(0.5);
     }
+  }
+
+  async loadSettings() {
+    const defaults = {
+      weightGold: 40,
+      weightDust: 30,
+      weightCard: 20,
+      weightHero: 10,
+      goldMin: 10,
+      goldMax: 50,
+      dustMin: 5,
+      dustMax: 25,
+    };
+    try {
+      const [sounds, drop, pool, shop] = await Promise.all([
+        api.get('/api/settings/game-sounds').then(({ data }) => data || {}).catch(() => ({})),
+        api.get('/api/admin/settings/post-match-drop').then(({ data }) => data || defaults).catch(() => defaults),
+        api.get('/api/admin/settings/post-match-drop/cards').then(({ data }) => data?.enabledCardKeys || []).catch(() => []),
+        api.get('/api/admin/settings/shop').then(({ data }) => data || { randomCardPrice: 100, specificCardDustPrice: 50 }).catch(() => ({ randomCardPrice: 100, specificCardDustPrice: 50 })),
+      ]);
+      this.gameSounds = sounds;
+      this.postMatchDrop = { ...defaults, ...drop };
+      this.dropCardPoolKeys = Array.isArray(pool) ? pool : [];
+      this.shopSettings = shop;
+    } catch {
+      this.gameSounds = this.gameSounds || {};
+      this.postMatchDrop = this.postMatchDrop || defaults;
+      this.dropCardPoolKeys = this.dropCardPoolKeys || [];
+      this.shopSettings = this.shopSettings || { randomCardPrice: 100, specificCardDustPrice: 50 };
+    }
+  }
+
+  renderSettingsPanel(layout) {
+    const drop = this.postMatchDrop || {};
+    const shop = this.shopSettings || {};
+    const sounds = this.gameSounds || {};
+    const poolKeys = new Set(this.dropCardPoolKeys || []);
+    const cards = this.cards || [];
+    const cardChecks = cards.map((c) => {
+      const key = `${c.cardType}:${c.id}`;
+      const checked = poolKeys.has(key) ? 'checked' : '';
+      return `<label class="admin-pool-item"><input type="checkbox" name="pool" value="${escapeAttr(key)}" ${checked} /> ${escapeAttr(c.name || key)}</label>`;
+    }).join('');
+
+    const soundRow = (label, key, endpoint) => {
+      const url = sounds[key];
+      return `
+        <div class="admin-sound-row" data-sound-key="${key}" data-sound-endpoint="${endpoint}">
+          <strong>${label}</strong>
+          ${url ? `<audio controls src="${escapeAttr(url)}" style="width:100%;max-width:220px"></audio>
+            <button type="button" data-delete-sound>Удалить</button>` : '<em>Стандартный звук</em>'}
+          <label class="admin-upload-field">
+            <span class="admin-file-picker">
+              <input name="sound_${key}" type="file" accept="audio/*"
+                style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;" />
+              <span class="admin-file-btn">Выбрать</span>
+              <span class="admin-file-name" data-file-name>Файл не выбран</span>
+            </span>
+          </label>
+          <button type="button" data-upload-sound>Загрузить</button>
+        </div>`;
+    };
+
+    const panelX = layout.centerX;
+    const panelY = layout.portrait ? 720 : 420;
+    const panelW = layout.portrait ? 660 : 980;
+    const panelH = layout.portrait ? 900 : 560;
+    this.addPanel(panelX, panelY, panelW, panelH, 0.94);
+    this.add.text(panelX, panelY - panelH / 2 - 16, 'Настройки игры', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '16px',
+      color: palette.muted,
+    }).setOrigin(0.5);
+
+    const dom = this.addDomForm(panelX, panelY, `
+      <form class="phaser-form admin-phaser-form admin-settings-form" style="max-height:${panelH - 40}px;width:${Math.min(panelW - 40, layout.portrait ? 600 : 900)}px">
+        <strong>Звуки конца матча</strong>
+        ${soundRow('Победа', 'victorySoundUrl', '/api/admin/settings/victory-sound')}
+        ${soundRow('Поражение', 'defeatSoundUrl', '/api/admin/settings/defeat-sound')}
+        ${soundRow('Ничья', 'drawSoundUrl', '/api/admin/settings/draw-sound')}
+
+        <strong>Награда после матча (веса и диапазоны)</strong>
+        <div class="admin-settings-grid">
+          <label>Вес золото <input name="weightGold" type="number" min="0" value="${drop.weightGold ?? 0}" /></label>
+          <label>Вес пыль <input name="weightDust" type="number" min="0" value="${drop.weightDust ?? 0}" /></label>
+          <label>Вес карта <input name="weightCard" type="number" min="0" value="${drop.weightCard ?? 0}" /></label>
+          <label>Вес герой <input name="weightHero" type="number" min="0" value="${drop.weightHero ?? 0}" /></label>
+          <label>Золото мин <input name="goldMin" type="number" min="0" value="${drop.goldMin ?? 0}" /></label>
+          <label>Золото макс <input name="goldMax" type="number" min="0" value="${drop.goldMax ?? 0}" /></label>
+          <label>Пыль мин <input name="dustMin" type="number" min="0" value="${drop.dustMin ?? 0}" /></label>
+          <label>Пыль макс <input name="dustMax" type="number" min="0" value="${drop.dustMax ?? 0}" /></label>
+        </div>
+        <button type="button" data-save-drop>Сохранить дроп</button>
+
+        <strong>Цены магазина</strong>
+        <div class="admin-settings-grid">
+          <label>Случайная карта (золото) <input name="randomCardPrice" type="number" min="1" value="${shop.randomCardPrice ?? 100}" /></label>
+          <label>Конкретная карта (пыль) <input name="specificCardDustPrice" type="number" min="1" value="${shop.specificCardDustPrice ?? 50}" /></label>
+        </div>
+        <button type="button" data-save-shop>Сохранить цены</button>
+
+        <strong>Пул карт для дропа</strong>
+        <p class="admin-hint">Пустой выбор = весь пул. Сейчас отмечено: ${(this.dropCardPoolKeys || []).length || 'все'}</p>
+        <div class="admin-pool-actions">
+          <button type="button" data-pool-all>Выбрать все</button>
+          <button type="button" data-pool-none>Сбросить (весь пул)</button>
+        </div>
+        <div class="admin-pool-list">${cardChecks || '<em>Нет карт</em>'}</div>
+        <button type="button" data-save-pool>Сохранить пул карт</button>
+      </form>
+    `, () => {});
+
+    const form = dom?.node?.querySelector('form');
+    if (!form) return;
+
+    form.querySelectorAll('input[type="file"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const nameNode = input.parentElement?.querySelector('[data-file-name]');
+        if (nameNode) nameNode.textContent = input.files?.[0]?.name || 'Файл не выбран';
+      });
+    });
+
+    form.querySelectorAll('[data-sound-key]').forEach((row) => {
+      const key = row.getAttribute('data-sound-key');
+      const endpoint = row.getAttribute('data-sound-endpoint');
+      row.querySelector('[data-upload-sound]')?.addEventListener('click', async () => {
+        const file = form.elements[`sound_${key}`]?.files?.[0];
+        if (!file) {
+          this.renderAdmin('Выберите аудиофайл');
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          this.renderAdmin('Звук не более 5 МБ');
+          return;
+        }
+        try {
+          const fd = new FormData();
+          fd.append('sound', file);
+          const { data } = await api.post(endpoint, fd);
+          this.gameSounds = { ...(this.gameSounds || {}), [key]: data[key] };
+          this.renderAdmin('Звук загружен');
+        } catch (err) {
+          this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка загрузки звука');
+        }
+      });
+      row.querySelector('[data-delete-sound]')?.addEventListener('click', async () => {
+        try {
+          await api.delete(endpoint);
+          this.gameSounds = { ...(this.gameSounds || {}), [key]: null };
+          this.renderAdmin('Звук удалён');
+        } catch (err) {
+          this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка удаления звука');
+        }
+      });
+    });
+
+    form.querySelector('[data-save-drop]')?.addEventListener('click', async () => {
+      try {
+        const payload = {
+          weightGold: Number(form.weightGold.value) || 0,
+          weightDust: Number(form.weightDust.value) || 0,
+          weightCard: Number(form.weightCard.value) || 0,
+          weightHero: Number(form.weightHero.value) || 0,
+          goldMin: Number(form.goldMin.value) || 0,
+          goldMax: Number(form.goldMax.value) || 0,
+          dustMin: Number(form.dustMin.value) || 0,
+          dustMax: Number(form.dustMax.value) || 0,
+        };
+        const { data } = await api.put('/api/admin/settings/post-match-drop', payload);
+        this.postMatchDrop = data;
+        this.renderAdmin('Настройки дропа сохранены');
+      } catch (err) {
+        this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить дроп');
+      }
+    });
+
+    form.querySelector('[data-save-shop]')?.addEventListener('click', async () => {
+      try {
+        const payload = {
+          randomCardPrice: Number(form.randomCardPrice.value) || 1,
+          specificCardDustPrice: Number(form.specificCardDustPrice.value) || 1,
+        };
+        const { data } = await api.put('/api/admin/settings/shop', payload);
+        this.shopSettings = data;
+        this.renderAdmin('Цены магазина сохранены');
+      } catch (err) {
+        this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить цены');
+      }
+    });
+
+    form.querySelector('[data-pool-all]')?.addEventListener('click', () => {
+      form.querySelectorAll('input[name="pool"]').forEach((cb) => { cb.checked = true; });
+    });
+    form.querySelector('[data-pool-none]')?.addEventListener('click', () => {
+      form.querySelectorAll('input[name="pool"]').forEach((cb) => { cb.checked = false; });
+    });
+    form.querySelector('[data-save-pool]')?.addEventListener('click', async () => {
+      try {
+        const enabledCardKeys = [...form.querySelectorAll('input[name="pool"]:checked')].map((cb) => cb.value);
+        const { data } = await api.put('/api/admin/settings/post-match-drop/cards', { enabledCardKeys });
+        this.dropCardPoolKeys = Array.isArray(data?.enabledCardKeys) ? data.enabledCardKeys : enabledCardKeys;
+        this.renderAdmin('Пул карт сохранён');
+      } catch (err) {
+        this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить пул');
+      }
+    });
   }
 
   renderCardGrid(layout) {

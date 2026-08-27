@@ -1,10 +1,8 @@
-import { session } from '../game/shared';
-
-/**
- * Plays sound from URL (for card sounds / admin game sounds).
+﻿/**
+ * Plays sound from URL (for card sounds from admin upload).
  */
 export function playSoundFromUrl(url) {
-  if (!url || session.soundEnabled === false) return;
+  if (!url) return;
   try {
     const audio = new Audio(url);
     audio.volume = 0.6;
@@ -17,7 +15,6 @@ export function playSoundFromUrl(url) {
  * @param {string} type - 'click' | 'cardPlay' | 'attack' | 'victory' | 'defeat' | 'draw'
  */
 export function playSound(type) {
-  if (session.soundEnabled === false) return;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = ctx.createOscillator();
@@ -51,21 +48,4 @@ export function playSound(type) {
   } catch (_) {
     // Web Audio not supported or user interaction required
   }
-}
-
-/** Play end-of-match sound from admin URLs, with beep fallback. */
-export function playMatchEndSound(result, sounds = session.gameSounds || {}) {
-  if (session.soundEnabled === false) return;
-  if (result === 'victory') {
-    if (sounds.victorySoundUrl) playSoundFromUrl(sounds.victorySoundUrl);
-    else playSound('victory');
-    return;
-  }
-  if (result === 'draw') {
-    if (sounds.drawSoundUrl) playSoundFromUrl(sounds.drawSoundUrl);
-    else playSound('draw');
-    return;
-  }
-  if (sounds.defeatSoundUrl) playSoundFromUrl(sounds.defeatSoundUrl);
-  else playSound('defeat');
 }

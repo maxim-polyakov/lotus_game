@@ -138,13 +138,13 @@ export class ChatScene extends Phaser.Scene {
     const layout = layoutInfo();
     if (this.collapsed) {
       return {
-        x: layout.portrait ? GAME_WIDTH - 110 : GAME_WIDTH - 120,
-        y: layout.portrait ? GAME_HEIGHT - 70 : GAME_HEIGHT - 60,
+        x: layout.portrait ? GAME_WIDTH - 90 : GAME_WIDTH - 120,
+        y: layout.portrait ? GAME_HEIGHT - 90 : GAME_HEIGHT - 60,
       };
     }
     return {
       x: layout.portrait ? GAME_WIDTH / 2 : GAME_WIDTH - 210,
-      y: layout.portrait ? GAME_HEIGHT - 340 : GAME_HEIGHT - 300,
+      y: layout.portrait ? GAME_HEIGHT / 2 + 40 : GAME_HEIGHT - 300,
     };
   }
 
@@ -532,9 +532,21 @@ export class ChatScene extends Phaser.Scene {
     this.destroyDom();
     if (!session.user?.id) return;
 
+    const layout = layoutInfo();
+    if (layout.portrait && !this.collapsed) {
+      this.sizeW = Math.min(Math.max(this.sizeW || 320, 300), GAME_WIDTH - 40);
+      this.sizeH = Math.min(Math.max(this.sizeH || 520, 420), GAME_HEIGHT - 120);
+    } else if (!layout.portrait && !this.collapsed) {
+      this.sizeW = Math.min(Math.max(this.sizeW || 360, 320), 440);
+      this.sizeH = Math.min(Math.max(this.sizeH || 420, 360), 560);
+    }
+
     const { x, y } = this.panelPosition();
     const unread = this.totalUnread();
-    const html = this.collapsed ? this.collapsedHtml(unread) : this.expandedHtml(unread);
+    const portraitClass = layout.portrait ? ' chat-widget--portrait' : '';
+    const html = this.collapsed
+      ? this.collapsedHtml(unread)
+      : this.expandedHtml(unread, portraitClass);
     this.dom = this.add.dom(x, y).createFromHTML(`<div class="phaser-dom-wrap">${html}</div>`);
     this.dom.setOrigin(0.5, 0.5);
     if (typeof this.dom.updateSize === 'function') this.dom.updateSize();
@@ -565,7 +577,7 @@ export class ChatScene extends Phaser.Scene {
       </div>`;
   }
 
-  expandedHtml(unread) {
+  expandedHtml(unread, portraitClass = '') {
     const generalUnread = this.unreadByKey.general || 0;
     const privateUnread = Object.entries(this.unreadByKey)
       .filter(([k]) => k.startsWith('private:'))
@@ -599,7 +611,7 @@ export class ChatScene extends Phaser.Scene {
     }).join('');
 
     return `
-      <div class="chat-widget chat-widget--phaser chat-widget--theme-${this.activeTab.toLowerCase()}"
+      <div class="chat-widget chat-widget--phaser chat-widget--theme-${this.activeTab.toLowerCase()}${portraitClass}"
         style="width:${Math.round(this.sizeW)}px;height:${Math.round(this.sizeH)}px;max-width:none;">
         <div class="chat-widget-head" data-chat-drag title="Перетащите окно">
           <div class="chat-widget-title-wrap">

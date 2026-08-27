@@ -5,6 +5,7 @@ import {
   palette,
   session,
   applyGameSize,
+  applyTheme,
   layoutInfo,
 } from './shared';
 import { BootScene, MenuScene } from '../pages/HomePage';
@@ -23,6 +24,7 @@ import { FriendsScene } from '../pages/FriendsPage';
 import { NotificationsScene } from '../pages/NotificationsPage';
 import { AdminScene } from '../pages/AdminCabinetPage';
 import { ChatScene } from '../components/ChatWidget';
+import { FriendOnlineScene } from '../components/FriendOnlinePopup';
 
 export {
   GAME_WIDTH,
@@ -31,16 +33,22 @@ export {
   session,
   applyGameSize,
   layoutInfo,
+  applyTheme,
 };
 
+function themeBgCss() {
+  return `#${palette.bg.toString(16).padStart(6, '0')}`;
+}
+
 export function createLotusGame(parent) {
+  applyTheme(session.theme);
   const size = applyGameSize();
   return new Phaser.Game({
     type: Phaser.WEBGL,
     parent,
     width: size.width,
     height: size.height,
-    backgroundColor: '#10141f',
+    backgroundColor: themeBgCss(),
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -80,6 +88,7 @@ export function createLotusGame(parent) {
       NotificationsScene,
       AdminScene,
       ChatScene,
+      FriendOnlineScene,
     ],
   });
 }
@@ -92,6 +101,22 @@ export function refreshLotusGame(game) {
   game.scale.refresh();
   if (`${GAME_WIDTH}x${GAME_HEIGHT}` === before) return;
   game.scene.getScenes(true).forEach((scene) => {
+    scene.scene.restart(scene.scene.settings.data || {});
+  });
+}
+
+/** Apply theme colors and restart visible scenes so UI repaints. */
+export function refreshTheme(game) {
+  applyTheme(session.theme);
+  if (!game) return;
+  try {
+    game.config.backgroundColor = themeBgCss();
+  } catch {
+    // ignore
+  }
+  game.scene.getScenes(true).forEach((scene) => {
+    const key = scene.scene.key;
+    if (key === 'ChatScene' || key === 'FriendOnlineScene') return;
     scene.scene.restart(scene.scene.settings.data || {});
   });
 }

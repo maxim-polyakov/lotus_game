@@ -1,11 +1,61 @@
-.admin-phaser-form,
-.admin-create-form {
-  width: 320px;
-  max-width: 100%;
-  gap: 6px;
-  padding: 12px;
-  box-sizing: border-box;
+.admin-settings-form {
+  width: min(900px, 92vw) !important;
+  max-width: 900px !important;
 }
+
+.admin-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-settings-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #aab4c8;
+}
+
+.admin-sound-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(83, 98, 122, 0.45);
+}
+
+.admin-pool-list {
+  max-height: 180px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  padding: 6px;
+  border: 1px solid rgba(83, 98, 122, 0.5);
+  border-radius: 8px;
+}
+
+.admin-pool-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #f6ead2;
+}
+
+.admin-pool-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #aab4c8;
+}
+
 
 .admin-phaser-form {
   overflow-x: hidden;

@@ -1,5 +1,5 @@
 import api from '../api/client';
-import { palette, session, layoutInfo, GAME_HEIGHT } from '../game/shared';
+import { palette, session, layoutInfo, GAME_WIDTH, GAME_HEIGHT } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
 import { escapeAttr, imageTextureKey, circularAvatarKey } from '../components/ErrorDetail';
 import { resolveTextureUrl } from '../components/CardDisplay';
@@ -14,20 +14,24 @@ export class ProfileScene extends ListScene {
     this.drawBackground('Профиль');
     this.addBackButton();
     this.addMessage('Загрузка профиля...', palette.text, 120);
-    Promise.all([api.get('/api/me'), api.get('/api/me/stats')])
-      .then(async ([meRes, statsRes]) => {
+    Promise.all([
+      api.get('/api/me'),
+      api.get('/api/me/stats').catch(() => ({ data: { wins: 0, losses: 0, draws: 0, totalMatches: 0, rating: 1000, rank: 'Новичок' } })),
+      api.get('/api/matches').catch(() => ({ data: [] })),
+    ])
+      .then(async ([meRes, statsRes, matchesRes]) => {
         const me = meRes.data;
         const stats = statsRes.data;
-        // Show profile immediately; avatar texture can arrive later.
-        this.renderProfile(me, stats);
+        const matches = (matchesRes.data || []).filter((m) => m.status === 'FINISHED').slice(0, 10);
+        this.renderProfile(me, stats, matches);
         try {
           await this.loadImageUrls([me?.avatarUrl]);
-          if (me?.avatarUrl && this.sys?.isActive()) this.renderProfile(me, stats);
+          if (me?.avatarUrl && this.sys?.isActive()) this.renderProfile(me, stats, matches);
         } catch {
           // keep profile without avatar art
         }
       })
-      .catch((err) => this.renderProfile(null, null, err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderProfile(null, null, [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
   forgetAvatarTextures(url) {
@@ -45,7 +49,13 @@ export class ProfileScene extends ListScene {
     });
   }
 
-  renderProfile(me, stats, error = '') {
+  matchResultLabel(match, userId) {
+    if (match.winnerId == null) return { text: 'Ничья', color: '#ffe18c' };
+    if (userId != null && Number(match.winnerId) === Number(userId)) return { text: 'Победа', color: '#9cffb5' };
+    return { text: 'Поражение', color: '#ffb3b3' };
+  }
+
+  renderProfile(me, stats, matches = [], error = '') {
     this.clearScene();
     const layout = layoutInfo();
     this.drawBackground('Профиль');
@@ -58,51 +68,51 @@ export class ProfileScene extends ListScene {
       );
     }
 
-    const leftW = layout.portrait ? 560 : 460;
-    const rightW = layout.portrait ? 560 : 400;
-    const panelH = layout.portrait ? 340 : 380;
-    const leftX = layout.portrait ? layout.centerX : 360;
-    const rightX = layout.portrait ? layout.centerX : 920;
-    const leftY = layout.portrait ? 360 : 390;
-    const rightY = layout.portrait ? 840 : 390;
+    const leftW = layout.portrait ? 560 : 420;
+    const rightW = layout.portrait ? 560 : 380;
+    const panelH = layout.portrait ? 300 : 360;
+    const leftX = layout.portrait ? layout.centerX : 280;
+    const rightX = layout.portrait ? layout.centerX : 720;
+    const leftY = layout.portrait ? 300 : 360;
+    const rightY = layout.portrait ? 680 : 360;
 
     this.addPanel(leftX, leftY, leftW, panelH);
     this.addPanel(rightX, rightY, rightW, panelH);
 
-    const avatarSize = layout.portrait ? 84 : 92;
-    const avatarY = leftY - panelH / 2 + 78;
+    const avatarSize = layout.portrait ? 72 : 84;
+    const avatarY = leftY - panelH / 2 + 64;
     this.addAvatar(leftX, avatarY, me?.avatarUrl, me?.username, avatarSize);
 
-    const textStartY = avatarY + 62;
+    const textStartY = avatarY + 52;
     const textStyle = { fontFamily: 'Segoe UI, Arial', align: 'center', wordWrap: { width: leftW - 48 } };
     this.add.text(leftX, textStartY, me?.username || 'Пользователь', {
       ...textStyle,
-      fontSize: layout.portrait ? '26px' : '28px',
+      fontSize: layout.portrait ? '24px' : '26px',
       color: palette.text,
       fontStyle: 'bold',
     }).setOrigin(0.5, 0);
-    this.add.text(leftX, textStartY + 40, me?.email || '', {
+    this.add.text(leftX, textStartY + 34, me?.email || '', {
       ...textStyle,
-      fontSize: '16px',
+      fontSize: '15px',
       color: palette.muted,
     }).setOrigin(0.5, 0);
-    this.add.text(leftX, textStartY + 78, `Рейтинг: ${me?.rating ?? 0}`, {
-      ...textStyle,
-      fontSize: '20px',
-      color: '#ffe18c',
-    }).setOrigin(0.5, 0);
-    this.add.text(leftX, textStartY + 112, `Золото: ${me?.gold ?? 0}    Пыль: ${me?.dust ?? 0}`, {
+    this.add.text(leftX, textStartY + 66, `Рейтинг: ${stats?.rating ?? me?.rating ?? 0}  ·  ${stats?.rank || 'Новичок'}`, {
       ...textStyle,
       fontSize: '18px',
+      color: '#ffe18c',
+    }).setOrigin(0.5, 0);
+    this.add.text(leftX, textStartY + 96, `Золото: ${me?.gold ?? 0}    Пыль: ${me?.dust ?? 0}`, {
+      ...textStyle,
+      fontSize: '16px',
       color: palette.text,
     }).setOrigin(0.5, 0);
     this.add.text(
       leftX,
-      textStartY + 148,
-      `Матчи: ${stats?.totalMatches ?? 0}  ·  Победы: ${stats?.wins ?? 0}  ·  Поражения: ${stats?.losses ?? 0}`,
+      textStartY + 126,
+      `Матчи: ${stats?.totalMatches ?? 0}  ·  П: ${stats?.wins ?? 0}  ·  Н: ${stats?.draws ?? 0}  ·  Пор: ${stats?.losses ?? 0}`,
       {
         ...textStyle,
-        fontSize: '15px',
+        fontSize: '14px',
         color: palette.muted,
       },
     ).setOrigin(0.5, 0);
@@ -130,9 +140,9 @@ export class ProfileScene extends ListScene {
           username: values.username.trim(),
         });
         session.user = { ...session.user, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl };
-        this.renderProfile({ ...me, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl }, stats, 'Профиль сохранён');
+        this.renderProfile({ ...me, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl }, stats, matches, 'Профиль сохранён');
       } catch (err) {
-        this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось сохранить');
+        this.renderProfile(me, stats, matches, err.response?.data?.message || err.message || 'Не удалось сохранить');
       }
     });
 
@@ -142,13 +152,42 @@ export class ProfileScene extends ListScene {
       const file = event.target.files?.[0];
       if (nameNode) nameNode.textContent = file?.name || 'Файл не выбран';
     });
-    form?.querySelector('[data-upload-avatar]')?.addEventListener('click', () => this.uploadAvatar(me, stats, form));
+    form?.querySelector('[data-upload-avatar]')?.addEventListener('click', () => this.uploadAvatar(me, stats, matches, form));
+
+    // Match history
+    const histY = layout.portrait ? 980 : 620;
+    this.add.text(layout.portrait ? 50 : 160, histY - 28, 'Последние матчи', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '18px',
+      color: palette.text,
+    });
+    if (!matches.length) {
+      this.add.text(layout.portrait ? 50 : 160, histY + 8, 'Пока нет завершённых матчей', {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '15px',
+        color: palette.muted,
+      });
+      return;
+    }
+    matches.slice(0, layout.portrait ? 6 : 8).forEach((match, index) => {
+      const y = histY + index * (layout.portrait ? 38 : 32);
+      const result = this.matchResultLabel(match, me?.id);
+      this.add.text(layout.portrait ? 50 : 160, y, `#${match.id}  ${result.text}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '15px',
+        color: result.color,
+      });
+      this.addButton(layout.portrait ? GAME_WIDTH - 90 : 520, y + 8, 110, 26, 'Реплей', () => {
+        window.history.pushState({}, '', `/replay/${match.id}`);
+        this.scene.start('ReplayViewerScene', { matchId: match.id });
+      }, { fontSize: 13 });
+    });
   }
 
-  async uploadAvatar(me, stats, form) {
+  async uploadAvatar(me, stats, matches, form) {
     const file = form?.elements?.avatar?.files?.[0];
     if (!file) {
-      this.renderProfile(me, stats, 'Выберите файл аватара');
+      this.renderProfile(me, stats, matches, 'Выберите файл аватара');
       return;
     }
     try {
@@ -159,9 +198,9 @@ export class ProfileScene extends ListScene {
       this.forgetAvatarTextures(data?.avatarUrl);
       session.user = { ...session.user, ...data };
       await this.loadImageUrls([data?.avatarUrl]);
-      this.renderProfile({ ...me, ...data }, stats, 'Аватар загружен');
+      this.renderProfile({ ...me, ...data }, stats, matches, 'Аватар загружен');
     } catch (err) {
-      this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось загрузить аватар');
+      this.renderProfile(me, stats, matches, err.response?.data?.message || err.message || 'Не удалось загрузить аватар');
     }
   }
 }

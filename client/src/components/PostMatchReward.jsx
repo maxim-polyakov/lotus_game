@@ -21,4 +21,15 @@ export function formatPostMatchReward(reward) {
   return reward.message || reward.title || '';
 }
 
-export default { formatPostMatchReward };
+export function rewardActionButtons(reward) {
+  const buttons = [{ label: 'Уведомления', scene: 'NotificationsScene' }];
+  if (reward?.type === 'HERO_UNLOCK') {
+    buttons.push({ label: 'К героям', scene: 'HeroesScene' });
+  }
+  if (reward?.type === 'CARD_UNLOCK') {
+    buttons.push({ label: 'Собрать колоду', scene: 'DeckEditorScene', route: '/decks/new' });
+  }
+  return buttons;
+}
+
+export default { formatPostMatchReward, rewardActionButtons };

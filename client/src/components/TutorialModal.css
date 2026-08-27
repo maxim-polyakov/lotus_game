@@ -145,6 +145,63 @@
   width: 320px;
 }
 
+.auth-google-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 4px;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: #3c4043 !important;
+  border: 1px solid #dadce0 !important;
+  text-decoration: none !important;
+  font-weight: 600;
+}
+
+.auth-google-btn:hover {
+  background: #f7f8f9 !important;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 2px;
+  color: #aab4c8;
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(170, 180, 200, 0.35);
+}
+
+.auth-mode-nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.auth-mode-nav--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.auth-mode-nav--stack {
+  flex-direction: column;
+}
+
+.auth-mode-nav button {
+  flex: 1;
+}
+
 .profile-form {
   width: 300px;
 }
@@ -184,4 +241,132 @@
   .phaser-form-inline {
     width: 300px;
   }
+
+  .phaser-form-inline--portrait {
+    width: 300px;
+    flex-direction: column;
+  }
+
+  .phaser-form-inline--portrait input,
+  .phaser-form-inline--portrait button {
+    width: 100%;
+  }
+}
+
+/* Shared modal overlays (rules, friend online) */
+.lotus-modal-overlay {
+  position: relative;
+  width: min(560px, 92vw);
+  max-height: min(80vh, 720px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.lotus-modal {
+  width: 100%;
+  max-height: min(78vh, 700px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: rgba(16, 20, 31, 0.96);
+  border: 1px solid rgba(215, 170, 69, 0.55);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  color: #f6ead2;
+}
+
+.lotus-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(83, 98, 122, 0.5);
+}
+
+.lotus-modal-header h2 {
+  margin: 0;
+  font: 700 20px 'Segoe UI', system-ui, sans-serif;
+}
+
+.lotus-modal-close {
+  border: 0;
+  background: transparent;
+  color: #f6ead2;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.lotus-modal-body {
+  padding: 14px 16px 18px;
+  overflow: auto;
+}
+
+.lotus-modal-body p {
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+
+.lotus-modal-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(215, 170, 69, 0.7);
+  background: #936b22;
+  color: #f6ead2;
+  font: 600 15px 'Segoe UI', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.tutorial-scroll section {
+  margin-bottom: 14px;
+}
+
+.tutorial-scroll h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #ffe18c;
+}
+
+.tutorial-scroll p {
+  margin: 0;
+  font-size: 14px;
+  color: #d7d0c0;
+  line-height: 1.45;
+}
+
+html[data-theme='light'] .phaser-form,
+html[data-theme='light'] .lotus-modal {
+  background: rgba(247, 241, 230, 0.96);
+  border-color: rgba(184, 137, 46, 0.55);
+  color: #2a2418;
+}
+
+html[data-theme='light'] .phaser-form input:not([type='file']):not([type='checkbox']),
+html[data-theme='light'] .phaser-form select,
+html[data-theme='light'] .phaser-form button,
+html[data-theme='light'] .phaser-form a,
+html[data-theme='light'] .phaser-form label,
+html[data-theme='light'] .lotus-modal-header h2,
+html[data-theme='light'] .lotus-modal-close,
+html[data-theme='light'] .tutorial-scroll p {
+  color: #2a2418;
+}
+
+html[data-theme='light'] .phaser-form input:not([type='file']):not([type='checkbox']),
+html[data-theme='light'] .phaser-form select {
+  background: #fff;
+  border-color: rgba(106, 101, 88, 0.35);
+}
+
+html[data-theme='light'] body,
+html[data-theme='light'] #lotus-game-root {
+  background: #e8e0d0;
 }

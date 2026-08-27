@@ -82,7 +82,7 @@ export class BaseScene extends Phaser.Scene {
 
   addBackButton(target = 'MenuScene') {
     const layout = layoutInfo();
-    this.addButton(
+    return this.addButton(
       layout.portrait ? 100 : 82,
       layout.portrait ? GAME_HEIGHT - 90 : GAME_HEIGHT - 44,
       120,

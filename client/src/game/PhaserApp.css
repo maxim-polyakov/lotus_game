@@ -19,6 +19,13 @@ body,
   background: #10141f;
 }
 
+html[data-theme='light'],
+html[data-theme='light'] body,
+html[data-theme='light'] #root,
+html[data-theme='light'] #lotus-game-root {
+  background: #e8e0d0;
+}
+
 #lotus-game-root {
   position: relative;
   width: 100%;
