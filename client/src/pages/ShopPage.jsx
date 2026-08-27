@@ -2,7 +2,9 @@ import api from '../api/client';
 import { palette, session, layoutInfo, GAME_WIDTH, GAME_HEIGHT } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
 import { CardGameObject, cardKey } from '../components/CardDisplay';
-import { asArray } from '../components/ErrorDetail';
+import { asArray, errorMessage } from '../components/ErrorDetail';
+
+const SHOP_TIMEOUT_MS = 30000;
 
 export class ShopScene extends ListScene {
   constructor() {
@@ -17,24 +19,56 @@ export class ShopScene extends ListScene {
     this.lastCard = null;
     this.lastHero = null;
     this._scrollY = 0;
-    Promise.all([
-      api.get('/api/shop/status').then(({ data }) => data),
-      api.get('/api/cards').then(({ data }) => data || []),
-      api.get('/api/cards/collection').then(({ data }) => asArray(data)),
-      api.get('/api/heroes').then(({ data }) => data || []),
-    ]).then(([status, cards, collection, heroes]) => {
-      this.status = status;
-      this.cards = cards;
-      this.collection = collection;
-      this.heroes = heroes;
-      return this.loadCardTextures(cards).then(() => this.renderShop());
-    }).catch((err) => {
-      this.status = null;
-      this.cards = [];
-      this.collection = [];
-      this.heroes = [];
-      this.renderShop(err.response?.data?.message || err.message || 'Ошибка загрузки');
-    });
+    this._shopError = '';
+    this.loadShop();
+  }
+
+  async loadShop() {
+    if (this._shopLoading) return;
+    this._shopLoading = true;
+    this._shopError = '';
+    this.teardownScroll();
+    this.clearScene();
+    this.cameras?.main?.setScroll(0, 0);
+    this.drawBackground('Магазин');
+    this.addBackButton();
+    this.addMessage('Загрузка магазина...', palette.text, GAME_HEIGHT / 2);
+
+    const get = (url) => api.get(url, { timeout: SHOP_TIMEOUT_MS });
+    const settled = await Promise.allSettled([
+      get('/api/shop/status'),
+      get('/api/cards'),
+      get('/api/cards/collection'),
+      get('/api/heroes'),
+    ]);
+    this._shopLoading = false;
+    if (!this.sys?.isActive?.()) return;
+
+    const [statusR, cardsR, collectionR, heroesR] = settled;
+    const failures = settled.filter((r) => r.status === 'rejected').map((r) => r.reason);
+
+    if (statusR.status === 'fulfilled') this.status = statusR.value.data;
+    if (cardsR.status === 'fulfilled') this.cards = cardsR.value.data || [];
+    else if (!this.cards) this.cards = [];
+    if (collectionR.status === 'fulfilled') this.collection = asArray(collectionR.value.data);
+    else if (!this.collection) this.collection = [];
+    if (heroesR.status === 'fulfilled') this.heroes = heroesR.value.data || [];
+    else if (!this.heroes) this.heroes = [];
+
+    if (failures.length) {
+      this._shopError = errorMessage(failures[0], 'Не удалось загрузить часть данных магазина');
+    }
+
+    // Show catalog immediately; art loads in background.
+    this.renderShop(this._shopError);
+    const cards = this.cards || [];
+    if (cards.length) {
+      this.loadCardTextures(cards)
+        .then(() => {
+          if (this.sys?.isActive?.()) this.renderShop(this._shopError);
+        })
+        .catch(() => {});
+    }
   }
 
   teardownScroll() {
@@ -215,7 +249,12 @@ export class ShopScene extends ListScene {
         align: 'center',
         wordWrap: { width: layout.portrait ? 640 : 900 },
       }).setOrigin(0.5);
-      y += 36;
+      y += 28;
+      this.addButton(layout.centerX, y + 24, 200, 42, 'Обновить', () => this.loadShop(), {
+        fill: palette.primaryDark,
+        fontSize: 16,
+      });
+      y += 70;
     }
 
     if (this.lastCard || this.lastHero) {
