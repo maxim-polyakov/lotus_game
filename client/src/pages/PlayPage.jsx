@@ -129,14 +129,20 @@ export class PlayScene extends BaseScene {
     this.render('Поиск соперника...');
     try {
       let match;
+      // REST first — mobile SockJS is flaky and used to hang before opening a match.
       try {
-        match = await matchSocket.findMatch(deck.id, this.mode, hero.id);
-      } catch {
         const { data } = await api.post('/api/matches/find', null, {
           params: { deckId: deck.id, mode: this.mode, heroId: hero.id },
         });
         match = data;
+      } catch (restErr) {
+        try {
+          match = await matchSocket.findMatch(deck.id, this.mode, hero.id);
+        } catch {
+          throw restErr;
+        }
       }
+      if (!match?.id) throw new Error('Сервер не вернул матч');
       sessionStorage.setItem(ACTIVE_MATCH_KEY, String(match.id));
       if (match.status === 'WAITING') {
         this.waitForMatch(match.id);

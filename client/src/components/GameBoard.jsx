@@ -30,12 +30,22 @@ export class MatchScene extends BaseScene {
 
   create() {
     this.events.once('shutdown', () => this.cleanup());
-    this.loadData().then(() => this.prepareAssets()).then(() => {
-      this.connectSocket();
-      this.startPolling();
-      this.bindVisibilityRefresh();
-      this.render();
-    }).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка матча'));
+    this.drawBackground('Матч');
+    this.addMessage('Загрузка матча...', palette.text, GAME_HEIGHT / 2);
+    this.loadData()
+      .then(() => {
+        this.connectSocket();
+        this.startPolling();
+        this.bindVisibilityRefresh();
+        this.render();
+        // Textures in background — never block entering the match on mobile.
+        this.prepareAssets()
+          .then(() => {
+            if (this.sys?.isActive?.() !== false) this.render(this.match);
+          })
+          .catch(() => {});
+      })
+      .catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка матча'));
   }
 
   cleanup() {

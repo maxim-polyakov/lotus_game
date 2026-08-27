@@ -3,13 +3,32 @@ import SockJS from 'sockjs-client';
 import { WS_URL } from '../api/client';
 import { getAccessToken } from '../utils/tokenStorage';
 
+const CONNECT_TIMEOUT_MS = 6000;
+const FIND_MATCH_TIMEOUT_MS = 7000;
+
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message || 'Timeout')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 export class MatchSocket {
   constructor() {
     this.client = null;
     this.connectPromise = null;
-    this.matchListeners = new Map(); // matchId -> Set<callback>
+    this.matchListeners = new Map();
     this.errorListeners = new Set();
-    this.matchSubs = new Map(); // matchId -> StompSubscription
+    this.matchSubs = new Map();
     this.errorSub = null;
   }
 
@@ -21,50 +40,65 @@ export class MatchSocket {
 
     this.connectPromise = new Promise((resolve, reject) => {
       let settled = false;
-      const client = new Client({
-        webSocketFactory: () => new SockJS(WS_URL),
-        connectHeaders: { token: getAccessToken() || token },
-        reconnectDelay: 2500,
-        heartbeatIncoming: 10000,
-        heartbeatOutgoing: 10000,
-        beforeConnect: () => {
-          const next = getAccessToken();
-          if (next) client.connectHeaders = { token: next };
-        },
-        onConnect: () => {
-          this.client = client;
-          this.resubscribeAll();
-          if (!settled) {
-            settled = true;
-            this.connectPromise = null;
-            resolve(client);
-          }
-        },
-        onStompError: () => {
-          if (!settled) {
-            settled = true;
-            this.connectPromise = null;
-            reject(new Error('STOMP ошибка'));
-          }
-        },
-        onWebSocketError: () => {
-          if (!settled) {
-            settled = true;
-            this.connectPromise = null;
-            reject(new Error('WebSocket ошибка'));
-          }
-        },
-        onDisconnect: () => {
-          this.matchSubs.clear();
-          this.errorSub = null;
-        },
-        onWebSocketClose: () => {
-          this.matchSubs.clear();
-          this.errorSub = null;
-        },
-      });
-      this.client = client;
-      client.activate();
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        this.connectPromise = null;
+        fn(value);
+      };
+
+      const timer = setTimeout(() => {
+        finish(reject, new Error('WebSocket timeout'));
+      }, CONNECT_TIMEOUT_MS);
+
+      const ensureClient = () => {
+        if (this.client) return this.client;
+        const client = new Client({
+          webSocketFactory: () => new SockJS(WS_URL),
+          connectHeaders: { token: getAccessToken() || token },
+          reconnectDelay: 2500,
+          heartbeatIncoming: 10000,
+          heartbeatOutgoing: 10000,
+          beforeConnect: () => {
+            const next = getAccessToken();
+            if (next) client.connectHeaders = { token: next };
+          },
+          onConnect: () => {
+            this.client = client;
+            this.resubscribeAll();
+            finish(resolve, client);
+          },
+          // Mobile SockJS often errors on websocket probe then falls back to xhr.
+          onStompError: () => {},
+          onWebSocketError: () => {},
+          onDisconnect: () => {
+            this.matchSubs.clear();
+            this.errorSub = null;
+          },
+          onWebSocketClose: () => {
+            this.matchSubs.clear();
+            this.errorSub = null;
+          },
+        });
+        this.client = client;
+        client.activate();
+        return client;
+      };
+
+      const client = ensureClient();
+      if (client.connected) {
+        finish(resolve, client);
+        return;
+      }
+
+      // If client already existed and is reconnecting, hook success once.
+      const previous = client.onConnect;
+      client.onConnect = (frame) => {
+        try { previous?.(frame); } catch { /* ignore */ }
+        this.resubscribeAll();
+        finish(resolve, client);
+      };
     });
 
     return this.connectPromise;
@@ -126,7 +160,7 @@ export class MatchSocket {
 
   async findMatch(deckId, mode, heroId) {
     const client = await this.connect();
-    return new Promise((resolve, reject) => {
+    return withTimeout(new Promise((resolve, reject) => {
       const resultSub = client.subscribe('/user/queue/matches', (msg) => {
         resultSub.unsubscribe();
         errSub.unsubscribe();
@@ -142,7 +176,7 @@ export class MatchSocket {
         destination: '/app/matches/find',
         body: JSON.stringify({ deckId, mode: mode || 'RANKED', heroId }),
       });
-    });
+    }), FIND_MATCH_TIMEOUT_MS, 'Поиск матча по WebSocket не ответил');
   }
 
   subscribeMatch(matchId, callback) {
@@ -165,7 +199,7 @@ export class MatchSocket {
         });
       });
       this.matchSubs.set(id, sub);
-    } else {
+    } else if (!this.client?.connected) {
       this.connect().catch(() => {});
     }
 
@@ -187,8 +221,8 @@ export class MatchSocket {
   subscribeErrors(callback) {
     if (!callback) return () => {};
     this.errorListeners.add(callback);
-    if (this.client?.connected && !this.errorSub) {
-      this.resubscribeAll();
+    if (this.client?.connected) {
+      if (!this.errorSub) this.resubscribeAll();
     } else {
       this.connect().catch(() => {});
     }
