@@ -48,6 +48,7 @@ public class SecurityConfig {
             "/api/cards/**",
             "/api/settings/**",
             "/api/leaderboard",
+            "/api/media/**",
             "/actuator/health",
             "/error",
             "/h2-console/**",

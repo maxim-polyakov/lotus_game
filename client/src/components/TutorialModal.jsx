@@ -7,8 +7,8 @@ import {
   layoutInfo,
 } from '../game/shared';
 import { sceneToRoute } from './NavDropdown';
-import { textureKey, resolveAssetUrl } from './CardDisplay';
-import { imageTextureKey, circularAvatarKey } from './ErrorDetail';
+import { textureKey, resolveTextureUrl } from './CardDisplay';
+import { imageTextureKey } from './ErrorDetail';
 import './TutorialModal.css';
 
 export class BaseScene extends Phaser.Scene {
@@ -128,29 +128,31 @@ export class BaseScene extends Phaser.Scene {
   loadCardTextures(cards = []) {
     const toLoad = cards.filter((c) => c.imageUrl && !this.textures.exists(textureKey(c)));
     if (!toLoad.length) return Promise.resolve();
-    return Promise.all(toLoad.map((card) => this.loadRemoteTexture(textureKey(card), resolveAssetUrl(card.imageUrl))));
+    return Promise.all(toLoad.map((card) => this.loadRemoteTexture(textureKey(card), resolveTextureUrl(card.imageUrl))));
   }
 
   loadImageUrls(urls = []) {
-    const cleanUrls = [...new Set(urls.filter(Boolean).map((url) => resolveAssetUrl(url)))];
+    const cleanUrls = [...new Set(urls.filter(Boolean).map((url) => resolveTextureUrl(url)))];
     const toLoad = cleanUrls.filter((url) => !this.textures.exists(imageTextureKey(url)));
     if (!toLoad.length) return Promise.resolve();
     return Promise.all(toLoad.map((url) => this.loadRemoteTexture(imageTextureKey(url), url)));
   }
 
   /**
-   * Yandex Object Storage often has no CORS headers. Phaser WebGL + crossOrigin=anonymous
-   * then fails silently, so load without CORS for display-only textures.
+   * Load remote image into a Phaser texture via same-origin proxy when needed.
    */
   loadRemoteTexture(key, url) {
     if (!key || !url) return Promise.resolve(false);
     if (this.textures.exists(key)) return Promise.resolve(true);
     return new Promise((resolve) => {
       const img = new Image();
+      img.decoding = 'async';
       img.onload = () => {
         try {
-          if (!this.textures.exists(key)) this.textures.addImage(key, img);
-          resolve(true);
+          if (!this.textures.exists(key)) {
+            this.textures.addImage(key, img);
+          }
+          resolve(this.textures.exists(key));
         } catch {
           resolve(false);
         }
@@ -162,11 +164,14 @@ export class BaseScene extends Phaser.Scene {
 
   addAvatar(x, y, url, name = '?', size = 44) {
     const radius = size / 2;
-    const resolved = resolveAssetUrl(url);
+    const resolved = resolveTextureUrl(url);
     this.add.circle(x, y, radius, 0x2c3850);
     if (resolved && this.textures.exists(imageTextureKey(resolved))) {
-      const key = this.ensureCircularAvatarTexture(resolved, size - 4);
-      this.add.image(x, y, key).setDisplaySize(size - 4, size - 4);
+      const image = this.add.image(x, y, imageTextureKey(resolved)).setDisplaySize(size - 4, size - 4);
+      const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+      maskShape.fillStyle(0xffffff);
+      maskShape.fillCircle(x, y, radius - 2);
+      image.setMask(maskShape.createGeometryMask());
       this.add.circle(x, y, radius, 0x000000, 0).setStrokeStyle(2, palette.primary);
       return;
     }
@@ -177,38 +182,6 @@ export class BaseScene extends Phaser.Scene {
       color: '#ffffff',
       fontStyle: 'bold',
     }).setOrigin(0.5);
-  }
-
-  ensureCircularAvatarTexture(url, size) {
-    const resolved = resolveAssetUrl(url);
-    const outputKey = circularAvatarKey(resolved, size);
-    if (this.textures.exists(outputKey)) return outputKey;
-
-    const source = this.textures.get(imageTextureKey(resolved))?.getSourceImage();
-    const texture = this.textures.createCanvas(outputKey, size, size);
-    const ctx = texture.getContext();
-    const sourceWidth = source?.naturalWidth || source?.width || size;
-    const sourceHeight = source?.naturalHeight || source?.height || size;
-    const scale = Math.max(size / sourceWidth, size / sourceHeight);
-    const drawWidth = sourceWidth * scale;
-    const drawHeight = sourceHeight * scale;
-    const drawX = (size - drawWidth) / 2;
-    const drawY = (size - drawHeight) / 2;
-
-    ctx.clearRect(0, 0, size, size);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-    ctx.clip();
-    try {
-      ctx.drawImage(source, drawX, drawY, drawWidth, drawHeight);
-    } catch {
-      ctx.fillStyle = '#2c3850';
-      ctx.fillRect(0, 0, size, size);
-    }
-    ctx.restore();
-    texture.refresh();
-    return outputKey;
   }
 }
 

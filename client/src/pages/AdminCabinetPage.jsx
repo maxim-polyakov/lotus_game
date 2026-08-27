@@ -81,7 +81,6 @@ export class AdminScene extends ListScene {
         this.formMode = 'edit';
         this.renderAdmin();
       });
-      this.addCardAssetBadges(x, y + 58, card);
     });
 
     const panelX = layout.portrait ? layout.centerX : 1000;
@@ -123,11 +122,11 @@ export class AdminScene extends ListScene {
     const layout = layoutInfo();
     const assets = this.assetStatus(card);
     const assetLinks = [
-      assets.image && ['Картинка', card.imageUrl],
-      assets.sound && ['Звук розыгрыша', card.soundUrl],
-      assets.attackSound && ['Звук атаки', card.attackSoundUrl],
-      assets.playGif && ['GIF розыгрыша', card.playEffectUrl],
-      assets.attackGif && ['GIF атаки', card.attackEffectUrl],
+      assets.image && ['Открыть картинку', card.imageUrl],
+      assets.sound && ['Открыть звук розыгрыша', card.soundUrl],
+      assets.attackSound && ['Открыть звук атаки', card.attackSoundUrl],
+      assets.playGif && ['Открыть GIF розыгрыша', card.playEffectUrl],
+      assets.attackGif && ['Открыть GIF атаки', card.attackEffectUrl],
     ].filter(Boolean).map(([label, url]) => (
       `<a class="admin-asset-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">${escapeAttr(label)}</a>`
     )).join('');
@@ -135,14 +134,6 @@ export class AdminScene extends ListScene {
     const editDom = this.addDomForm(panelX, panelY - 10, `
       <form class="phaser-form admin-phaser-form">
         <strong>${escapeAttr(card.cardType)} #${card.id}</strong>
-        <div class="admin-asset-status">
-          <span class="${assets.image ? 'on' : 'off'}">IMG ${assets.image ? 'есть' : 'нет'}</span>
-          <span class="${assets.sound ? 'on' : 'off'}">SND ${assets.sound ? 'есть' : 'нет'}</span>
-          <span class="${assets.attackSound ? 'on' : 'off'}">ATK SND ${assets.attackSound ? 'есть' : 'нет'}</span>
-          <span class="${assets.playGif ? 'on' : 'off'}">GIF ${assets.playGif ? 'есть' : 'нет'}</span>
-          <span class="${assets.attackGif ? 'on' : 'off'}">ATK GIF ${assets.attackGif ? 'есть' : 'нет'}</span>
-        </div>
-        ${assetLinks ? `<div class="admin-asset-links">${assetLinks}</div>` : '<div class="admin-asset-empty">Ассеты ещё не загружены</div>'}
         <input name="name" placeholder="Название" value="${escapeAttr(card.name)}" required />
         <input name="manaCost" type="number" placeholder="Мана" value="${escapeAttr(card.manaCost)}" />
         ${isMinion ? `
@@ -153,12 +144,35 @@ export class AdminScene extends ListScene {
         `}
         <input name="description" placeholder="Описание" value="${escapeAttr(card.description)}" />
         <button type="submit">Сохранить карту</button>
-        <label>Картинка<input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
-        <label>Звук розыгрыша<input name="sound" type="file" accept="audio/*" /></label>
-        ${isMinion ? '<label>Звук атаки<input name="attackSound" type="file" accept="audio/*" /></label>' : ''}
-        <label>GIF розыгрыша<input name="effect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" /></label>
-        ${isMinion ? '<label>GIF атаки<input name="attackEffect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" /></label>' : ''}
-        <button type="button" data-upload-assets>Загрузить ассеты</button>
+
+        <div class="admin-upload-block">
+          <strong class="admin-upload-title">Загрузка файлов</strong>
+          ${assetLinks ? `<div class="admin-asset-links">${assetLinks}</div>` : '<div class="admin-asset-empty">Пока ничего не загружено</div>'}
+
+          <label class="admin-upload-field">
+            <span class="admin-upload-label">Картинка на карте <em class="${assets.image ? 'on' : 'off'}">${assets.image ? 'уже есть' : 'нет'}</em></span>
+            <input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+          </label>
+          <label class="admin-upload-field">
+            <span class="admin-upload-label">Звук розыгрыша <em class="${assets.sound ? 'on' : 'off'}">${assets.sound ? 'уже есть' : 'нет'}</em></span>
+            <input name="sound" type="file" accept="audio/*" />
+          </label>
+          ${isMinion ? `
+          <label class="admin-upload-field">
+            <span class="admin-upload-label">Звук атаки <em class="${assets.attackSound ? 'on' : 'off'}">${assets.attackSound ? 'уже есть' : 'нет'}</em></span>
+            <input name="attackSound" type="file" accept="audio/*" />
+          </label>` : ''}
+          <label class="admin-upload-field">
+            <span class="admin-upload-label">GIF розыгрыша <em class="${assets.playGif ? 'on' : 'off'}">${assets.playGif ? 'уже есть' : 'нет'}</em></span>
+            <input name="effect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" />
+          </label>
+          ${isMinion ? `
+          <label class="admin-upload-field">
+            <span class="admin-upload-label">GIF атаки <em class="${assets.attackGif ? 'on' : 'off'}">${assets.attackGif ? 'уже есть' : 'нет'}</em></span>
+            <input name="attackEffect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" />
+          </label>` : ''}
+          <button type="button" data-upload-assets>Загрузить выбранные файлы</button>
+        </div>
       </form>
     `, (values) => this.saveCard(card, values));
 
@@ -177,26 +191,6 @@ export class AdminScene extends ListScene {
       attackGif: Boolean(card?.attackEffectUrl),
       gif: Boolean(card?.playEffectUrl || card?.attackEffectUrl),
     };
-  }
-
-  addCardAssetBadges(x, y, card) {
-    const assets = this.assetStatus(card);
-    const badges = [
-      ['I', assets.image, 0x2e9a58],
-      ['S', assets.sound || assets.attackSound, 0x235bd6],
-      ['G', assets.gif, 0xb46a38],
-    ];
-    badges.forEach(([label, enabled, color], index) => {
-      const bx = x - 22 + index * 22;
-      this.add.circle(bx, y, 9, enabled ? color : 0x3a455c, enabled ? 0.95 : 0.45)
-        .setStrokeStyle(1, enabled ? 0xffffff : 0x667089);
-      this.add.text(bx, y, label, {
-        fontFamily: 'Segoe UI, Arial',
-        fontSize: '10px',
-        color: enabled ? '#ffffff' : '#9aa6bd',
-        fontStyle: 'bold',
-      }).setOrigin(0.5);
-    });
   }
 
   renderCreateCardForm(panelX, panelY) {

@@ -20,25 +20,49 @@
   padding: 7px;
 }
 
-.admin-asset-status {
+.admin-upload-block {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(215, 170, 69, 0.35);
 }
 
-.admin-asset-status span {
-  padding: 4px 8px;
+.admin-upload-title {
+  color: #ffe18c;
+  font: 600 14px 'Segoe UI', system-ui, sans-serif;
+}
+
+.admin-upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-upload-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: #f6ead2;
+  font: 600 13px 'Segoe UI', system-ui, sans-serif;
+}
+
+.admin-upload-label em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 2px 7px;
   border-radius: 999px;
-  font: 600 11px 'Segoe UI', system-ui, sans-serif;
 }
 
-.admin-asset-status .on {
+.admin-upload-label em.on {
   background: rgba(46, 154, 88, 0.25);
   color: #9cffb5;
   border: 1px solid rgba(156, 255, 181, 0.45);
 }
 
-.admin-asset-status .off {
+.admin-upload-label em.off {
   background: rgba(90, 100, 120, 0.25);
   color: #aab4c8;
   border: 1px solid rgba(170, 180, 200, 0.3);
@@ -61,12 +85,4 @@
 .admin-asset-empty {
   color: #aab4c8;
   font: 13px 'Segoe UI', system-ui, sans-serif;
-}
-
-.admin-phaser-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: #f6ead2;
-  font: 12px 'Segoe UI', system-ui, sans-serif;
 }

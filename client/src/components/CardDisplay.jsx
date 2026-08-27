@@ -20,11 +20,21 @@ export function resolveAssetUrl(url) {
   return `${API_BASE}/${url}`;
 }
 
+/** Same-origin proxy for WebGL textures when S3 has no CORS. */
+export function resolveTextureUrl(url) {
+  const absolute = resolveAssetUrl(url);
+  if (!absolute) return '';
+  if (/^https:\/\/storage\.yandexcloud\.net\/lotus\//i.test(absolute)) {
+    return `${API_BASE}/api/media/proxy?url=${encodeURIComponent(absolute)}`;
+  }
+  return absolute;
+}
+
 export function textureKey(card) {
   // Phaser treats ":" as key:frame, so never put cardType:id in texture keys.
   const type = String(card?.cardType || 'CARD').replace(/[^a-zA-Z0-9_-]/g, '_');
   const id = card?.id ?? 'x';
-  return `card-art-${type}-${id}-${hashString(resolveAssetUrl(card?.imageUrl))}`;
+  return `card-art-${type}-${id}-${hashString(resolveTextureUrl(card?.imageUrl))}`;
 }
 
 export function playCardSound(card, kind = 'play') {
