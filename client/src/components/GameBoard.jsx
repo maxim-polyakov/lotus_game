@@ -322,7 +322,22 @@ export class MatchScene extends BaseScene {
   }
 
   needsTarget(card) {
-    return !!this.targetSide(card);
+    const side = this.targetSide(card);
+    if (!side) return false;
+    // Баф без союзников на столе — выставляем миньона сразу, клич не срабатывает.
+    if (String(card.battlecryType || '').toUpperCase() === 'BUFF_ALLY') {
+      const board = this.myBoard();
+      if (!board.length) return false;
+    }
+    return true;
+  }
+
+  myBoard() {
+    if (!this.match?.gameState) return [];
+    const me = this.isMe(this.match.player1Id)
+      ? this.match.gameState.player1
+      : this.match.gameState.player2;
+    return me?.board || [];
   }
 
   allowsHeroTarget(card) {
@@ -583,11 +598,6 @@ export class MatchScene extends BaseScene {
         if (moved > 28) return;
         if (!this.consumeCardGesture(pointer)) return;
         if (this.needsTarget(card)) {
-          const side = this.targetSide(card);
-          if (side === 'ally' && !(me.board || []).length && !this.allowsHeroTarget(card)) {
-            this.addMessage('Нет союзных миньонов для бафа', '#ffb3b3');
-            return;
-          }
           this.selectedSpell = this.selectedSpell?.instanceId === slot.instanceId
             ? null
             : { ...slot, card };

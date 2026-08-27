@@ -564,8 +564,9 @@ public class MatchService {
             }
         } else if ("BUFF_ALLY".equalsIgnoreCase(type) && val > 0) {
             String tid = request.getTargetInstanceId();
+            // Нет цели (пустой стол) — миньон выставляется, баф не применяется.
             if (tid == null || tid.isBlank()) {
-                throw new IllegalArgumentException("Battlecry Buff: укажите союзного миньона");
+                return;
             }
             GameState.BoardMinion target = player.getBoard().stream()
                     .filter(m -> m.getInstanceId().equals(tid))
