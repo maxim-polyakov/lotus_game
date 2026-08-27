@@ -35,8 +35,39 @@ export class PlayScene extends BaseScene {
       this.heroes = heroes.filter((h) => h.unlocked !== false);
       const heroIndex = this.heroes.findIndex((h) => h.id === session.selectedHeroId);
       this.selectedHeroIndex = Math.max(0, heroIndex);
-      this.render();
+      this.resumeActiveMatchOrRender();
     }).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка загрузки'));
+  }
+
+  async resumeActiveMatchOrRender() {
+    const activeId = sessionStorage.getItem(ACTIVE_MATCH_KEY);
+    if (!activeId) {
+      this.render();
+      return;
+    }
+    try {
+      const { data } = await api.get(`/api/matches/${activeId}`, {
+        params: { _: Date.now() },
+      });
+      if (!data) {
+        sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+        this.render();
+        return;
+      }
+      if (data.status === 'WAITING') {
+        this.waitForMatch(data.id);
+        return;
+      }
+      if (data.status === 'IN_PROGRESS' || data.status === 'FINISHED') {
+        this.scene.start('MatchScene', { match: data, cards: this.cards });
+        return;
+      }
+      sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+      this.render();
+    } catch {
+      sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+      this.render();
+    }
   }
 
   renderError(message) {
@@ -158,7 +189,9 @@ export class PlayScene extends BaseScene {
     this.cleanupWaiting();
     this.render(`Ожидание соперника. Матч #${matchId}`);
     const openMatch = (match) => {
-      if (!match || match.status === 'WAITING') return;
+      if (!match) return;
+      const status = String(match.status || '').toUpperCase();
+      if (status === 'WAITING') return;
       this.cleanupWaiting();
       this.scene.start('MatchScene', { match, cards: this.cards });
     };
@@ -167,17 +200,28 @@ export class PlayScene extends BaseScene {
         this.waitingUnsubscribe = matchSocket.subscribeMatch(matchId, openMatch);
       })
       .catch(() => {});
-    this.waitingEvent = this.time.addEvent({
-      delay: 2000,
-      loop: true,
-      callback: async () => {
-        try {
-          const { data } = await api.get(`/api/matches/${matchId}`);
-          openMatch(data);
-        } catch (err) {
-          this.render(err.response?.data?.message || err.message || 'Ошибка ожидания матча');
+
+    const poll = async () => {
+      try {
+        const { data } = await api.get(`/api/matches/${matchId}`, {
+          params: { _: Date.now() },
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        openMatch(data);
+      } catch (err) {
+        // Keep waiting UI; transient mobile blips shouldn't abort matchmaking.
+        if (err.response?.status === 403 || err.response?.status === 404) {
+          sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+          this.cleanupWaiting();
+          this.render(err.response?.data?.message || 'Матч больше недоступен');
         }
-      },
+      }
+    };
+    poll();
+    this.waitingEvent = this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => { poll(); },
     });
   }
 

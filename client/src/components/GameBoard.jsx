@@ -134,7 +134,10 @@ export class MatchScene extends BaseScene {
     if (!this.match?.id) return;
     if (this.match.status === 'FINISHED') return;
     try {
-      const { data } = await api.get(`/api/matches/${this.match.id}`);
+      const { data } = await api.get(`/api/matches/${this.match.id}`, {
+        params: { _: Date.now() },
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       if (!data) return;
       const prev = this.match;
       const changed = forceRender
