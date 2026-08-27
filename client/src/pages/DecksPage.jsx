@@ -1,5 +1,5 @@
 import api from '../api/client';
-import { palette, layoutInfo } from '../game/shared';
+import { GAME_WIDTH, GAME_HEIGHT, palette, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
 import { CardGameObject } from '../components/CardDisplay';
 import { asArray, deckHeroId } from '../components/ErrorDetail';
@@ -10,6 +10,8 @@ export class DecksScene extends ListScene {
   }
 
   create() {
+    this.events.once('shutdown', () => this.teardownScroll());
+    this._scrollY = 0;
     this.drawBackground('Колоды');
     this.addBackButton();
     this.addMessage('Загрузка колод...', palette.text, 120);
@@ -25,27 +27,63 @@ export class DecksScene extends ListScene {
   }
 
   renderDecks(decks, cards, heroes = [], error = '') {
+    this.teardownScroll();
     this.clearScene();
+    this.cameras?.main?.setScroll(0, 0);
+
     const layout = layoutInfo();
-    this.drawBackground('Колоды');
-    this.addBackButton();
-    this.addButton(layout.portrait ? layout.centerX : 1120, layout.portrait ? 1188 : 675, layout.portrait ? 280 : 190, 40, 'Новая колода', () => {
-      window.history.pushState({}, '', '/decks/new');
-      this.scene.start('DeckEditorScene');
-    }, { fontSize: 16, fill: palette.primaryDark });
-    if (error) this.addMessage(error, '#ffb3b3', 120);
-    decks.slice(0, layout.portrait ? 6 : 6).forEach((deck, index) => {
+    const pageH = Math.max(GAME_HEIGHT * 2, 1200 + (decks.length || 1) * 180);
+    this.add.rectangle(0, 0, GAME_WIDTH, pageH, palette.bg).setOrigin(0).setDepth(0);
+    this.drawStickyHeader('Колоды');
+    const back = this.addBackButton();
+    this.pin(back);
+
+    const newBtn = this.addButton(
+      layout.portrait ? layout.centerX : GAME_WIDTH - 120,
+      layout.portrait ? GAME_HEIGHT - 90 : GAME_HEIGHT - 44,
+      layout.portrait ? 280 : 190,
+      40,
+      'Новая колода',
+      () => {
+        window.history.pushState({}, '', '/decks/new');
+        this.scene.start('DeckEditorScene');
+      },
+      { fontSize: 16, fill: palette.primaryDark },
+    );
+    this.pin(newBtn);
+
+    if (error) {
+      this.add.text(GAME_WIDTH / 2, 120, error, {
+        fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: '#ffb3b3', align: 'center', wordWrap: { width: 900 },
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
+    }
+    if (!decks.length && !error) {
+      this.addMessage('Колод пока нет — создайте новую', palette.muted, GAME_HEIGHT / 2);
+      this.drawScrollbar(0);
+      this.setupScroll(GAME_HEIGHT);
+      return;
+    }
+
+    const startY = layout.portrait ? 190 : 170;
+    const rowGap = layout.portrait ? 158 : 178;
+    let contentBottom = startY;
+
+    decks.forEach((deck, index) => {
       const hero = heroes.find((h) => h.id === deckHeroId(deck));
       const x = layout.portrait ? layout.centerX : 260 + (index % 2) * 510;
-      const y = layout.portrait ? 190 + index * 158 : 170 + Math.floor(index / 2) * 178;
+      const y = layout.portrait
+        ? startY + index * rowGap
+        : startY + Math.floor(index / 2) * rowGap;
+      contentBottom = Math.max(contentBottom, y + 90);
       const panelWidth = layout.portrait ? 620 : 460;
-      this.add.rectangle(x, y, panelWidth, 146, palette.panel, 0.92)
+      const panel = this.add.rectangle(x, y, panelWidth, 146, palette.panel, 0.92)
         .setStrokeStyle(2, 0x53627a)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
-          window.history.pushState({}, '', `/decks/${deck.id}`);
-          this.scene.start('DeckEditorScene', { deckId: deck.id });
-        });
+        .setInteractive({ useHandCursor: true });
+      panel.on('pointerup', () => {
+        if (this.wasDragging()) return;
+        window.history.pushState({}, '', `/decks/${deck.id}`);
+        this.scene.start('DeckEditorScene', { deckId: deck.id });
+      });
       this.add.text(x - panelWidth / 2 + 20, y - 52, deck.name, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '22px',
@@ -62,8 +100,13 @@ export class DecksScene extends ListScene {
         if (!card) return;
         const view = new CardGameObject(this, x - (layout.portrait ? 190 : 116) + cardIndex * 72, y + 24, card, { width: 58, height: 80 });
         view.setScale(0.9);
+        view.setInputEnabled(false);
       });
     });
+
+    const maxScroll = Math.max(0, contentBottom + 100 - GAME_HEIGHT + 40);
+    this.drawScrollbar(maxScroll);
+    this.setupScroll(contentBottom + 100);
   }
 }
 

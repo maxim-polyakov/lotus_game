@@ -138,23 +138,34 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     }
 
     this.setSize(this.w, this.h);
-    // Full-card hitbox on the container so badges/stats never swallow taps.
+    this.installFullCardHitArea();
+  }
+
+  /** Transparent full-card pad on top so the whole card is tappable (not just center/art). */
+  installFullCardHitArea() {
     if (this.bg?.input) this.bg.disableInteractive();
-    this.setInteractive(
-      new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h),
-      Phaser.Geom.Rectangle.Contains,
-    );
-    if (this.input) this.input.cursor = 'pointer';
+    if (this.input) this.removeInteractive();
+    if (this.hitPad) {
+      try { this.hitPad.destroy(); } catch { /* ignore */ }
+      this.hitPad = null;
+    }
+
+    // Alpha 0.001 keeps a real WebGL quad for reliable hit-testing on mobile.
+    this.hitPad = this.scene.add.rectangle(0, 0, this.w, this.h, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+    this.add(this.hitPad);
+    this.bringToTop(this.hitPad);
+
+    // Forward pointer events so listeners on the CardGameObject still work.
+    ['pointerdown', 'pointerup', 'pointerover', 'pointerout', 'pointermove'].forEach((evt) => {
+      this.hitPad.on(evt, (...args) => this.emit(evt, ...args));
+    });
   }
 
   setInputEnabled(enabled) {
-    if (!this.input && enabled) {
-      this.setInteractive(
-        new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h),
-        Phaser.Geom.Rectangle.Contains,
-      );
-    }
-    if (this.input) this.input.enabled = !!enabled;
+    const on = !!enabled;
+    if (on && !this.hitPad) this.installFullCardHitArea();
+    if (this.hitPad?.input) this.hitPad.input.enabled = on;
   }
 
   addEffectLabels(compact, artY, artHeight) {
