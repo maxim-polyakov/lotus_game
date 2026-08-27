@@ -1,6 +1,7 @@
 package com.lotus.game.service;
 
 import com.lotus.game.dto.game.CreateHeroRequest;
+import com.lotus.game.dto.game.UpdateHeroRequest;
 import com.lotus.game.dto.game.HeroDto;
 import com.lotus.game.entity.GameHero;
 import com.lotus.game.repository.GameHeroRepository;
@@ -93,6 +94,46 @@ public class HeroCatalog {
                 .portraitUrl("")
                 .build());
         return toDto(saved);
+    }
+
+    @Transactional
+    public HeroDto updateHero(String heroId, UpdateHeroRequest req) {
+        if (req == null) {
+            throw new IllegalArgumentException("Пустые данные героя");
+        }
+        HeroDto existing = requireValid(heroId);
+        String id = existing.getId();
+
+        GameHero hero = gameHeroRepository.findById(id).orElse(null);
+        if (hero == null) {
+            // Переопределяем встроенного героя строкой в БД.
+            hero = GameHero.builder()
+                    .id(id)
+                    .name(existing.getName())
+                    .title(existing.getTitle() != null ? existing.getTitle() : "")
+                    .startingHealth(existing.getStartingHealth() != null ? existing.getStartingHealth() : 30)
+                    .portraitUrl(existing.getPortraitUrl() != null ? existing.getPortraitUrl() : "")
+                    .build();
+        }
+
+        if (req.getName() != null) {
+            String name = req.getName().trim();
+            if (name.isBlank()) {
+                throw new IllegalArgumentException("Укажите имя героя");
+            }
+            if (name.length() < 2) {
+                throw new IllegalArgumentException("Имя героя слишком короткое");
+            }
+            hero.setName(name);
+        }
+        if (req.getTitle() != null) {
+            hero.setTitle(req.getTitle().trim());
+        }
+        if (req.getStartingHealth() != null) {
+            hero.setStartingHealth(req.getStartingHealth());
+        }
+
+        return toDto(gameHeroRepository.save(hero));
     }
 
     private String generateUniqueHeroId(String name) {

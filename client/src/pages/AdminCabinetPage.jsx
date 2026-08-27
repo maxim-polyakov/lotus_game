@@ -12,6 +12,7 @@ export class AdminScene extends ListScene {
 
   create() {
     this.selected = null;
+    this.selectedHero = null;
     this.formMode = 'edit';
     this.panelCollapsed = false;
     this.loadAdmin();
@@ -31,6 +32,9 @@ export class AdminScene extends ListScene {
       if (this.selected) {
         this.selected = cards.find((card) => card.id === this.selected.id && card.cardType === this.selected.cardType) || null;
       }
+      if (this.selectedHero) {
+        this.selectedHero = heroes.find((h) => h.id === this.selectedHero.id) || null;
+      }
       this.renderAdmin(message);
     })).catch((err) => this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
@@ -47,62 +51,62 @@ export class AdminScene extends ListScene {
     this.addBackButton();
     if (message) this.addMessage(message, message.includes('Ошибка') || message.includes('Не') ? '#ffb3b3' : palette.text, layout.portrait ? 1225 : 670);
 
-    this.add.text(80, 95, 'Карты: клик для редактирования', { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.muted });
+    this.add.text(80, 95, this.formMode === 'heroes' || this.formMode === 'create-hero'
+      ? 'Герои: клик для редактирования'
+      : 'Карты: клик для редактирования', { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.muted });
 
     const actionY = layout.portrait ? 145 : 130;
     this.addButton(layout.portrait ? 160 : 150, actionY, 150, 34, 'Новая карта', () => {
       this.formMode = 'create-card';
+      this.selectedHero = null;
       this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
     this.addButton(layout.portrait ? 360 : 320, actionY, 150, 34, 'Новый герой', () => {
       this.formMode = 'create-hero';
+      this.selected = null;
       this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
-    this.addButton(layout.portrait ? 560 : 490, actionY, 130, 34, 'Редакт.', () => {
+    this.addButton(layout.portrait ? 560 : 490, actionY, 130, 34, 'Карты', () => {
       this.formMode = 'edit';
+      this.selectedHero = null;
       this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
-    this.addButton(layout.portrait ? 160 : 640, layout.portrait ? actionY + 42 : actionY, 150, 34, 'Пользователи', () => {
+    this.addButton(layout.portrait ? 160 : 640, layout.portrait ? actionY + 42 : actionY, 130, 34, 'Герои', () => {
+      this.formMode = 'heroes';
+      this.selected = null;
+      this.panelCollapsed = false;
+      this.renderAdmin();
+    }, { fontSize: 15 });
+    this.addButton(layout.portrait ? 320 : 790, layout.portrait ? actionY + 42 : actionY, 150, 34, 'Пользователи', () => {
       this.formMode = 'users';
+      this.selected = null;
+      this.selectedHero = null;
       this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
 
-    const columns = layout.portrait ? 4 : 6;
-    const cardLimit = layout.portrait ? 12 : 18;
-    const startX = layout.portrait ? 105 : 88;
-    const startY = layout.portrait ? 280 : 210;
-    const gapX = layout.portrait ? 168 : 100;
-    const gapY = layout.portrait ? 120 : 125;
-    (this.cards || []).slice(0, cardLimit).forEach((card, index) => {
-      const x = startX + (index % columns) * gapX;
-      const y = startY + Math.floor(index / columns) * gapY;
-      const view = new CardGameObject(this, x, y, card, {
-        width: 70,
-        height: 98,
-        selected: this.selected && this.selected.id === card.id && this.selected.cardType === card.cardType,
-      });
-      view.on('pointerdown', () => {
-        this.selected = card;
-        this.formMode = 'edit';
-        this.panelCollapsed = false;
-        this.renderAdmin();
-      });
-    });
-
+    if (this.formMode === 'heroes' || this.formMode === 'create-hero') {
+      this.renderHeroGrid(layout);
+    } else if (this.formMode !== 'users') {
+      this.renderCardGrid(layout);
+    }
     if (this.panelCollapsed) {
-      const expandLabel = this.selected
-        ? `Развернуть: ${String(this.selected.name || 'карта').slice(0, 18)}`
-        : this.formMode === 'create-card'
-          ? 'Развернуть: новая карта'
-          : this.formMode === 'create-hero'
-            ? 'Развернуть: новый герой'
-            : this.formMode === 'users'
-              ? 'Развернуть: пользователи'
-              : 'Развернуть панель';
+      const expandLabel = this.selectedHero
+        ? `Развернуть: ${String(this.selectedHero.name || 'герой').slice(0, 18)}`
+        : this.selected
+          ? `Развернуть: ${String(this.selected.name || 'карта').slice(0, 18)}`
+          : this.formMode === 'create-card'
+            ? 'Развернуть: новая карта'
+            : this.formMode === 'create-hero'
+              ? 'Развернуть: новый герой'
+              : this.formMode === 'heroes'
+                ? 'Развернуть: герои'
+                : this.formMode === 'users'
+                  ? 'Развернуть: пользователи'
+                  : 'Развернуть панель';
       this.addButton(
         layout.centerX,
         layout.portrait ? 1185 : 680,
@@ -126,9 +130,11 @@ export class AdminScene extends ListScene {
       ? 'Режим: создание карты'
       : this.formMode === 'create-hero'
         ? 'Режим: создание героя'
-        : this.formMode === 'users'
-          ? 'Режим: пользователи'
-          : 'Режим: редактирование';
+        : this.formMode === 'heroes'
+          ? 'Режим: редактирование героя'
+          : this.formMode === 'users'
+            ? 'Режим: пользователи'
+            : 'Режим: редактирование карты';
     this.add.text(panelX, panelY - panelH / 2 - 14, modeLabel, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '15px',
@@ -146,6 +152,16 @@ export class AdminScene extends ListScene {
       this.renderCreateHeroForm(panelX, panelY + (layout.portrait ? 18 : 12));
     } else if (this.formMode === 'users') {
       this.renderUsersForm(panelX, panelY + (layout.portrait ? 18 : 12));
+    } else if (this.formMode === 'heroes') {
+      if (this.selectedHero) {
+        this.renderSelectedHeroForm(this.selectedHero, panelX, panelY + (layout.portrait ? 18 : 12));
+      } else {
+        this.add.text(panelX, panelY, 'Выберите героя слева', {
+          fontFamily: 'Segoe UI, Arial',
+          fontSize: '20px',
+          color: palette.text,
+        }).setOrigin(0.5);
+      }
     } else if (this.selected) {
       this.renderSelectedCardForm(this.selected, panelX, panelY + (layout.portrait ? 18 : 12));
     } else {
@@ -155,6 +171,73 @@ export class AdminScene extends ListScene {
         color: palette.text,
       }).setOrigin(0.5);
     }
+  }
+
+  renderCardGrid(layout) {
+    const columns = layout.portrait ? 4 : 6;
+    const cardLimit = layout.portrait ? 12 : 18;
+    const startX = layout.portrait ? 105 : 88;
+    const startY = layout.portrait ? 280 : 210;
+    const gapX = layout.portrait ? 168 : 100;
+    const gapY = layout.portrait ? 120 : 125;
+    (this.cards || []).slice(0, cardLimit).forEach((card, index) => {
+      const x = startX + (index % columns) * gapX;
+      const y = startY + Math.floor(index / columns) * gapY;
+      const view = new CardGameObject(this, x, y, card, {
+        width: 70,
+        height: 98,
+        selected: this.selected && this.selected.id === card.id && this.selected.cardType === card.cardType,
+      });
+      view.on('pointerdown', () => {
+        this.selected = card;
+        this.selectedHero = null;
+        this.formMode = 'edit';
+        this.panelCollapsed = false;
+        this.renderAdmin();
+      });
+    });
+  }
+
+  renderHeroGrid(layout) {
+    const columns = layout.portrait ? 2 : 3;
+    const startX = layout.portrait ? 190 : 180;
+    const startY = layout.portrait ? 280 : 230;
+    const gapX = layout.portrait ? 300 : 250;
+    const gapY = layout.portrait ? 150 : 140;
+    (this.heroes || []).forEach((hero, index) => {
+      const x = startX + (index % columns) * gapX;
+      const y = startY + Math.floor(index / columns) * gapY;
+      const selected = this.selectedHero?.id === hero.id;
+      const panel = this.add.rectangle(x, y, layout.portrait ? 260 : 220, 120, selected ? 0x513a22 : palette.panel2, 0.95)
+        .setStrokeStyle(2, selected ? palette.primary : 0x53627a)
+        .setInteractive({ useHandCursor: true });
+      this.add.circle(x, y - 28, 28, palette.primaryDark);
+      this.add.text(x, y - 28, (hero.name || '?').slice(0, 1).toUpperCase(), {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '24px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.add.text(x, y + 12, hero.name || hero.id, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '16px',
+        color: palette.text,
+        align: 'center',
+        wordWrap: { width: 200 },
+      }).setOrigin(0.5);
+      this.add.text(x, y + 40, `HP ${hero.startingHealth ?? '-'}`, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '13px',
+        color: palette.muted,
+      }).setOrigin(0.5);
+      panel.on('pointerdown', () => {
+        this.selectedHero = hero;
+        this.selected = null;
+        this.formMode = 'heroes';
+        this.panelCollapsed = false;
+        this.renderAdmin();
+      });
+    });
   }
 
   renderSelectedCardForm(card, panelX, panelY) {
@@ -363,6 +446,44 @@ export class AdminScene extends ListScene {
     `, (values) => this.createHero(values));
   }
 
+  renderSelectedHeroForm(hero, panelX, panelY) {
+    const layout = layoutInfo();
+    const panelH = this._adminPanel?.h || (layout.portrait ? 640 : 560);
+    const formMaxH = Math.max(240, panelH - 70);
+    const hasPortrait = Boolean(hero?.portraitUrl);
+
+    const editDom = this.addDomForm(panelX, panelY, `
+      <form class="phaser-form admin-phaser-form" style="max-height:${formMaxH}px">
+        <div class="admin-form-head">
+          <strong>Герой: ${escapeAttr(hero.id)}</strong>
+          <button type="button" data-collapse-panel class="admin-collapse-btn">Свернуть</button>
+        </div>
+        <input name="name" placeholder="Имя" value="${escapeAttr(hero.name || '')}" required />
+        <input name="title" placeholder="Титул" value="${escapeAttr(hero.title || '')}" />
+        <input name="startingHealth" type="number" placeholder="HP" value="${escapeAttr(hero.startingHealth ?? 30)}" min="1" max="100" required />
+        <button type="submit">Сохранить героя</button>
+
+        <div class="admin-upload-block">
+          <strong class="admin-upload-title">Портрет</strong>
+          ${this.uploadFieldHtml('portrait', 'Картинка героя', 'image/png,image/jpeg,image/webp,image/gif', hasPortrait)}
+          <button type="button" data-upload-portrait>Загрузить портрет</button>
+          ${hasPortrait ? '<button type="button" data-delete-portrait class="admin-danger-btn">Удалить портрет</button>' : ''}
+        </div>
+      </form>
+    `, (values) => this.saveHero(hero, values));
+
+    const form = editDom.node?.querySelector('form');
+    form?.querySelectorAll('input[type="file"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const nameNode = input.parentElement?.querySelector('[data-file-name]');
+        if (nameNode) nameNode.textContent = input.files?.[0]?.name || 'Файл не выбран';
+      });
+    });
+    form?.querySelector('[data-collapse-panel]')?.addEventListener('click', () => this.setPanelCollapsed(true));
+    form?.querySelector('[data-upload-portrait]')?.addEventListener('click', () => this.uploadHeroPortrait(hero, form));
+    form?.querySelector('[data-delete-portrait]')?.addEventListener('click', () => this.deleteHeroPortrait(hero));
+  }
+
   renderUsersForm(panelX, panelY) {
     this.addDomForm(panelX, panelY - 90, `
       <form class="phaser-form admin-create-form" data-admin-promote>
@@ -469,9 +590,68 @@ export class AdminScene extends ListScene {
         title: values.title?.trim() || '',
         startingHealth: Number(values.startingHealth) || 30,
       });
+      this.heroes = [...(this.heroes || []), data];
+      this.selectedHero = data;
+      this.selected = null;
+      this.formMode = 'heroes';
       this.renderAdmin(`Герой создан (id: ${data?.id || 'ok'})`);
     } catch (err) {
       this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось создать героя');
+    }
+  }
+
+  async saveHero(hero, values) {
+    try {
+      const { data } = await api.put(`/api/admin/heroes/${encodeURIComponent(hero.id)}`, {
+        name: values.name.trim(),
+        title: values.title?.trim() || '',
+        startingHealth: Number(values.startingHealth) || 30,
+      });
+      this.heroes = (this.heroes || []).map((h) => (h.id === data.id
+        ? { ...h, ...data, portraitUrl: h.portraitUrl || data.portraitUrl || '' }
+        : h));
+      this.selectedHero = {
+        ...(this.selectedHero || {}),
+        ...data,
+        portraitUrl: this.selectedHero?.portraitUrl || data.portraitUrl || '',
+      };
+      this.renderAdmin('Герой сохранён');
+    } catch (err) {
+      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить героя');
+    }
+  }
+
+  async uploadHeroPortrait(hero, form) {
+    try {
+      const file = form?.elements?.portrait?.files?.[0];
+      if (!file) {
+        this.renderAdmin('Выберите файл портрета');
+        return;
+      }
+      const fd = new FormData();
+      fd.append('image', file);
+      const { data } = await api.post(`/api/admin/heroes/${encodeURIComponent(hero.id)}/portrait`, fd);
+      const portraitUrl = data?.portraitUrl || '';
+      this.heroes = (this.heroes || []).map((h) => (
+        h.id === hero.id ? { ...h, portraitUrl } : h
+      ));
+      this.selectedHero = { ...(this.selectedHero || hero), portraitUrl };
+      this.renderAdmin('Портрет загружен');
+    } catch (err) {
+      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось загрузить портрет');
+    }
+  }
+
+  async deleteHeroPortrait(hero) {
+    try {
+      await api.delete(`/api/admin/heroes/${encodeURIComponent(hero.id)}/portrait`);
+      this.heroes = (this.heroes || []).map((h) => (
+        h.id === hero.id ? { ...h, portraitUrl: '' } : h
+      ));
+      this.selectedHero = { ...(this.selectedHero || hero), portraitUrl: '' };
+      this.renderAdmin('Портрет удалён');
+    } catch (err) {
+      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось удалить портрет');
     }
   }
 

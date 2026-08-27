@@ -205,3 +205,8 @@
   font: 11px 'Segoe UI', system-ui, sans-serif;
   pointer-events: none;
 }
+
+.admin-danger-btn {
+  background: #52303a !important;
+  border-color: #d96b6b !important;
+}
