@@ -142,6 +142,15 @@ export class ShopScene extends ListScene {
     return !!this._shopDragMoved || !!this._dragScroll?.moved;
   }
 
+  /** Keep UI fixed on screen while the shop page scrolls. */
+  pin(obj, depth = 3000) {
+    if (!obj) return obj;
+    obj.setScrollFactor?.(0);
+    if (typeof depth === 'number') obj.setDepth?.(depth);
+    if (obj.list) obj.list.forEach((child) => this.pin(child, depth));
+    return obj;
+  }
+
   renderShop(error = '') {
     this.teardownScroll();
     this.clearScene();
@@ -157,6 +166,10 @@ export class ShopScene extends ListScene {
     const pageH = Math.max(GAME_HEIGHT * 2, 4000);
     this.add.rectangle(0, 0, GAME_WIDTH, pageH, palette.bg).setOrigin(0).setDepth(0);
 
+    // Sticky top bar: logo, title, username, avatar.
+    const stickyH = 90;
+    const stickyFrom = this.children.list.length;
+    this.add.rectangle(0, 0, GAME_WIDTH, stickyH, palette.bg, 1).setOrigin(0);
     const logoKey = this.textures.exists('lotus-logo') ? 'lotus-logo' : 'lotus-logo-fallback';
     if (this.textures.exists(logoKey)) {
       this.add.image(58, 52, logoKey).setDisplaySize(48, 48);
@@ -178,27 +191,30 @@ export class ShopScene extends ListScene {
       color: palette.muted,
     }).setOrigin(1, 0);
     this.addAvatar(GAME_WIDTH - 58, 53, session.user?.avatarUrl, session.user?.username || 'Guest', 42);
+    this.children.list.slice(stickyFrom).forEach((child) => this.pin(child));
 
     // Balance + buy buttons — stacked on portrait so they don't overlap.
+    // Start below sticky header so they scroll as part of the page.
+    const contentTop = stickyH + 24;
     if (layout.portrait) {
-      this.add.rectangle(layout.centerX, 140, 640, 96, palette.panel, 0.96)
+      this.add.rectangle(layout.centerX, contentTop + 50, 640, 96, palette.panel, 0.96)
         .setStrokeStyle(1, 0x34445f);
-      this.add.text(layout.centerX, 112, `Золото: ${status.gold ?? 0}`, {
+      this.add.text(layout.centerX, contentTop + 22, `Золото: ${status.gold ?? 0}`, {
         fontFamily: 'Segoe UI, Arial', fontSize: '22px', color: '#ffe18c',
       }).setOrigin(0.5, 0);
-      this.add.text(layout.centerX, 140, `Пыль: ${status.dust ?? 0}`, {
+      this.add.text(layout.centerX, contentTop + 50, `Пыль: ${status.dust ?? 0}`, {
         fontFamily: 'Segoe UI, Arial', fontSize: '20px', color: '#b9d6ff',
       }).setOrigin(0.5, 0);
       this.add.text(
         layout.centerX,
-        168,
+        contentTop + 78,
         `Неоткрыто: карт ${status.lockedCardsCount ?? 0}, героев ${status.lockedHeroesCount ?? 0}`,
         { fontFamily: 'Segoe UI, Arial', fontSize: '14px', color: palette.muted },
       ).setOrigin(0.5, 0);
 
       this.addButton(
         layout.centerX,
-        230,
+        contentTop + 140,
         560,
         48,
         `Случайная карта (${status.randomCardPrice ?? 100})`,
@@ -207,7 +223,7 @@ export class ShopScene extends ListScene {
       );
       this.addButton(
         layout.centerX,
-        290,
+        contentTop + 200,
         560,
         48,
         `Случайный герой (${status.randomHeroPrice ?? 300})`,
@@ -215,24 +231,24 @@ export class ShopScene extends ListScene {
         { fill: palette.primaryDark, fontSize: 17 },
       );
     } else {
-      this.add.rectangle(255, 145, 340, 100, palette.panel, 0.96)
+      this.add.rectangle(255, contentTop + 55, 340, 100, palette.panel, 0.96)
         .setStrokeStyle(1, 0x34445f);
-      this.add.text(110, 112, `Золото: ${status.gold ?? 0}`, {
+      this.add.text(110, contentTop + 22, `Золото: ${status.gold ?? 0}`, {
         fontFamily: 'Segoe UI, Arial', fontSize: '22px', color: '#ffe18c',
       });
-      this.add.text(110, 142, `Пыль: ${status.dust ?? 0}`, {
+      this.add.text(110, contentTop + 52, `Пыль: ${status.dust ?? 0}`, {
         fontFamily: 'Segoe UI, Arial', fontSize: '20px', color: '#b9d6ff',
       });
       this.add.text(
         110,
-        170,
+        contentTop + 80,
         `Неоткрыто: карт ${status.lockedCardsCount ?? 0}, героев ${status.lockedHeroesCount ?? 0}`,
         { fontFamily: 'Segoe UI, Arial', fontSize: '14px', color: palette.muted },
       );
 
       this.addButton(
         760,
-        125,
+        contentTop + 35,
         280,
         44,
         `Случайная карта (${status.randomCardPrice ?? 100})`,
@@ -241,7 +257,7 @@ export class ShopScene extends ListScene {
       );
       this.addButton(
         760,
-        178,
+        contentTop + 88,
         280,
         44,
         `Случайный герой (${status.randomHeroPrice ?? 300})`,
@@ -250,7 +266,7 @@ export class ShopScene extends ListScene {
       );
     }
 
-    let y = layout.portrait ? 350 : 230;
+    let y = layout.portrait ? contentTop + 260 : contentTop + 140;
     if (error) {
       this.add.text(layout.centerX, y, error, {
         fontFamily: 'Segoe UI, Arial',
