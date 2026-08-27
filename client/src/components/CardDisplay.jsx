@@ -138,11 +138,23 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     }
 
     this.setSize(this.w, this.h);
-    // Hit the card body directly — more reliable on mobile than a custom geom on the container.
-    this.bg.setInteractive({ useHandCursor: true });
-    this.bg.on('pointerdown', (pointer, localX, localY, event) => {
-      this.emit('pointerdown', pointer, localX, localY, event);
-    });
+    // Full-card hitbox on the container so badges/stats never swallow taps.
+    if (this.bg?.input) this.bg.disableInteractive();
+    this.setInteractive(
+      new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    if (this.input) this.input.cursor = 'pointer';
+  }
+
+  setInputEnabled(enabled) {
+    if (!this.input && enabled) {
+      this.setInteractive(
+        new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h),
+        Phaser.Geom.Rectangle.Contains,
+      );
+    }
+    if (this.input) this.input.enabled = !!enabled;
   }
 
   addEffectLabels(compact, artY, artHeight) {

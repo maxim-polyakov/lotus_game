@@ -161,23 +161,34 @@ export class MatchScene extends BaseScene {
     const isMyTurn = this.match?.currentTurnPlayerId === session.user?.id;
     const pending = this.selectedSpell?.card;
     const side = this.targetSide(pending);
+    const targeting = !!(this.selectedSpell || this.selectedAttacker);
 
     (me?.board || []).forEach((minion) => {
       const view = this.cardViews.get(minion.instanceId);
       if (!view) return;
       const canBeTarget = side === 'ally' && !!pending;
       view.setSelected(this.selectedAttacker === minion.instanceId || canBeTarget);
+      view.setDepth(canBeTarget ? 45 : 12);
+      view.setInputEnabled(true);
     });
     (enemy?.board || []).forEach((minion) => {
       const view = this.cardViews.get(minion.instanceId);
       if (!view) return;
       const canBeSpellTarget = !!pending && side === 'enemy' && !minion.stealth;
       const canBeAttackTarget = !!this.selectedAttacker && !minion.stealth;
-      view.setSelected(canBeSpellTarget || canBeAttackTarget);
+      const canBeTarget = canBeSpellTarget || canBeAttackTarget;
+      view.setSelected(canBeTarget);
+      view.setDepth(canBeTarget ? 45 : 8);
+      view.setInputEnabled(true);
     });
     (me?.hand || []).forEach((slot) => {
       const view = this.cardViews.get(slot.instanceId);
-      view?.setSelected(this.selectedSpell?.instanceId === slot.instanceId);
+      if (!view) return;
+      const isSelectedSpell = this.selectedSpell?.instanceId === slot.instanceId;
+      view.setSelected(isSelectedSpell);
+      view.setDepth(isSelectedSpell ? 50 : 20);
+      // While choosing a buff/attack target, only the selected hand card stays clickable (to cancel).
+      view.setInputEnabled(!targeting || isSelectedSpell);
     });
 
     if (this.turnLabel) {
@@ -200,6 +211,7 @@ export class MatchScene extends BaseScene {
       const canTarget = canTargetSpell || canTargetAttack;
       heroView.rect.setFillStyle(canTarget ? 0x513a22 : palette.panel2, 0.95);
       heroView.rect.setStrokeStyle(2, canTarget ? palette.primary : 0x53627a);
+      if (heroView.rect.input) heroView.rect.input.enabled = true;
     });
   }
 
@@ -527,6 +539,8 @@ export class MatchScene extends BaseScene {
             : { ...slot, card };
           this.selectedAttacker = null;
           this.updateSelectionVisuals();
+          // Next tap should hit the board target, not a leftover hand drag.
+          this.input?.activePointer?.reset?.();
           return;
         }
         this.playCard(slot.instanceId, (me.board || []).length, null);
