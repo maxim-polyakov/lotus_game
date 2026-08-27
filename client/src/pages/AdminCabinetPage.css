@@ -15,9 +15,27 @@
   scrollbar-color: rgba(215, 170, 69, 0.7) rgba(20, 26, 38, 0.6);
 }
 
-.admin-phaser-form > strong {
+.admin-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-form-head strong {
   color: #f6ead2;
   font: 600 14px 'Segoe UI', system-ui, sans-serif;
+}
+
+.admin-collapse-btn {
+  width: auto !important;
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+  background: transparent !important;
+  border: 1px solid rgba(215, 170, 69, 0.7) !important;
+  color: #f6ead2 !important;
 }
 
 .admin-phaser-form::-webkit-scrollbar {

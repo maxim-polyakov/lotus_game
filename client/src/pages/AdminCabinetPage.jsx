@@ -13,6 +13,7 @@ export class AdminScene extends ListScene {
   create() {
     this.selected = null;
     this.formMode = 'edit';
+    this.panelCollapsed = false;
     this.loadAdmin();
   }
 
@@ -34,6 +35,11 @@ export class AdminScene extends ListScene {
     })).catch((err) => this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
+  setPanelCollapsed(collapsed) {
+    this.panelCollapsed = Boolean(collapsed);
+    this.renderAdmin();
+  }
+
   renderAdmin(message = '') {
     this.clearScene();
     const layout = layoutInfo();
@@ -43,22 +49,25 @@ export class AdminScene extends ListScene {
 
     this.add.text(80, 95, 'Карты: клик для редактирования', { fontFamily: 'Segoe UI, Arial', fontSize: '18px', color: palette.muted });
 
-    // Keep mode buttons on the left so the right panel never covers them.
     const actionY = layout.portrait ? 145 : 130;
     this.addButton(layout.portrait ? 160 : 150, actionY, 150, 34, 'Новая карта', () => {
       this.formMode = 'create-card';
+      this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
     this.addButton(layout.portrait ? 360 : 320, actionY, 150, 34, 'Новый герой', () => {
       this.formMode = 'create-hero';
+      this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
     this.addButton(layout.portrait ? 560 : 490, actionY, 130, 34, 'Редакт.', () => {
       this.formMode = 'edit';
+      this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
     this.addButton(layout.portrait ? 160 : 640, layout.portrait ? actionY + 42 : actionY, 150, 34, 'Пользователи', () => {
       this.formMode = 'users';
+      this.panelCollapsed = false;
       this.renderAdmin();
     }, { fontSize: 15 });
 
@@ -79,14 +88,37 @@ export class AdminScene extends ListScene {
       view.on('pointerdown', () => {
         this.selected = card;
         this.formMode = 'edit';
+        this.panelCollapsed = false;
         this.renderAdmin();
       });
     });
 
+    if (this.panelCollapsed) {
+      const expandLabel = this.selected
+        ? `Развернуть: ${String(this.selected.name || 'карта').slice(0, 18)}`
+        : this.formMode === 'create-card'
+          ? 'Развернуть: новая карта'
+          : this.formMode === 'create-hero'
+            ? 'Развернуть: новый герой'
+            : this.formMode === 'users'
+              ? 'Развернуть: пользователи'
+              : 'Развернуть панель';
+      this.addButton(
+        layout.centerX,
+        layout.portrait ? 1185 : 680,
+        layout.portrait ? 360 : 280,
+        42,
+        expandLabel,
+        () => this.setPanelCollapsed(false),
+        { fontSize: 16 },
+      );
+      return;
+    }
+
     const panelX = layout.portrait ? layout.centerX : 1000;
     const panelW = layout.portrait ? 620 : 420;
-    const panelH = layout.portrait ? 720 : 560;
-    const panelY = layout.portrait ? 860 : 390;
+    const panelH = layout.portrait ? 640 : 560;
+    const panelY = layout.portrait ? 880 : 390;
     this._adminPanel = { x: panelX, y: panelY, w: panelW, h: panelH };
     this.addPanel(panelX, panelY, panelW, panelH);
 
@@ -103,14 +135,19 @@ export class AdminScene extends ListScene {
       color: palette.muted,
     }).setOrigin(0.5);
 
+    const collapseY = layout.portrait
+      ? panelY - panelH / 2 + 28
+      : panelY - panelH / 2 + 24;
+    this.addButton(panelX, collapseY, 160, 32, 'Свернуть', () => this.setPanelCollapsed(true), { fontSize: 14 });
+
     if (this.formMode === 'create-card') {
-      this.renderCreateCardForm(panelX, panelY);
+      this.renderCreateCardForm(panelX, panelY + (layout.portrait ? 18 : 12));
     } else if (this.formMode === 'create-hero') {
-      this.renderCreateHeroForm(panelX, panelY);
+      this.renderCreateHeroForm(panelX, panelY + (layout.portrait ? 18 : 12));
     } else if (this.formMode === 'users') {
-      this.renderUsersForm(panelX, panelY);
+      this.renderUsersForm(panelX, panelY + (layout.portrait ? 18 : 12));
     } else if (this.selected) {
-      this.renderSelectedCardForm(this.selected, panelX, panelY);
+      this.renderSelectedCardForm(this.selected, panelX, panelY + (layout.portrait ? 18 : 12));
     } else {
       this.add.text(panelX, panelY, 'Выберите карту слева', {
         fontFamily: 'Segoe UI, Arial',
@@ -124,12 +161,15 @@ export class AdminScene extends ListScene {
     const isMinion = card.cardType === 'MINION';
     const layout = layoutInfo();
     const assets = this.assetStatus(card);
-    const panelH = this._adminPanel?.h || (layout.portrait ? 720 : 560);
-    const formMaxH = Math.max(280, panelH - 36);
+    const panelH = this._adminPanel?.h || (layout.portrait ? 640 : 560);
+    const formMaxH = Math.max(240, panelH - 70);
 
     const editDom = this.addDomForm(panelX, panelY, `
       <form class="phaser-form admin-phaser-form" style="max-height:${formMaxH}px">
-        <strong>${escapeAttr(card.cardType)} #${card.id}</strong>
+        <div class="admin-form-head">
+          <strong>${escapeAttr(card.cardType)} #${card.id}</strong>
+          <button type="button" data-collapse-panel class="admin-collapse-btn">Свернуть</button>
+        </div>
         <input name="name" placeholder="Название" value="${escapeAttr(card.name)}" required />
         <input name="manaCost" type="number" placeholder="Мана" value="${escapeAttr(card.manaCost)}" />
         ${isMinion ? `
@@ -161,10 +201,11 @@ export class AdminScene extends ListScene {
       });
     });
     form?.querySelector('[data-upload-assets]')?.addEventListener('click', () => this.uploadCardAssets(card, form));
+    form?.querySelector('[data-collapse-panel]')?.addEventListener('click', () => this.setPanelCollapsed(true));
 
     const deleteY = layout.portrait
-      ? panelY + panelH / 2 + 28
-      : Math.min(690, panelY + panelH / 2 + 28);
+      ? panelY + panelH / 2 + 10
+      : Math.min(690, panelY + panelH / 2 + 10);
     this.addButton(panelX, deleteY, 190, 34, 'Удалить карту', () => this.deleteCard(card), {
       fill: 0x52303a,
       stroke: palette.danger,
