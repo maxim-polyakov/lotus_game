@@ -5,6 +5,7 @@ import {
   ACTIVE_MATCH_KEY,
   palette,
   session,
+  layoutInfo,
 } from '../game/shared';
 import { BaseScene } from './TutorialModal';
 import { CardGameObject, playCardSound } from './CardDisplay';
@@ -92,8 +93,17 @@ export class MatchScene extends BaseScene {
   render(previous) {
     this.clearScene();
     this.cardViews.clear();
+    const layout = layoutInfo();
     this.drawBackground(`Матч #${this.match?.id || ''}`);
-    this.addButton(80, 675, 120, 40, 'Выход', () => this.scene.start('PlayScene'), { fontSize: 16 });
+    this.addButton(
+      layout.portrait ? 90 : 80,
+      layout.portrait ? GAME_HEIGHT - 110 : 675,
+      120,
+      40,
+      'Выход',
+      () => this.scene.start('PlayScene'),
+      { fontSize: 16 },
+    );
     if (!this.match?.gameState) {
       this.addMessage('Ожидание начала...', palette.text, GAME_HEIGHT / 2);
       return;
@@ -104,28 +114,42 @@ export class MatchScene extends BaseScene {
     const enemy = isPlayer1 ? this.match.gameState.player2 : this.match.gameState.player1;
     const isMyTurn = this.match.currentTurnPlayerId === session.user?.id;
 
-    this.renderHero(160, 138, enemy, false);
-    this.renderHero(160, 575, me, true);
-    this.renderBoard(enemy, 430, 180, false, isMyTurn);
-    this.renderBoard(me, 430, 430, true, isMyTurn);
-    this.renderHand(me, isMyTurn);
-
-    this.add.text(GAME_WIDTH / 2, 345, isMyTurn ? 'Ваш ход' : 'Ход соперника', {
-      fontFamily: 'Segoe UI, Arial',
-      fontSize: '24px',
-      color: isMyTurn ? '#ffe18c' : palette.muted,
-    }).setOrigin(0.5);
-
-    if (isMyTurn) {
-      this.addButton(1140, 350, 160, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
+    if (layout.portrait) {
+      this.renderHero(layout.centerX, 145, enemy, false);
+      this.renderBoard(enemy, 300, false, isMyTurn);
+      this.add.text(layout.centerX, 470, isMyTurn ? 'Ваш ход' : 'Ход соперника', {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '22px',
+        color: isMyTurn ? '#ffe18c' : palette.muted,
+      }).setOrigin(0.5);
+      if (isMyTurn) {
+        this.addButton(layout.centerX, 525, 220, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
+      }
+      this.renderBoard(me, 680, true, isMyTurn);
+      this.renderHero(layout.centerX, 880, me, true);
+      this.renderHand(me, isMyTurn);
+    } else {
+      this.renderHero(160, 138, enemy, false);
+      this.renderHero(160, 575, me, true);
+      this.renderBoard(enemy, 180, false, isMyTurn);
+      this.renderBoard(me, 430, true, isMyTurn);
+      this.renderHand(me, isMyTurn);
+      this.add.text(GAME_WIDTH / 2, 345, isMyTurn ? 'Ваш ход' : 'Ход соперника', {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '24px',
+        color: isMyTurn ? '#ffe18c' : palette.muted,
+      }).setOrigin(0.5);
+      if (isMyTurn) {
+        this.addButton(GAME_WIDTH - 140, 350, 160, 48, 'Конец хода', () => this.endTurn(), { fill: palette.primaryDark });
+      }
     }
 
     if (this.match.status === 'FINISHED') {
       const result = this.match.winnerId === session.user?.id ? 'Победа!' : this.match.winnerId ? 'Поражение' : 'Ничья';
-      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 500, 180, 0x000000, 0.78);
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, layout.portrait ? 520 : 500, 180, 0x000000, 0.78);
       this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, result, {
         fontFamily: 'Segoe UI, Arial',
-        fontSize: '46px',
+        fontSize: layout.portrait ? '40px' : '46px',
         color: this.match.winnerId === session.user?.id ? '#99ffb0' : '#ffb3b3',
         fontStyle: 'bold',
       }).setOrigin(0.5);
@@ -136,31 +160,45 @@ export class MatchScene extends BaseScene {
   }
 
   renderHero(x, y, state, mine) {
+    const layout = layoutInfo();
     const canTarget = !mine && (this.selectedAttacker || this.selectedSpell) && !(state.board || []).length;
     const hero = this.add.container(x, y);
-    const rect = this.add.rectangle(0, 0, 230, 76, canTarget ? 0x513a22 : palette.panel2, 0.95)
+    const width = layout.portrait ? 280 : 230;
+    const rect = this.add.rectangle(0, 0, width, 76, canTarget ? 0x513a22 : palette.panel2, 0.95)
       .setStrokeStyle(2, canTarget ? palette.primary : 0x53627a);
-    const label = this.add.text(-92, -22, state.heroName || (mine ? 'Я' : 'Соперник'), {
+    const label = this.add.text(layout.portrait ? 0 : -92, -22, state.heroName || (mine ? 'Я' : 'Соперник'), {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '18px',
       color: palette.text,
-    });
-    const hp = this.add.text(-92, 10, `HP ${state.health}${state.maxHeroHealth ? `/${state.maxHeroHealth}` : ''}  Mana ${state.mana ?? '-'}`, {
+      align: layout.portrait ? 'center' : 'left',
+      wordWrap: { width: width - 24 },
+    }).setOrigin(layout.portrait ? 0.5 : 0, 0);
+    const hp = this.add.text(layout.portrait ? 0 : -92, 10, `HP ${state.health}${state.maxHeroHealth ? `/${state.maxHeroHealth}` : ''}  Mana ${state.mana ?? '-'}`, {
       fontFamily: 'Segoe UI, Arial',
       fontSize: '15px',
       color: palette.muted,
-    });
+      align: layout.portrait ? 'center' : 'left',
+    }).setOrigin(layout.portrait ? 0.5 : 0, 0);
     hero.add([rect, label, hp]);
     if (canTarget) {
       rect.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.useTarget('hero'));
     }
   }
 
-  renderBoard(state, startX, y, mine, isMyTurn) {
-    (state.board || []).forEach((minion, index) => {
+  renderBoard(state, y, mine, isMyTurn) {
+    const layout = layoutInfo();
+    const board = state.board || [];
+    const gap = layout.portrait ? 100 : 118;
+    const totalW = Math.max(0, (board.length - 1) * gap);
+    const startX = layout.portrait
+      ? layout.centerX - totalW / 2
+      : 430;
+    board.forEach((minion, index) => {
       const source = this.getCard('MINION', minion.cardId) || {};
       const card = { ...source, ...minion, health: minion.currentHealth };
-      const view = new CardGameObject(this, startX + index * 118, y, card, {
+      const view = new CardGameObject(this, startX + index * gap, y, card, {
+        width: layout.portrait ? 88 : 105,
+        height: layout.portrait ? 122 : 145,
         selected: this.selectedAttacker === minion.instanceId,
       });
       this.cardViews.set(minion.instanceId, view);
@@ -178,13 +216,24 @@ export class MatchScene extends BaseScene {
   }
 
   renderHand(me, isMyTurn) {
-    (me.hand || []).forEach((slot, index) => {
+    const layout = layoutInfo();
+    const hand = me.hand || [];
+    const gap = layout.portrait ? 92 : 95;
+    const cardW = layout.portrait ? 78 : 86;
+    const cardH = layout.portrait ? 112 : 122;
+    const totalW = Math.max(0, (hand.length - 1) * gap);
+    const startX = layout.portrait
+      ? Math.max(cardW / 2 + 8, layout.centerX - totalW / 2)
+      : 390;
+    const y = layout.portrait ? GAME_HEIGHT - 220 : 612;
+
+    hand.forEach((slot, index) => {
       const card = this.getCard(slot.cardType, slot.cardId);
       if (!card) return;
-      const x = 390 + index * 95;
-      const view = new CardGameObject(this, x, 612, card, {
-        width: 86,
-        height: 122,
+      const x = startX + index * gap;
+      const view = new CardGameObject(this, x, y, card, {
+        width: cardW,
+        height: cardH,
         selected: this.selectedSpell?.instanceId === slot.instanceId,
       });
       this.cardViews.set(slot.instanceId, view);

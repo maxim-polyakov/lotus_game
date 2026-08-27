@@ -81,7 +81,16 @@ export class BaseScene extends Phaser.Scene {
   }
 
   addBackButton(target = 'MenuScene') {
-    this.addButton(82, GAME_HEIGHT - 44, 120, 40, 'Назад', () => this.goto(target), { fontSize: 16 });
+    const layout = layoutInfo();
+    this.addButton(
+      layout.portrait ? 100 : 82,
+      layout.portrait ? GAME_HEIGHT - 90 : GAME_HEIGHT - 44,
+      120,
+      40,
+      'Назад',
+      () => this.goto(target),
+      { fontSize: 16 },
+    );
   }
 
   goto(scene, data = {}) {
