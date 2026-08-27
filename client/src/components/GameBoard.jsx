@@ -97,7 +97,89 @@ export class MatchScene extends BaseScene {
     if (match.status === 'FINISHED') {
       sessionStorage.removeItem(ACTIVE_MATCH_KEY);
     }
-    this.render(previous);
+    this.queueRender(previous);
+  }
+
+  matchFingerprint(match) {
+    if (!match) return '';
+    const gs = match.gameState;
+    const pack = (player) => {
+      if (!player) return '';
+      const board = (player.board || [])
+        .map((m) => `${m.instanceId}:${m.attack}:${m.currentHealth}:${m.canAttack ? 1 : 0}`)
+        .join(',');
+      const hand = (player.hand || []).map((c) => c.instanceId).join(',');
+      return `${player.health}:${player.mana}:${board}|${hand}`;
+    };
+    return [
+      match.status,
+      match.currentTurnPlayerId,
+      match.winnerId,
+      pack(gs?.player1),
+      pack(gs?.player2),
+    ].join('#');
+  }
+
+  queueRender(previous) {
+    this._pendingPrevious = previous ?? this._pendingPrevious ?? null;
+    if (this._renderQueued) return;
+    this._renderQueued = true;
+    requestAnimationFrame(() => {
+      this._renderQueued = false;
+      if (!this.sys?.isActive?.()) return;
+      const prev = this._pendingPrevious;
+      this._pendingPrevious = null;
+      this.render(prev);
+    });
+  }
+
+  updateSelectionVisuals() {
+    const isPlayer1 = this.match?.player1Id === session.user?.id;
+    const me = isPlayer1 ? this.match?.gameState?.player1 : this.match?.gameState?.player2;
+    const enemy = isPlayer1 ? this.match?.gameState?.player2 : this.match?.gameState?.player1;
+    const isMyTurn = this.match?.currentTurnPlayerId === session.user?.id;
+    const pending = this.selectedSpell?.card;
+    const side = this.targetSide(pending);
+
+    (me?.board || []).forEach((minion) => {
+      const view = this.cardViews.get(minion.instanceId);
+      if (!view) return;
+      const canBeTarget = side === 'ally' && !!pending;
+      view.setSelected(this.selectedAttacker === minion.instanceId || canBeTarget);
+    });
+    (enemy?.board || []).forEach((minion) => {
+      const view = this.cardViews.get(minion.instanceId);
+      if (!view) return;
+      const canBeSpellTarget = !!pending && side === 'enemy' && !minion.stealth;
+      const canBeAttackTarget = !!this.selectedAttacker && !minion.stealth;
+      view.setSelected(canBeSpellTarget || canBeAttackTarget);
+    });
+    (me?.hand || []).forEach((slot) => {
+      const view = this.cardViews.get(slot.instanceId);
+      view?.setSelected(this.selectedSpell?.instanceId === slot.instanceId);
+    });
+
+    if (this.turnLabel) {
+      const turnText = this.selectedSpell
+        ? this.targetHint(pending)
+        : (isMyTurn ? 'Ваш ход' : 'Ход соперника');
+      this.turnLabel.setText(turnText);
+      this.turnLabel.setColor(this.selectedSpell || isMyTurn ? '#ffe18c' : palette.muted);
+    }
+
+    (this.heroViews || []).forEach((heroView) => {
+      if (!heroView?.rect) return;
+      const { mine, state } = heroView;
+      const heroOk = this.allowsHeroTarget(pending);
+      const canTargetSpell = !!pending && heroOk && (
+        (side === 'enemy' && !mine && !(state.board || []).length)
+        || (side === 'ally' && mine)
+      );
+      const canTargetAttack = !mine && !!this.selectedAttacker && !(state.board || []).length;
+      const canTarget = canTargetSpell || canTargetAttack;
+      heroView.rect.setFillStyle(canTarget ? 0x513a22 : palette.panel2, 0.95);
+      heroView.rect.setStrokeStyle(2, canTarget ? palette.primary : 0x53627a);
+    });
   }
 
   connectSocket() {
@@ -155,9 +237,7 @@ export class MatchScene extends BaseScene {
       if (!data) return;
       const prev = this.match;
       const changed = forceRender
-        || prev?.status !== data.status
-        || prev?.currentTurnPlayerId !== data.currentTurnPlayerId
-        || JSON.stringify(prev?.gameState) !== JSON.stringify(data.gameState);
+        || this.matchFingerprint(prev) !== this.matchFingerprint(data);
       if (changed) this.applyMatchUpdate(data, prev);
     } catch {
       // ignore transient mobile network blips
@@ -211,6 +291,8 @@ export class MatchScene extends BaseScene {
   render(previous) {
     this.clearScene();
     this.cardViews.clear();
+    this.heroViews = [];
+    this.turnLabel = null;
     const layout = layoutInfo();
     this.drawBackground(`Матч #${this.match?.id || ''}`);
     this.addButton(
@@ -240,7 +322,7 @@ export class MatchScene extends BaseScene {
     if (layout.portrait) {
       this.renderHero(layout.centerX, 145, enemy, false);
       this.renderBoard(enemy, 300, false, isMyTurn);
-      this.add.text(layout.centerX, 470, turnLabel, {
+      this.turnLabel = this.add.text(layout.centerX, 470, turnLabel, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '22px',
         color: turnColor,
@@ -257,7 +339,7 @@ export class MatchScene extends BaseScene {
       this.renderBoard(enemy, 180, false, isMyTurn);
       this.renderBoard(me, 430, true, isMyTurn);
       this.renderHand(me, isMyTurn);
-      this.add.text(GAME_WIDTH / 2, 345, turnLabel, {
+      this.turnLabel = this.add.text(GAME_WIDTH / 2, 345, turnLabel, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: '24px',
         color: turnColor,
@@ -321,9 +403,18 @@ export class MatchScene extends BaseScene {
       align: layout.portrait ? 'center' : 'left',
     }).setOrigin(layout.portrait ? 0.5 : 0, 0);
     hero.add([rect, label, hp]);
-    if (canTarget) {
-      rect.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.useTarget('hero'));
-    }
+    this.heroViews.push({ rect, mine, state });
+    rect.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+      const p = this.selectedSpell?.card;
+      const s = this.targetSide(p);
+      const ok = this.allowsHeroTarget(p);
+      const spellOk = !!p && ok && (
+        (s === 'enemy' && !mine && !(state.board || []).length)
+        || (s === 'ally' && mine)
+      );
+      const attackOk = !mine && !!this.selectedAttacker && !(state.board || []).length;
+      if (spellOk || attackOk) this.useTarget('hero');
+    });
   }
 
   renderBoard(state, y, mine, isMyTurn) {
@@ -351,16 +442,27 @@ export class MatchScene extends BaseScene {
         selected: this.selectedAttacker === minion.instanceId || canBeTarget,
       });
       this.cardViews.set(minion.instanceId, view);
-      if (canBeTarget) {
-        view.on('pointerdown', () => this.useTarget(minion.instanceId));
-      } else if (mine && isMyTurn && minion.canAttack && !this.selectedSpell) {
-        view.on('pointerdown', () => {
-          this.selectedAttacker = this.selectedAttacker === minion.instanceId ? null : minion.instanceId;
-          this.selectedSpell = null;
-          this.render();
-        });
-      }
+      view.on('pointerdown', () => this.handleBoardCardClick(minion, mine, isMyTurn));
     });
+  }
+
+  handleBoardCardClick(minion, mine, isMyTurn) {
+    const pending = this.selectedSpell?.card;
+    const side = this.targetSide(pending);
+    const canBeSpellTarget = !!pending && (
+      (side === 'enemy' && !mine && !minion.stealth)
+      || (side === 'ally' && mine)
+    );
+    const canBeAttackTarget = !mine && !!this.selectedAttacker && !minion.stealth;
+    if (canBeSpellTarget || canBeAttackTarget) {
+      this.useTarget(minion.instanceId);
+      return;
+    }
+    if (mine && isMyTurn && minion.canAttack && !this.selectedSpell) {
+      this.selectedAttacker = this.selectedAttacker === minion.instanceId ? null : minion.instanceId;
+      this.selectedSpell = null;
+      this.updateSelectionVisuals();
+    }
   }
 
   renderHand(me, isMyTurn) {
@@ -389,34 +491,32 @@ export class MatchScene extends BaseScene {
       const boardFull = (me.board || []).length >= 7;
       const canPlay = isMyTurn && hasMana && (slot.cardType === 'SPELL' || !boardFull);
       view.setAlpha(canPlay ? 1 : 0.48);
-      if (canPlay) {
-        view.on('pointerdown', () => {
-          if (this.needsTarget(card)) {
-            const side = this.targetSide(card);
-            if (side === 'ally' && !(me.board || []).length && !this.allowsHeroTarget(card)) {
-              this.addMessage('Нет союзных миньонов для бафа', '#ffb3b3');
-              return;
-            }
-            this.selectedSpell = this.selectedSpell?.instanceId === slot.instanceId
-              ? null
-              : { ...slot, card };
-            this.selectedAttacker = null;
-            this.render();
+      if (!canPlay) return;
+      view.on('pointerdown', () => {
+        if (this.needsTarget(card)) {
+          const side = this.targetSide(card);
+          if (side === 'ally' && !(me.board || []).length && !this.allowsHeroTarget(card)) {
+            this.addMessage('Нет союзных миньонов для бафа', '#ffb3b3');
             return;
           }
-          view.playCardEffect();
-          this.playCard(slot.instanceId, (me.board || []).length, null);
-        });
-      }
+          this.selectedSpell = this.selectedSpell?.instanceId === slot.instanceId
+            ? null
+            : { ...slot, card };
+          this.selectedAttacker = null;
+          this.updateSelectionVisuals();
+          return;
+        }
+        this.playCard(slot.instanceId, (me.board || []).length, null);
+      });
     });
   }
 
   async playCard(instanceId, targetPosition, targetInstanceId) {
     try {
-      this.cardViews.get(instanceId)?.playCardEffect();
-      if (!this.cardViews.has(instanceId)) {
-        playCardSound(this.findHandCard(instanceId));
-      }
+      // Sound only when a hand card is actually played onto the board.
+      const handView = this.cardViews.get(instanceId);
+      if (handView) handView.playCardEffect('play', { sound: true });
+      else playCardSound(this.findHandCard(instanceId));
       await this.sendMatchAction(
         `/app/matches/${this.match.id}/play`,
         { instanceId, targetPosition, targetInstanceId },
@@ -438,7 +538,8 @@ export class MatchScene extends BaseScene {
   async attack(attackerInstanceId, targetInstanceId) {
     try {
       const attackerView = this.cardViews.get(attackerInstanceId);
-      attackerView?.playCardEffect('attack');
+      // Attack animation without the "play from hand" card sound.
+      attackerView?.playCardEffect('attack', { sound: false });
       if (targetInstanceId !== 'hero') this.cardViews.get(targetInstanceId)?.playHitEffect();
       await this.sendMatchAction(
         `/app/matches/${this.match.id}/attack`,
@@ -508,7 +609,7 @@ export class MatchScene extends BaseScene {
       const prev = prevBoards.find((x) => x.instanceId === next.instanceId);
       const view = this.cardViews.get(next.instanceId);
       if (!view) return;
-      if (!prev) view.playCardEffect();
+      if (!prev) view.playCardEffect('play', { sound: false });
       else if (prev.currentHealth !== next.currentHealth) view.playHitEffect();
     });
   }

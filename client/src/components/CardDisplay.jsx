@@ -67,6 +67,8 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     const nameY = compact ? this.h / 2 - 30 : 33;
     const bg = this.scene.add.rectangle(0, 0, this.w, this.h, 0x26324a, 1)
       .setStrokeStyle(2, this.options.selected ? palette.primary : 0x5c6f95);
+    this.bg = bg;
+    this._selected = !!this.options.selected;
     this.add(bg);
 
     const key = textureKey(this.card);
@@ -114,7 +116,20 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     }
 
     this.setSize(this.w, this.h);
-    this.setInteractive(new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h), Phaser.Geom.Rectangle.Contains);
+    this.setInteractive(
+      new Phaser.Geom.Rectangle(-this.w / 2, -this.h / 2, this.w, this.h),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    // Prefer immediate press feedback on touch devices.
+    this.input.cursor = 'pointer';
+  }
+
+  setSelected(selected) {
+    const next = !!selected;
+    if (this._selected === next) return;
+    this._selected = next;
+    this.options.selected = next;
+    this.bg?.setStrokeStyle(2, next ? palette.primary : 0x5c6f95);
   }
 
   addFallbackArt(artY, artHeight, compact, isMinion) {
@@ -156,8 +171,9 @@ export class CardGameObject extends Phaser.GameObjects.Container {
     this.add([circle, text]);
   }
 
-  playCardEffect(kind = 'play') {
-    playCardSound(this.card, kind);
+  playCardEffect(kind = 'play', options = {}) {
+    const withSound = options.sound !== false;
+    if (withSound) playCardSound(this.card, kind);
     this.scene.tweens.add({
       targets: this,
       scale: { from: 1.18, to: 1 },
