@@ -84,8 +84,6 @@ export class HeroesScene extends ListScene {
       }
     });
 
-    const maxScroll = Math.max(0, contentBottom + 80 - GAME_HEIGHT + 40);
-    this.drawScrollbar(maxScroll);
     this.setupScroll(contentBottom + 80);
   }
 }

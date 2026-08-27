@@ -145,43 +145,33 @@ export class BaseScene extends Phaser.Scene {
     });
     this._scrollHandlers = [];
     this._dragScroll = null;
-    this._scrollbarDrag = null;
     if (this.cameras?.main) this.cameras.main.setScroll(0, 0);
   }
 
+  /** Same scroll as Shop: whole-page camera scroll via wheel + drag (no scrollbar). */
   setupScroll(contentBottom) {
     this.teardownScroll();
     const maxScroll = Math.max(0, contentBottom - GAME_HEIGHT + 40);
     this._maxScroll = maxScroll;
     this._scrollY = Math.min(this._scrollY || 0, maxScroll);
     this.cameras.main.setScroll(0, this._scrollY);
-    this.updateScrollbarThumb();
 
     const applyScroll = (next) => {
       this._scrollY = Math.max(0, Math.min(maxScroll, next));
       this.cameras.main.setScroll(0, this._scrollY);
-      this.updateScrollbarThumb();
     };
 
     const onWheel = (_pointer, _over, _dx, dy) => {
       applyScroll((this._scrollY || 0) + dy * 0.55);
     };
     const onDown = (pointer) => {
-      if (this._scrollbarHit?.(pointer)) {
-        this._scrollbarDrag = { startY: pointer.y, startScroll: this._scrollY || 0 };
-        return;
-      }
-      this._dragScroll = { startY: pointer.y, startScroll: this._scrollY || 0, moved: false };
+      this._dragScroll = {
+        startY: pointer.y,
+        startScroll: this._scrollY || 0,
+        moved: false,
+      };
     };
     const onMove = (pointer) => {
-      if (this._scrollbarDrag && pointer.isDown) {
-        const track = this._scrollbarTrack;
-        if (!track || maxScroll <= 0) return;
-        const usable = Math.max(1, track.height - (this._scrollbarThumb?.displayHeight || 40));
-        const dy = pointer.y - this._scrollbarDrag.startY;
-        applyScroll(this._scrollbarDrag.startScroll + (dy / usable) * maxScroll);
-        return;
-      }
       if (!this._dragScroll || !pointer.isDown) return;
       const dy = this._dragScroll.startY - pointer.y;
       if (Math.abs(dy) > 10) this._dragScroll.moved = true;
@@ -190,7 +180,6 @@ export class BaseScene extends Phaser.Scene {
     const onUp = () => {
       this._listDragMoved = !!this._dragScroll?.moved;
       this._dragScroll = null;
-      this._scrollbarDrag = null;
       this.time?.delayedCall?.(80, () => { this._listDragMoved = false; });
     };
 
@@ -210,58 +199,7 @@ export class BaseScene extends Phaser.Scene {
   }
 
   wasDragging() {
-    return !!this._listDragMoved || !!this._dragScroll?.moved || !!this._scrollbarDrag;
-  }
-
-  drawScrollbar(maxScroll) {
-    const layout = layoutInfo();
-    const trackX = GAME_WIDTH - (layout.portrait ? 18 : 24);
-    const trackTop = layout.portrait ? 110 : 100;
-    const trackH = GAME_HEIGHT - trackTop - (layout.portrait ? 110 : 70);
-    const track = this.add.rectangle(trackX, trackTop + trackH / 2, 10, trackH, 0x2a3348, 0.9)
-      .setStrokeStyle(1, 0x53627a)
-      .setScrollFactor(0)
-      .setDepth(4000)
-      .setInteractive({ useHandCursor: true });
-    const thumbH = maxScroll <= 0
-      ? trackH
-      : Math.max(40, Math.round(trackH * (GAME_HEIGHT / (GAME_HEIGHT + maxScroll))));
-    const thumb = this.add.rectangle(trackX, trackTop + thumbH / 2, 10, thumbH, palette.primary, 0.95)
-      .setScrollFactor(0)
-      .setDepth(4001)
-      .setInteractive({ useHandCursor: true });
-
-    this._scrollbarTrack = { x: trackX, top: trackTop, height: trackH };
-    this._scrollbarThumb = thumb;
-    this._scrollbarHit = (pointer) => {
-      const dx = Math.abs(pointer.x - trackX);
-      return dx < 18 && pointer.y >= trackTop && pointer.y <= trackTop + trackH;
-    };
-
-    track.on('pointerdown', (pointer) => {
-      if (maxScroll <= 0) return;
-      const usable = Math.max(1, trackH - thumbH);
-      const ratio = Math.max(0, Math.min(1, (pointer.y - trackTop - thumbH / 2) / usable));
-      this._scrollY = ratio * maxScroll;
-      this.cameras.main.setScroll(0, this._scrollY);
-      this.updateScrollbarThumb();
-      this._scrollbarDrag = { startY: pointer.y, startScroll: this._scrollY };
-    });
-  }
-
-  updateScrollbarThumb() {
-    const track = this._scrollbarTrack;
-    const thumb = this._scrollbarThumb;
-    if (!track || !thumb) return;
-    const maxScroll = this._maxScroll || 0;
-    const thumbH = thumb.displayHeight || thumb.height || 40;
-    if (maxScroll <= 0) {
-      thumb.y = track.top + thumbH / 2;
-      return;
-    }
-    const usable = Math.max(1, track.height - thumbH);
-    const ratio = (this._scrollY || 0) / maxScroll;
-    thumb.y = track.top + thumbH / 2 + ratio * usable;
+    return !!this._listDragMoved || !!this._dragScroll?.moved;
   }
 
   /** Sticky header + pinned back button for scrollable list pages. */

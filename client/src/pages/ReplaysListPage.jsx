@@ -29,146 +29,6 @@ export class ReplaysScene extends ListScene {
       .catch((err) => this.renderReplays([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
   }
 
-  teardownScroll() {
-    this._scrollHandlers?.forEach((off) => {
-      try { off(); } catch { /* ignore */ }
-    });
-    this._scrollHandlers = [];
-    this._dragScroll = null;
-    this._scrollbarDrag = null;
-    if (this.cameras?.main) this.cameras.main.setScroll(0, 0);
-  }
-
-  pin(obj, depth = 3000) {
-    if (!obj) return obj;
-    obj.setScrollFactor?.(0);
-    if (typeof depth === 'number') obj.setDepth?.(depth);
-    if (obj.list) obj.list.forEach((child) => this.pin(child, depth));
-    return obj;
-  }
-
-  setupScroll(contentBottom) {
-    this.teardownScroll();
-    const maxScroll = Math.max(0, contentBottom - GAME_HEIGHT + 40);
-    this._maxScroll = maxScroll;
-    this._scrollY = Math.min(this._scrollY || 0, maxScroll);
-    this.cameras.main.setScroll(0, this._scrollY);
-    this.updateScrollbarThumb();
-
-    const applyScroll = (next) => {
-      this._scrollY = Math.max(0, Math.min(maxScroll, next));
-      this.cameras.main.setScroll(0, this._scrollY);
-      this.updateScrollbarThumb();
-    };
-
-    const onWheel = (_pointer, _over, _dx, dy) => {
-      applyScroll((this._scrollY || 0) + dy * 0.55);
-    };
-    const onDown = (pointer) => {
-      if (this._scrollbarHit?.(pointer)) {
-        this._scrollbarDrag = {
-          startY: pointer.y,
-          startScroll: this._scrollY || 0,
-        };
-        return;
-      }
-      this._dragScroll = {
-        startY: pointer.y,
-        startScroll: this._scrollY || 0,
-        moved: false,
-      };
-    };
-    const onMove = (pointer) => {
-      if (this._scrollbarDrag && pointer.isDown) {
-        const track = this._scrollbarTrack;
-        if (!track || maxScroll <= 0) return;
-        const usable = Math.max(1, track.height - (this._scrollbarThumb?.displayHeight || 40));
-        const dy = pointer.y - this._scrollbarDrag.startY;
-        applyScroll(this._scrollbarDrag.startScroll + (dy / usable) * maxScroll);
-        return;
-      }
-      if (!this._dragScroll || !pointer.isDown) return;
-      const dy = this._dragScroll.startY - pointer.y;
-      if (Math.abs(dy) > 10) this._dragScroll.moved = true;
-      applyScroll(this._dragScroll.startScroll + dy);
-    };
-    const onUp = () => {
-      this._replayDragMoved = !!this._dragScroll?.moved;
-      this._dragScroll = null;
-      this._scrollbarDrag = null;
-      this.time?.delayedCall?.(80, () => { this._replayDragMoved = false; });
-    };
-
-    this.input.on('wheel', onWheel);
-    this.input.on('pointerdown', onDown);
-    this.input.on('pointermove', onMove);
-    this.input.on('pointerup', onUp);
-    this.input.on('pointerupoutside', onUp);
-
-    this._scrollHandlers = [
-      () => this.input?.off('wheel', onWheel),
-      () => this.input?.off('pointerdown', onDown),
-      () => this.input?.off('pointermove', onMove),
-      () => this.input?.off('pointerup', onUp),
-      () => this.input?.off('pointerupoutside', onUp),
-    ];
-  }
-
-  wasDragging() {
-    return !!this._replayDragMoved || !!this._dragScroll?.moved || !!this._scrollbarDrag;
-  }
-
-  drawScrollbar(maxScroll) {
-    const layout = layoutInfo();
-    const trackX = GAME_WIDTH - (layout.portrait ? 18 : 24);
-    const trackTop = layout.portrait ? 110 : 100;
-    const trackH = GAME_HEIGHT - trackTop - (layout.portrait ? 110 : 70);
-    const track = this.add.rectangle(trackX, trackTop + trackH / 2, 10, trackH, 0x2a3348, 0.9)
-      .setStrokeStyle(1, 0x53627a)
-      .setScrollFactor(0)
-      .setDepth(4000)
-      .setInteractive({ useHandCursor: true });
-    const thumbH = maxScroll <= 0
-      ? trackH
-      : Math.max(40, Math.round(trackH * (GAME_HEIGHT / (GAME_HEIGHT + maxScroll))));
-    const thumb = this.add.rectangle(trackX, trackTop + thumbH / 2, 10, thumbH, palette.primary, 0.95)
-      .setScrollFactor(0)
-      .setDepth(4001)
-      .setInteractive({ useHandCursor: true, draggable: false });
-
-    this._scrollbarTrack = { x: trackX, top: trackTop, height: trackH };
-    this._scrollbarThumb = thumb;
-    this._scrollbarHit = (pointer) => {
-      const dx = Math.abs(pointer.x - trackX);
-      return dx < 18 && pointer.y >= trackTop && pointer.y <= trackTop + trackH;
-    };
-
-    track.on('pointerdown', (pointer) => {
-      if (maxScroll <= 0) return;
-      const usable = Math.max(1, trackH - thumbH);
-      const ratio = PhaserMathClamp((pointer.y - trackTop - thumbH / 2) / usable, 0, 1);
-      this._scrollY = ratio * maxScroll;
-      this.cameras.main.setScroll(0, this._scrollY);
-      this.updateScrollbarThumb();
-      this._scrollbarDrag = { startY: pointer.y, startScroll: this._scrollY };
-    });
-  }
-
-  updateScrollbarThumb() {
-    const track = this._scrollbarTrack;
-    const thumb = this._scrollbarThumb;
-    if (!track || !thumb) return;
-    const maxScroll = this._maxScroll || 0;
-    const thumbH = thumb.displayHeight || thumb.height || 40;
-    if (maxScroll <= 0) {
-      thumb.y = track.top + thumbH / 2;
-      return;
-    }
-    const usable = Math.max(1, track.height - thumbH);
-    const ratio = (this._scrollY || 0) / maxScroll;
-    thumb.y = track.top + thumbH / 2 + ratio * usable;
-  }
-
   renderReplays(matches, error = '') {
     this.teardownScroll();
     this.clearScene();
@@ -178,33 +38,7 @@ export class ReplaysScene extends ListScene {
     const pageH = Math.max(GAME_HEIGHT * 2, 2000 + matches.length * 100);
     this.add.rectangle(0, 0, GAME_WIDTH, pageH, palette.bg).setOrigin(0).setDepth(0);
 
-    // Sticky header
-    const stickyH = 90;
-    const stickyFrom = this.children.list.length;
-    this.add.rectangle(0, 0, GAME_WIDTH, stickyH, palette.bg, 1).setOrigin(0);
-    const logoKey = this.textures.exists('lotus-logo') ? 'lotus-logo' : 'lotus-logo-fallback';
-    if (this.textures.exists(logoKey)) {
-      this.add.image(58, 52, logoKey).setDisplaySize(48, 48);
-    } else {
-      this.add.circle(58, 52, 24, palette.primaryDark).setStrokeStyle(2, palette.primary);
-      this.add.text(58, 52, 'L', {
-        fontFamily: 'Segoe UI, Arial', fontSize: '26px', color: '#ffffff', fontStyle: 'bold',
-      }).setOrigin(0.5);
-    }
-    this.add.text(94, 34, 'Реплеи', {
-      fontFamily: 'Segoe UI, Arial',
-      fontSize: layout.portrait ? '28px' : '34px',
-      color: palette.text,
-      fontStyle: 'bold',
-    });
-    this.add.text(GAME_WIDTH - 92, 42, session.user ? session.user.username : 'Guest', {
-      fontFamily: 'Segoe UI, Arial',
-      fontSize: layout.portrait ? '15px' : '18px',
-      color: palette.muted,
-    }).setOrigin(1, 0);
-    this.addAvatar(GAME_WIDTH - 58, 53, session.user?.avatarUrl, session.user?.username || 'Guest', 42);
-    this.children.list.slice(stickyFrom).forEach((child) => this.pin(child));
-
+    this.drawStickyHeader('Реплеи');
     const back = this.addBackButton();
     this.pin(back);
 
@@ -219,6 +53,7 @@ export class ReplaysScene extends ListScene {
     }
     if (!matches.length && !error) {
       this.addMessage('У вас пока нет завершённых матчей с реплеями.', palette.muted, GAME_HEIGHT / 2);
+      this.setupScroll(GAME_HEIGHT);
       return;
     }
 
@@ -273,14 +108,8 @@ export class ReplaysScene extends ListScene {
       });
     });
 
-    const maxScroll = Math.max(0, contentBottom + 60 - GAME_HEIGHT + 40);
-    this.drawScrollbar(maxScroll);
     this.setupScroll(contentBottom + 60);
   }
-}
-
-function PhaserMathClamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
 }
 
 export default ReplaysScene;

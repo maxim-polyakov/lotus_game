@@ -59,7 +59,6 @@ export class DecksScene extends ListScene {
     }
     if (!decks.length && !error) {
       this.addMessage('Колод пока нет — создайте новую', palette.muted, GAME_HEIGHT / 2);
-      this.drawScrollbar(0);
       this.setupScroll(GAME_HEIGHT);
       return;
     }
@@ -104,8 +103,6 @@ export class DecksScene extends ListScene {
       });
     });
 
-    const maxScroll = Math.max(0, contentBottom + 100 - GAME_HEIGHT + 40);
-    this.drawScrollbar(maxScroll);
     this.setupScroll(contentBottom + 100);
   }
 }
