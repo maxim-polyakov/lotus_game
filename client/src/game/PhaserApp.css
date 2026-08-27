@@ -46,11 +46,21 @@ html[data-theme='light'] #lotus-game-root {
   touch-action: none;
 }
 
-/* DOM layer sits above the canvas; only real widgets should capture taps. */
+/* DOM layer sits above the canvas; wraps must NOT steal taps from the game. */
 #lotus-game-root .dom-container {
   pointer-events: none !important;
 }
 
 #lotus-game-root .dom-container > * {
-  pointer-events: auto;
+  pointer-events: none !important;
+}
+
+/* Only real interactive widgets capture input */
+#lotus-game-root .dom-container .phaser-form,
+#lotus-game-root .dom-container .chat-widget,
+#lotus-game-root .dom-container .chat-fab,
+#lotus-game-root .dom-container .lotus-modal-overlay,
+#lotus-game-root .dom-container .lotus-modal,
+#lotus-game-root .dom-container .friend-online-modal {
+  pointer-events: auto !important;
 }

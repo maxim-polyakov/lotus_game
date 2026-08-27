@@ -1,10 +1,12 @@
 import {
+  GAME_WIDTH,
   GAME_HEIGHT,
   palette,
   session,
   layoutInfo,
   toggleTheme,
   toggleSound,
+  applyTheme,
 } from '../game/shared';
 import { BaseScene } from '../components/TutorialModal';
 import { sceneForCurrentRoute, authModeForCurrentRoute } from '../components/NavDropdown';
@@ -19,37 +21,13 @@ import { ensureChatScene, stopChatScene } from '../components/ChatWidget';
 import { clearTokens } from '../utils/tokenStorage';
 import { playSound } from '../utils/sound';
 
-const RULES_HTML = `
-  <div class="lotus-modal-overlay" data-rules-close>
-    <div class="lotus-modal tutorial-modal" data-rules-card>
-      <div class="lotus-modal-header">
-        <h2>Правила игры</h2>
-        <button type="button" class="lotus-modal-close" data-rules-close aria-label="Закрыть">×</button>
-      </div>
-      <div class="lotus-modal-body tutorial-scroll">
-        <section>
-          <h3>Цель игры</h3>
-          <p>Снизьте HP героя соперника до 0, чтобы победить.</p>
-        </section>
-        <section>
-          <h3>Мана</h3>
-          <p>Каждая карта стоит определённое количество маны. В начале хода ваша мана восполняется. Используйте её, чтобы разыгрывать карты.</p>
-        </section>
-        <section>
-          <h3>Разыгрывание карт</h3>
-          <p>В свой ход вы можете сыграть миньона из руки, поместив его на стол. Нажмите на карту в руке, чтобы сыграть её.</p>
-        </section>
-        <section>
-          <h3>Атака</h3>
-          <p>Миньоны, которые могут атаковать, бьют сначала по выбору атакующего, затем цели. <strong>Героя нельзя атаковать, пока на столе соперника есть миньоны</strong> — сначала устраните их.</p>
-        </section>
-        <section>
-          <h3>Ходы</h3>
-          <p>Игроки ходят по очереди. В свой ход играйте карты и атакуйте. Нажмите «Конец хода», когда закончите.</p>
-        </section>
-      </div>
-    </div>
-  </div>`;
+const RULES_SECTIONS = [
+  ['Цель игры', 'Снизьте HP героя соперника до 0, чтобы победить.'],
+  ['Мана', 'Каждая карта стоит ману. В начале хода мана восполняется.'],
+  ['Разыгрывание карт', 'В свой ход сыграйте миньона или заклинание из руки на стол.'],
+  ['Атака', 'Выберите своего миньона, затем цель. Героя нельзя бить, пока на столе соперника есть миньоны.'],
+  ['Ходы', 'Игроки ходят по очереди. Нажмите «Конец хода», когда закончите.'],
+];
 
 export class BootScene extends BaseScene {
   constructor() {
@@ -62,6 +40,7 @@ export class BootScene extends BaseScene {
   }
 
   create() {
+    applyTheme(session.theme);
     this.drawBackground('Lotus Game');
     this.addMessage('Загрузка профиля...', palette.text, GAME_HEIGHT / 2);
 
@@ -115,16 +94,21 @@ export class MenuScene extends BaseScene {
   }
 
   create() {
+    applyTheme(session.theme);
+    try {
+      this.cameras.main.setBackgroundColor(palette.bg);
+    } catch { /* ignore */ }
+
     const layout = layoutInfo();
     this.drawBackground('Lotus Game');
     if (session.user) {
       ensureChatScene(this);
       ensureFriendOnlineScene(this);
     }
-    this.addPanel(layout.centerX, layout.portrait ? 630 : 370, layout.portrait ? 560 : 620, layout.portrait ? 900 : 520);
-    this.add.text(layout.centerX, layout.portrait ? 170 : 150, session.user ? `Добро пожаловать, ${session.user.username}` : 'Гость', {
+    this.addPanel(layout.centerX, layout.portrait ? 560 : 370, layout.portrait ? 560 : 620, layout.portrait ? 720 : 520);
+    this.add.text(layout.centerX, layout.portrait ? 160 : 150, session.user ? `Добро пожаловать, ${session.user.username}` : 'Гость', {
       fontFamily: 'Segoe UI, Arial',
-      fontSize: layout.portrait ? '26px' : '28px',
+      fontSize: layout.portrait ? '24px' : '28px',
       color: palette.text,
       align: 'center',
       wordWrap: { width: layout.portrait ? 520 : 760 },
@@ -145,7 +129,7 @@ export class MenuScene extends BaseScene {
 
     items.forEach(([label, scene], index) => {
       if (layout.portrait) {
-        this.addButton(layout.centerX, 250 + index * 62, 360, 46, label, () => this.goto(scene));
+        this.addButton(layout.centerX, 230 + index * 56, 360, 44, label, () => this.goto(scene));
         return;
       }
       const col = index % 2;
@@ -153,52 +137,130 @@ export class MenuScene extends BaseScene {
       this.addButton(500 + col * 280, 220 + row * 62, 230, 44, label, () => this.goto(scene));
     });
 
-    const utilY = layout.portrait ? GAME_HEIGHT - 170 : 575;
-    const gap = layout.portrait ? 150 : 160;
-    const startX = layout.centerX - gap;
-    this.addButton(startX, utilY, 140, 40, 'Правила', () => this.openRules(), { fontSize: 15 });
-    this.addButton(layout.centerX, utilY, 140, 40, session.soundEnabled ? 'Звук: вкл' : 'Звук: выкл', () => {
-      toggleSound();
-      playSound('click');
-      this.scene.restart();
-    }, { fontSize: 14 });
-    this.addButton(layout.centerX + gap, utilY, 140, 40, session.theme === 'dark' ? 'Тема: тёмн.' : 'Тема: светл.', () => {
-      toggleTheme();
-      try {
-        this.game.config.backgroundColor = `#${palette.bg.toString(16).padStart(6, '0')}`;
-      } catch { /* ignore */ }
-      this.scene.restart();
-    }, { fontSize: 14 });
+    // Utility row — keep above chat FAB / safe area on phones
+    if (layout.portrait) {
+      const utilY = GAME_HEIGHT - 210;
+      this.addButton(layout.centerX - 170, utilY, 150, 48, 'Правила', () => this.openRules(), { fontSize: 16 });
+      this.addButton(layout.centerX, utilY, 150, 48, session.soundEnabled ? 'Звук: вкл' : 'Звук: выкл', () => {
+        toggleSound();
+        playSound('click');
+        this.scene.restart();
+      }, { fontSize: 15 });
+      this.addButton(layout.centerX + 170, utilY, 150, 48, session.theme === 'dark' ? 'Тема: тёмн.' : 'Тема: светл.', () => {
+        this.switchTheme();
+      }, { fontSize: 15 });
+      this.addButton(layout.centerX, GAME_HEIGHT - 130, 300, 48, 'Выйти', () => this.logout(), {
+        fill: 0x52303a,
+        stroke: palette.danger,
+      });
+    } else {
+      const utilY = 575;
+      this.addButton(layout.centerX - 160, utilY, 140, 40, 'Правила', () => this.openRules(), { fontSize: 15 });
+      this.addButton(layout.centerX, utilY, 140, 40, session.soundEnabled ? 'Звук: вкл' : 'Звук: выкл', () => {
+        toggleSound();
+        playSound('click');
+        this.scene.restart();
+      }, { fontSize: 14 });
+      this.addButton(layout.centerX + 160, utilY, 140, 40, session.theme === 'dark' ? 'Тема: тёмн.' : 'Тема: светл.', () => {
+        this.switchTheme();
+      }, { fontSize: 14 });
+      this.addButton(layout.centerX, 640, 220, 44, 'Выйти', () => this.logout(), {
+        fill: 0x52303a,
+        stroke: palette.danger,
+      });
+    }
+  }
 
-    this.addButton(layout.centerX, layout.portrait ? GAME_HEIGHT - 100 : 640, layout.portrait ? 300 : 220, 44, 'Выйти', () => {
-      clearTokens();
-      session.user = null;
-      matchSocket.disconnect();
-      stopChatScene(this);
-      stopFriendOnlineScene(this);
-      this.goto('AuthScene');
-    }, { fill: 0x52303a, stroke: palette.danger });
+  switchTheme() {
+    toggleTheme();
+    applyTheme(session.theme);
+    try {
+      this.cameras.main.setBackgroundColor(palette.bg);
+      this.game.config.backgroundColor = `#${palette.bg.toString(16).padStart(6, '0')}`;
+    } catch { /* ignore */ }
+    playSound('click');
+    this.scene.restart();
+  }
+
+  logout() {
+    clearTokens();
+    session.user = null;
+    matchSocket.disconnect();
+    stopChatScene(this);
+    stopFriendOnlineScene(this);
+    this.goto('AuthScene');
+  }
+
+  closeRules() {
+    if (this._rulesLayer) {
+      try { this._rulesLayer.destroy(true); } catch { /* ignore */ }
+      this._rulesLayer = null;
+    }
   }
 
   openRules() {
-    if (this._rulesDom) {
-      try { this._rulesDom.destroy(true); } catch { /* ignore */ }
-      this._rulesDom = null;
-    }
-    this._rulesDom = this.add.dom(layoutInfo().centerX, layoutInfo().centerY)
-      .createFromHTML(`<div class="phaser-dom-wrap">${RULES_HTML}</div>`);
-    this._rulesDom.setOrigin(0.5);
-    this._rulesDom.setDepth(1500);
-    if (typeof this._rulesDom.updateSize === 'function') this._rulesDom.updateSize();
-    const root = this._rulesDom.node;
-    root?.querySelectorAll('[data-rules-close]').forEach((el) => {
-      el.addEventListener('click', (event) => {
-        if (el.hasAttribute('data-rules-card')) return;
-        event.preventDefault();
-        try { this._rulesDom?.destroy(true); } catch { /* ignore */ }
-        this._rulesDom = null;
-      });
+    this.closeRules();
+    const layout = layoutInfo();
+    const layer = this.add.container(0, 0);
+    layer.setDepth(5000);
+
+    const dim = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.72)
+      .setInteractive();
+    dim.on('pointerup', () => this.closeRules());
+
+    const panelW = layout.portrait ? 620 : 640;
+    const panelH = layout.portrait ? 900 : 520;
+    const panel = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, panelW, panelH, palette.panel, 0.98)
+      .setStrokeStyle(2, palette.primary);
+    // swallow taps on panel so they don't close via dim
+    panel.setInteractive();
+
+    const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - panelH / 2 + 36, 'Правила игры', {
+      fontFamily: 'Segoe UI, Arial',
+      fontSize: '26px',
+      color: palette.text,
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    const closeBtn = this.addButton(
+      GAME_WIDTH / 2 + panelW / 2 - 36,
+      GAME_HEIGHT / 2 - panelH / 2 + 36,
+      52,
+      44,
+      '×',
+      () => this.closeRules(),
+      { fontSize: 28, fill: palette.panel2 },
+    );
+
+    const bodyTop = GAME_HEIGHT / 2 - panelH / 2 + 80;
+    const lines = [];
+    RULES_SECTIONS.forEach(([heading, text], index) => {
+      const y = bodyTop + index * (layout.portrait ? 130 : 72);
+      lines.push(this.add.text(GAME_WIDTH / 2 - panelW / 2 + 28, y, heading, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '18px',
+        color: '#ffe18c',
+        fontStyle: 'bold',
+      }));
+      lines.push(this.add.text(GAME_WIDTH / 2 - panelW / 2 + 28, y + 28, text, {
+        fontFamily: 'Segoe UI, Arial',
+        fontSize: '15px',
+        color: palette.muted,
+        wordWrap: { width: panelW - 56 },
+      }));
     });
-    root?.querySelector('[data-rules-card]')?.addEventListener('click', (e) => e.stopPropagation());
+
+    const okBtn = this.addButton(
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 + panelH / 2 - 40,
+      200,
+      44,
+      'Закрыть',
+      () => this.closeRules(),
+      { fill: palette.primaryDark, fontSize: 18 },
+    );
+
+    layer.add([dim, panel, title, closeBtn, okBtn, ...lines]);
+    this._rulesLayer = layer;
   }
 }

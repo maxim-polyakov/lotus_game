@@ -71,11 +71,25 @@ export class BaseScene extends Phaser.Scene {
       fontSize: `${options.fontSize || 18}px`,
       color: options.color || palette.text,
       align: 'center',
+      wordWrap: { width: width - 12 },
     }).setOrigin(0.5);
+
+    let locked = false;
+    const fire = () => {
+      if (locked) return;
+      locked = true;
+      try { onClick?.(); } finally {
+        this.time?.delayedCall?.(120, () => { locked = false; });
+      }
+    };
 
     rect.on('pointerover', () => rect.setFillStyle(options.hoverFill ?? palette.primaryDark));
     rect.on('pointerout', () => rect.setFillStyle(fill));
-    rect.on('pointerdown', () => onClick?.());
+    // pointerup is more reliable on mobile than pointerdown
+    rect.on('pointerup', (pointer) => {
+      if (pointer?.button != null && pointer.button !== 0) return;
+      fire();
+    });
     container.add([rect, text]);
     return container;
   }

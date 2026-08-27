@@ -237,12 +237,16 @@ export class FriendOnlineScene extends Phaser.Scene {
     if (typeof this.dom.updateSize === 'function') this.dom.updateSize();
     const root = this.dom.node;
     root?.querySelectorAll('[data-friend-dismiss]').forEach((el) => {
-      el.addEventListener('click', (event) => {
+      const dismiss = (event) => {
         if (el.hasAttribute('data-friend-card')) return;
         event.preventDefault();
+        event.stopPropagation();
         this.dismiss();
-      });
+      };
+      el.addEventListener('pointerup', dismiss);
+      el.addEventListener('click', dismiss);
     });
+    root?.querySelector('[data-friend-card]')?.addEventListener('pointerup', (e) => e.stopPropagation());
     root?.querySelector('[data-friend-card]')?.addEventListener('click', (e) => e.stopPropagation());
   }
 }
