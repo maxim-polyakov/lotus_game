@@ -453,55 +453,61 @@ export class MatchScene extends BaseScene {
       const panelH = rewardLine ? (layout.portrait ? 360 : 320) : 180;
       const cx = GAME_WIDTH / 2;
       const cy = GAME_HEIGHT / 2;
-      this.add.rectangle(cx, cy, layout.portrait ? 580 : 560, panelH, 0x000000, 0.82)
-        .setStrokeStyle(2, palette.primary);
+      const overlayDepth = 2500;
+      // Dim board so cards/UI stay under the result panel (cards use depth up to ~50).
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55)
+        .setDepth(overlayDepth)
+        .setInteractive();
+      this.add.rectangle(cx, cy, layout.portrait ? 580 : 560, panelH, 0x000000, 0.92)
+        .setStrokeStyle(2, palette.primary)
+        .setDepth(overlayDepth + 1);
       this.add.text(cx, cy - (rewardLine ? 120 : 24), result, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: layout.portrait ? '40px' : '46px',
         color: won ? '#99ffb0' : '#ffb3b3',
         fontStyle: 'bold',
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(overlayDepth + 2);
       if (rewardLine) {
         this.add.text(cx, cy - 58, reward?.title || 'Награда за матч', {
           fontFamily: 'Segoe UI, Arial',
           fontSize: '22px',
           color: '#ffe18c',
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(overlayDepth + 2);
         this.add.text(cx, cy - 18, reward?.message || rewardLine, {
           fontFamily: 'Segoe UI, Arial',
           fontSize: '18px',
           color: palette.muted,
           align: 'center',
           wordWrap: { width: layout.portrait ? 500 : 480 },
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(overlayDepth + 2);
         this.add.text(cx, cy + 22, rewardLine, {
           fontFamily: 'Segoe UI, Arial',
           fontSize: '22px',
           color: palette.text,
           align: 'center',
           wordWrap: { width: layout.portrait ? 500 : 480 },
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(overlayDepth + 2);
 
         const btnY = cy + 78;
         const gap = layout.portrait ? 150 : 160;
         const startX = cx - ((actions.length - 1) * gap) / 2;
         actions.forEach((action, index) => {
-          this.addButton(startX + index * gap, btnY, layout.portrait ? 140 : 150, 36, action.label, () => {
+          this.pin(this.addButton(startX + index * gap, btnY, layout.portrait ? 140 : 150, 36, action.label, () => {
             this.cleanup();
             sessionStorage.removeItem(ACTIVE_MATCH_KEY);
             if (action.route) window.history.pushState({}, '', action.route);
             this.scene.start(action.scene);
-          }, { fontSize: 14 });
+          }, { fontSize: 14 }), overlayDepth + 3);
         });
-        this.addButton(cx, cy + (layout.portrait ? 130 : 128), 200, 44, 'В меню', () => this.leaveMatch(), {
+        this.pin(this.addButton(cx, cy + (layout.portrait ? 130 : 128), 200, 44, 'В меню', () => this.leaveMatch(), {
           fill: palette.primaryDark,
           fontSize: 18,
-        });
+        }), overlayDepth + 3);
       } else {
-        this.addButton(cx, cy + 48, 200, 44, 'В меню', () => this.leaveMatch(), {
+        this.pin(this.addButton(cx, cy + 48, 200, 44, 'В меню', () => this.leaveMatch(), {
           fill: palette.primaryDark,
           fontSize: 18,
-        });
+        }), overlayDepth + 3);
       }
       sessionStorage.removeItem(ACTIVE_MATCH_KEY);
     }
