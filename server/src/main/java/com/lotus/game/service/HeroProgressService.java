@@ -74,12 +74,14 @@ public class HeroProgressService {
 
     private void refreshAfterMatch(Long userId, Long matchId) {
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null || isAdmin(user)) {
+        if (user == null) {
             return;
         }
-        ensureStarterHero(user);
-        cardProgressService.ensureStarterCards(user);
-        userRepository.save(user);
+        if (!isAdmin(user)) {
+            ensureStarterHero(user);
+            cardProgressService.ensureStarterCards(user);
+            userRepository.save(user);
+        }
         postMatchRewardService.grantPostMatchReward(userId, matchId);
     }
 

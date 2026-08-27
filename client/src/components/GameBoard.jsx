@@ -10,6 +10,7 @@ import {
 import { BaseScene } from './TutorialModal';
 import { CardGameObject, playCardSound } from './CardDisplay';
 import { matchSocket } from './WaitingMatch';
+import { formatPostMatchReward } from './PostMatchReward';
 
 export class MatchScene extends BaseScene {
   constructor() {
@@ -28,6 +29,8 @@ export class MatchScene extends BaseScene {
     this.pollInterval = null;
     this._pollInFlight = false;
     this._onVisible = null;
+    this.postMatchReward = null;
+    this._rewardFetchedForMatchId = null;
   }
 
   create() {
@@ -93,9 +96,11 @@ export class MatchScene extends BaseScene {
 
   applyMatchUpdate(match, previous = this.match) {
     if (!match) return;
+    const wasFinished = previous?.status === 'FINISHED';
     this.match = match;
     if (match.status === 'FINISHED') {
       sessionStorage.removeItem(ACTIVE_MATCH_KEY);
+      if (!wasFinished) this.fetchPostMatchReward(match.id);
     }
     this.queueRender(previous);
   }
@@ -424,15 +429,34 @@ export class MatchScene extends BaseScene {
     }
 
     if (this.match.status === 'FINISHED') {
-      const result = this.isMe(this.match.winnerId) ? 'Победа!' : this.match.winnerId ? 'Поражение' : 'Ничья';
-      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, layout.portrait ? 520 : 500, 180, 0x000000, 0.78);
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 24, result, {
+      if (!this._rewardFetchedForMatchId) this.fetchPostMatchReward(this.match.id);
+      const won = this.isMe(this.match.winnerId);
+      const result = won ? 'Победа!' : this.match.winnerId ? 'Поражение' : 'Ничья';
+      const reward = this.postMatchReward;
+      const rewardLine = formatPostMatchReward(reward);
+      const panelH = rewardLine ? 260 : 180;
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, layout.portrait ? 540 : 520, panelH, 0x000000, 0.78);
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - (rewardLine ? 70 : 24), result, {
         fontFamily: 'Segoe UI, Arial',
         fontSize: layout.portrait ? '40px' : '46px',
-        color: this.isMe(this.match.winnerId) ? '#99ffb0' : '#ffb3b3',
+        color: won ? '#99ffb0' : '#ffb3b3',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      this.addButton(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 48, 200, 44, 'В меню', () => this.leaveMatch(), {
+      if (rewardLine) {
+        this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 8, reward?.title || 'Награда за матч', {
+          fontFamily: 'Segoe UI, Arial',
+          fontSize: '22px',
+          color: '#ffe18c',
+        }).setOrigin(0.5);
+        this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 28, rewardLine, {
+          fontFamily: 'Segoe UI, Arial',
+          fontSize: '20px',
+          color: palette.text,
+          align: 'center',
+          wordWrap: { width: layout.portrait ? 480 : 460 },
+        }).setOrigin(0.5);
+      }
+      this.addButton(GAME_WIDTH / 2, GAME_HEIGHT / 2 + (rewardLine ? 88 : 48), 200, 44, 'В меню', () => this.leaveMatch(), {
         fill: palette.primaryDark,
         fontSize: 18,
       });
@@ -449,6 +473,41 @@ export class MatchScene extends BaseScene {
     this.cleanup();
     sessionStorage.removeItem(ACTIVE_MATCH_KEY);
     this.scene.start('PlayScene');
+  }
+
+  async fetchPostMatchReward(matchId) {
+    if (!matchId || this._rewardFetchedForMatchId === matchId) return;
+    this._rewardFetchedForMatchId = matchId;
+    for (let i = 0; i < 8; i += 1) {
+      if (!this.sys?.isActive?.()) return;
+      try {
+        const { data, status } = await api.get('/api/notifications/post-match/latest', {
+          params: { matchId },
+          validateStatus: (s) => (s >= 200 && s < 300) || s === 204,
+        });
+        if (status === 200 && data?.id) {
+          this.postMatchReward = data;
+          try {
+            await api.post(`/api/notifications/${data.id}/read`);
+          } catch {
+            // ignore
+          }
+          try {
+            const { data: me } = await api.get('/api/me');
+            if (me && session.user) {
+              session.user = { ...session.user, gold: me.gold, dust: me.dust };
+            }
+          } catch {
+            // ignore
+          }
+          this.queueRender(this.match);
+          return;
+        }
+      } catch {
+        // retry — reward may lag a tick behind FINISHED
+      }
+      await new Promise((resolve) => setTimeout(resolve, 450));
+    }
   }
 
   renderHero(x, y, state, mine) {
