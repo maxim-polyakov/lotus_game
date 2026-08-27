@@ -24,7 +24,7 @@ export function resolveAssetUrl(url) {
 export function resolveTextureUrl(url) {
   const absolute = resolveAssetUrl(url);
   if (!absolute) return '';
-  if (/^https:\/\/storage\.yandexcloud\.net\/lotus\//i.test(absolute)) {
+  if (/^https:\/\/storage\.yandexcloud\.net\/[^/]+\//i.test(absolute)) {
     return `${API_BASE}/api/media/proxy?url=${encodeURIComponent(absolute)}`;
   }
   return absolute;

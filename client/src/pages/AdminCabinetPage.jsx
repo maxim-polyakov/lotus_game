@@ -121,15 +121,6 @@ export class AdminScene extends ListScene {
     const isMinion = card.cardType === 'MINION';
     const layout = layoutInfo();
     const assets = this.assetStatus(card);
-    const assetLinks = [
-      assets.image && ['Открыть картинку', card.imageUrl],
-      assets.sound && ['Открыть звук розыгрыша', card.soundUrl],
-      assets.attackSound && ['Открыть звук атаки', card.attackSoundUrl],
-      assets.playGif && ['Открыть GIF розыгрыша', card.playEffectUrl],
-      assets.attackGif && ['Открыть GIF атаки', card.attackEffectUrl],
-    ].filter(Boolean).map(([label, url]) => (
-      `<a class="admin-asset-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">${escapeAttr(label)}</a>`
-    )).join('');
 
     const editDom = this.addDomForm(panelX, panelY - 10, `
       <form class="phaser-form admin-phaser-form">
@@ -147,39 +138,40 @@ export class AdminScene extends ListScene {
 
         <div class="admin-upload-block">
           <strong class="admin-upload-title">Загрузка файлов</strong>
-          ${assetLinks ? `<div class="admin-asset-links">${assetLinks}</div>` : '<div class="admin-asset-empty">Пока ничего не загружено</div>'}
-
-          <label class="admin-upload-field">
-            <span class="admin-upload-label">Картинка на карте <em class="${assets.image ? 'on' : 'off'}">${assets.image ? 'уже есть' : 'нет'}</em></span>
-            <input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
-          </label>
-          <label class="admin-upload-field">
-            <span class="admin-upload-label">Звук розыгрыша <em class="${assets.sound ? 'on' : 'off'}">${assets.sound ? 'уже есть' : 'нет'}</em></span>
-            <input name="sound" type="file" accept="audio/*" />
-          </label>
-          ${isMinion ? `
-          <label class="admin-upload-field">
-            <span class="admin-upload-label">Звук атаки <em class="${assets.attackSound ? 'on' : 'off'}">${assets.attackSound ? 'уже есть' : 'нет'}</em></span>
-            <input name="attackSound" type="file" accept="audio/*" />
-          </label>` : ''}
-          <label class="admin-upload-field">
-            <span class="admin-upload-label">GIF розыгрыша <em class="${assets.playGif ? 'on' : 'off'}">${assets.playGif ? 'уже есть' : 'нет'}</em></span>
-            <input name="effect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" />
-          </label>
-          ${isMinion ? `
-          <label class="admin-upload-field">
-            <span class="admin-upload-label">GIF атаки <em class="${assets.attackGif ? 'on' : 'off'}">${assets.attackGif ? 'уже есть' : 'нет'}</em></span>
-            <input name="attackEffect" type="file" accept="image/gif,video/webm,video/mp4,image/png,image/webp" />
-          </label>` : ''}
+          ${this.uploadFieldHtml('image', 'Картинка на карте', 'image/png,image/jpeg,image/webp,image/gif', assets.image)}
+          ${this.uploadFieldHtml('sound', 'Звук розыгрыша', 'audio/*', assets.sound)}
+          ${isMinion ? this.uploadFieldHtml('attackSound', 'Звук атаки', 'audio/*', assets.attackSound) : ''}
+          ${this.uploadFieldHtml('effect', 'GIF розыгрыша', 'image/gif,video/webm,video/mp4,image/png,image/webp', assets.playGif)}
+          ${isMinion ? this.uploadFieldHtml('attackEffect', 'GIF атаки', 'image/gif,video/webm,video/mp4,image/png,image/webp', assets.attackGif) : ''}
           <button type="button" data-upload-assets>Загрузить выбранные файлы</button>
         </div>
       </form>
     `, (values) => this.saveCard(card, values));
 
     const form = editDom.node?.querySelector('form');
+    form?.querySelectorAll('input[type="file"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const nameNode = input.parentElement?.querySelector('[data-file-name]');
+        if (nameNode) nameNode.textContent = input.files?.[0]?.name || 'Файл не выбран';
+      });
+    });
     form?.querySelector('[data-upload-assets]')?.addEventListener('click', () => this.uploadCardAssets(card, form));
 
     this.addButton(panelX, layout.portrait ? 1205 : 655, 190, 34, 'Удалить карту', () => this.deleteCard(card), { fill: 0x52303a, stroke: palette.danger, fontSize: 15 });
+  }
+
+  uploadFieldHtml(name, label, accept, exists) {
+    return `
+      <label class="admin-upload-field">
+        <span class="admin-upload-label">${label} <em class="${exists ? 'on' : 'off'}">${exists ? 'уже есть' : 'нет'}</em></span>
+        <span class="admin-file-picker">
+          <input name="${name}" type="file" accept="${accept}"
+            style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;" />
+          <span class="admin-file-btn" aria-hidden="true">Выбрать файл</span>
+          <span class="admin-file-name" data-file-name>Файл не выбран</span>
+        </span>
+      </label>
+    `;
   }
 
   assetStatus(card) {

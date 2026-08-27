@@ -139,27 +139,55 @@ export class BaseScene extends Phaser.Scene {
   }
 
   /**
-   * Load remote image into a Phaser texture via same-origin proxy when needed.
+   * Load remote image into a Phaser texture.
+   * Prefer same-origin media proxy (S3 often has no CORS); fall back to direct URL.
    */
   loadRemoteTexture(key, url) {
     if (!key || !url) return Promise.resolve(false);
     if (this.textures.exists(key)) return Promise.resolve(true);
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        try {
-          if (!this.textures.exists(key)) {
-            this.textures.addImage(key, img);
-          }
-          resolve(this.textures.exists(key));
-        } catch {
-          resolve(false);
-        }
-      };
-      img.onerror = () => resolve(false);
-      img.src = url;
+
+    const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.readAsDataURL(blob);
     });
+
+    const tryUrl = (candidate) => fetch(candidate, { mode: 'cors', credentials: 'omit' })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.blob();
+      })
+      .then((blob) => {
+        if (!blob || !blob.size) throw new Error('empty image');
+        return blobToDataUrl(blob);
+      })
+      .then((dataUrl) => new Promise((resolve, reject) => {
+        if (this.textures.exists(key)) {
+          resolve(true);
+          return;
+        }
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = () => {
+          try {
+            if (!this.textures.exists(key)) this.textures.addImage(key, img);
+            resolve(this.textures.exists(key));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = () => reject(new Error('image decode failed'));
+        img.src = dataUrl;
+      }));
+
+    const directMatch = String(url).match(/[?&]url=([^&]+)/);
+    const directUrl = directMatch ? decodeURIComponent(directMatch[1]) : null;
+    const chain = tryUrl(url);
+    return (directUrl && directUrl !== url
+      ? chain.catch(() => tryUrl(directUrl))
+      : chain
+    ).catch(() => false);
   }
 
   addAvatar(x, y, url, name = '?', size = 44) {

@@ -1,5 +1,7 @@
 package com.lotus.game.controller;
 
+import com.lotus.game.config.YandexStorageProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,17 +24,19 @@ import java.time.Duration;
  */
 @RestController
 @RequestMapping("/api/media")
+@RequiredArgsConstructor
 public class MediaProxyController {
 
-    private static final String ALLOWED_PREFIX = "https://storage.yandexcloud.net/lotus/";
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
+    private final YandexStorageProperties storageProperties;
+
     @GetMapping("/proxy")
     public ResponseEntity<byte[]> proxy(@RequestParam("url") String url) throws IOException, InterruptedException {
-        if (url == null || url.isBlank() || !url.startsWith(ALLOWED_PREFIX)) {
+        if (!isAllowed(url)) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -46,10 +50,26 @@ public class MediaProxyController {
         }
 
         byte[] body = response.body().readAllBytes();
-        String contentType = response.headers().firstValue("Content-Type").orElse(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        String contentType = response.headers()
+                .firstValue("Content-Type")
+                .orElse(MediaType.APPLICATION_OCTET_STREAM_VALUE);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
                 .contentType(MediaType.parseMediaType(contentType))
                 .body(body);
+    }
+
+    private boolean isAllowed(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String endpoint = storageProperties.getEndpoint() != null
+                ? storageProperties.getEndpoint()
+                : "https://storage.yandexcloud.net";
+        String bucket = storageProperties.getBucketName() != null
+                ? storageProperties.getBucketName()
+                : "lotus";
+        String prefix = endpoint.replaceAll("/$", "") + "/" + bucket + "/";
+        return url.startsWith(prefix) || url.startsWith("https://storage.yandexcloud.net/" + bucket + "/");
     }
 }

@@ -10,7 +10,7 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.36);
 }
 
-.phaser-form input,
+.phaser-form input:not([type='file']),
 .phaser-form select {
   width: 100%;
   padding: 11px 12px;
@@ -19,6 +19,11 @@
   background: #f8f3e8;
   color: #151922;
   font: 15px 'Segoe UI', system-ui, sans-serif;
+}
+
+.phaser-form input[type='file'] {
+  /* Never show native "Choose File" chrome; admin uses .admin-file-picker */
+  color: transparent;
 }
 
 .phaser-form-inline {
@@ -56,7 +61,7 @@
     padding: 14px;
   }
 
-  .phaser-form input,
+  .phaser-form input:not([type='file']),
   .phaser-form select,
   .phaser-form button,
   .phaser-form a {

@@ -5,7 +5,7 @@
   padding: 14px;
 }
 
-.admin-phaser-form input,
+.admin-phaser-form input:not([type='file']),
 .admin-phaser-form select,
 .admin-phaser-form button,
 .admin-create-form input,
@@ -15,15 +15,10 @@
   font-size: 14px;
 }
 
-.admin-phaser-form input[type='file'] {
-  background: #f8f3e8;
-  padding: 7px;
-}
-
 .admin-upload-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin-top: 4px;
   padding-top: 8px;
   border-top: 1px solid rgba(215, 170, 69, 0.35);
@@ -37,7 +32,7 @@
 .admin-upload-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .admin-upload-label {
@@ -68,21 +63,50 @@
   border: 1px solid rgba(170, 180, 200, 0.3);
 }
 
-.admin-asset-links {
+.admin-file-picker {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid rgba(215, 170, 69, 0.45);
+  border-radius: 8px;
+  background: rgba(28, 36, 52, 0.95);
+  cursor: pointer;
 }
 
-.admin-asset-link {
-  color: #ffe18c !important;
+.admin-file-picker input[type='file'] {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+  border: 0 !important;
   background: transparent !important;
-  border: 1px solid rgba(215, 170, 69, 0.55) !important;
-  padding: 7px 10px !important;
-  font-size: 13px !important;
+  font-size: 0 !important;
+  color: transparent !important;
 }
 
-.admin-asset-empty {
-  color: #aab4c8;
-  font: 13px 'Segoe UI', system-ui, sans-serif;
+.admin-file-btn {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #936b22;
+  color: #fff;
+  font: 600 12px 'Segoe UI', system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.admin-file-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c6d0e2;
+  font: 12px 'Segoe UI', system-ui, sans-serif;
+  pointer-events: none;
 }
