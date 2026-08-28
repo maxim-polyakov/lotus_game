@@ -1,6 +1,7 @@
 import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, session, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
+import { errorMessage } from '../components/ErrorDetail';
 
 function modeLabel(mode) {
   return mode === 'RANKED' ? 'Ранговый' : 'Обычный';
@@ -26,7 +27,7 @@ export class ReplaysScene extends ListScene {
     this.addMessage('Загрузка матчей...', palette.text, 120);
     api.get('/api/matches')
       .then(({ data }) => this.renderReplays((data || []).filter((m) => m.status === 'FINISHED')))
-      .catch((err) => this.renderReplays([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderReplays([], errorMessage(err, 'Ошибка загрузки')));
   }
 
   renderReplays(matches, error = '') {

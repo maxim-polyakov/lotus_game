@@ -1,6 +1,7 @@
 import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, session, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
+import { errorMessage } from '../components/ErrorDetail';
 
 export class HeroesScene extends ListScene {
   constructor() {
@@ -18,7 +19,7 @@ export class HeroesScene extends ListScene {
         const heroes = data || [];
         return this.loadImageUrls(heroes.map((h) => h.portraitUrl)).then(() => this.renderHeroes(heroes));
       })
-      .catch((err) => this.renderHeroes([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderHeroes([], errorMessage(err, 'Ошибка загрузки')));
   }
 
   renderHeroes(heroes, error = '') {

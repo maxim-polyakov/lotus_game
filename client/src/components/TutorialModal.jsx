@@ -8,7 +8,7 @@ import {
 } from '../game/shared';
 import { sceneToRoute } from './NavDropdown';
 import { textureKey, resolveTextureUrl } from './CardDisplay';
-import { imageTextureKey, circularAvatarKey } from './ErrorDetail';
+import { imageTextureKey, circularAvatarKey, errorMessage } from './ErrorDetail';
 import './TutorialModal.css';
 
 export class BaseScene extends Phaser.Scene {
@@ -401,7 +401,7 @@ export class ListScene extends BaseScene {
     this.addMessage('Загрузка...', palette.text, 120);
     this.loader()
       .then((items) => this.render(items || []))
-      .catch((err) => this.render([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.render([], errorMessage(err, 'Ошибка загрузки')));
   }
 
   render(items, error = '') {

@@ -37,7 +37,7 @@ export class DeckEditorScene extends BaseScene {
         this.loadCardTextures(cards),
         this.loadImageUrls(this.heroes.map((h) => h.portraitUrl)),
       ]);
-    }).then(() => this.render()).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка загрузки'));
+    }).then(() => this.render()).catch((err) => this.renderError(errorMessage(err, 'Ошибка загрузки')));
   }
 
   currentDeckIdFromPath() {

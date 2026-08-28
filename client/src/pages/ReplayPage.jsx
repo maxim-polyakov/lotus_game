@@ -2,7 +2,7 @@ import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, layoutInfo } from '../game/shared';
 import { BaseScene } from '../components/TutorialModal';
 import { CardGameObject } from '../components/CardDisplay';
-import { asArray } from '../components/ErrorDetail';
+import { asArray, errorMessage } from '../components/ErrorDetail';
 
 export class ReplayViewerScene extends BaseScene {
   constructor() {
@@ -31,7 +31,7 @@ export class ReplayViewerScene extends BaseScene {
         this.loadCardTextures(cards),
         this.loadImageUrls(portraitUrls),
       ]);
-    }).then(() => this.renderReplay()).catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка реплея'));
+    }).then(() => this.renderReplay()).catch((err) => this.renderError(errorMessage(err, 'Ошибка реплея')));
   }
 
   matchIdFromPath() {

@@ -2,7 +2,7 @@ import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
 import { CardGameObject } from '../components/CardDisplay';
-import { asArray, deckHeroId } from '../components/ErrorDetail';
+import { asArray, deckHeroId, errorMessage } from '../components/ErrorDetail';
 
 export class DecksScene extends ListScene {
   constructor() {
@@ -23,7 +23,7 @@ export class DecksScene extends ListScene {
       this.loadCardTextures(cards),
       this.loadImageUrls(heroes.map((h) => h.portraitUrl)),
     ]).then(() => this.renderDecks(decks, cards, heroes)))
-      .catch((err) => this.renderDecks([], [], [], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderDecks([], [], [], errorMessage(err, 'Ошибка загрузки')));
   }
 
   renderDecks(decks, cards, heroes = [], error = '') {

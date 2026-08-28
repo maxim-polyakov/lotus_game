@@ -1,6 +1,7 @@
 import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
+import { errorMessage } from '../components/ErrorDetail';
 
 export class NotificationsScene extends ListScene {
   constructor() {
@@ -22,7 +23,7 @@ export class NotificationsScene extends ListScene {
     this.addMessage('Загрузка уведомлений...', palette.text, 120);
     api.get('/api/notifications')
       .then(({ data }) => this.renderNotifications(data || [], message))
-      .catch((err) => this.renderNotifications([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderNotifications([], errorMessage(err, 'Ошибка загрузки')));
   }
 
   renderNotifications(items, message = '') {

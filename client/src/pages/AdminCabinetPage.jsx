@@ -2,7 +2,7 @@ import api from '../api/client';
 import { palette, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
 import { CardGameObject } from '../components/CardDisplay';
-import { escapeAttr } from '../components/ErrorDetail';
+import { escapeAttr, errorMessage } from '../components/ErrorDetail';
 import './AdminCabinetPage.css';
 
 export class AdminScene extends ListScene {
@@ -36,7 +36,7 @@ export class AdminScene extends ListScene {
         this.selectedHero = heroes.find((h) => h.id === this.selectedHero.id) || null;
       }
       this.renderAdmin(message);
-    })).catch((err) => this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка загрузки'));
+    })).catch((err) => this.renderAdmin(errorMessage(err, 'Ошибка загрузки'));
   }
 
   setPanelCollapsed(collapsed) {
@@ -327,7 +327,7 @@ export class AdminScene extends ListScene {
           this.gameSounds = { ...(this.gameSounds || {}), [key]: data[key] };
           this.renderAdmin('Звук загружен');
         } catch (err) {
-          this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка загрузки звука');
+          this.renderAdmin(errorMessage(err, 'Ошибка загрузки звука');
         }
       });
       row.querySelector('[data-delete-sound]')?.addEventListener('click', async () => {
@@ -336,7 +336,7 @@ export class AdminScene extends ListScene {
           this.gameSounds = { ...(this.gameSounds || {}), [key]: null };
           this.renderAdmin('Звук удалён');
         } catch (err) {
-          this.renderAdmin(err.response?.data?.message || err.message || 'Ошибка удаления звука');
+          this.renderAdmin(errorMessage(err, 'Ошибка удаления звука');
         }
       });
     });
@@ -357,7 +357,7 @@ export class AdminScene extends ListScene {
         this.postMatchDrop = data;
         this.renderAdmin('Настройки дропа сохранены');
       } catch (err) {
-        this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить дроп');
+        this.renderAdmin(errorMessage(err, 'Не удалось сохранить дроп');
       }
     });
 
@@ -371,7 +371,7 @@ export class AdminScene extends ListScene {
         this.shopSettings = data;
         this.renderAdmin('Цены магазина сохранены');
       } catch (err) {
-        this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить цены');
+        this.renderAdmin(errorMessage(err, 'Не удалось сохранить цены');
       }
     });
 
@@ -388,7 +388,7 @@ export class AdminScene extends ListScene {
         this.dropCardPoolKeys = Array.isArray(data?.enabledCardKeys) ? data.enabledCardKeys : enabledCardKeys;
         this.renderAdmin('Пул карт сохранён');
       } catch (err) {
-        this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить пул');
+        this.renderAdmin(errorMessage(err, 'Не удалось сохранить пул');
       }
     });
   }
@@ -730,7 +730,7 @@ export class AdminScene extends ListScene {
       });
       this.renderAdmin(`Пользователь ${values.emailOrUsername.trim()} теперь админ`);
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось выдать админку');
+      this.renderAdmin(errorMessage(err, 'Не удалось выдать админку');
     }
   }
 
@@ -742,7 +742,7 @@ export class AdminScene extends ListScene {
       });
       this.renderAdmin(`Выдано ${data.grantedGold} золота пользователю ${data.username}. Итого: ${data.totalGold}`);
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось выдать золото');
+      this.renderAdmin(errorMessage(err, 'Не удалось выдать золото');
     }
   }
 
@@ -770,7 +770,7 @@ export class AdminScene extends ListScene {
       this.selected = data;
       this.renderAdmin('Карта сохранена');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить карту');
+      this.renderAdmin(errorMessage(err, 'Не удалось сохранить карту');
     }
   }
 
@@ -799,7 +799,7 @@ export class AdminScene extends ListScene {
       await this.loadCardTextures([data]);
       this.renderAdmin('Карта создана');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось создать карту');
+      this.renderAdmin(errorMessage(err, 'Не удалось создать карту');
     }
   }
 
@@ -816,7 +816,7 @@ export class AdminScene extends ListScene {
       this.formMode = 'heroes';
       this.renderAdmin(`Герой создан (id: ${data?.id || 'ok'})`);
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось создать героя');
+      this.renderAdmin(errorMessage(err, 'Не удалось создать героя');
     }
   }
 
@@ -837,7 +837,7 @@ export class AdminScene extends ListScene {
       };
       this.renderAdmin('Герой сохранён');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось сохранить героя');
+      this.renderAdmin(errorMessage(err, 'Не удалось сохранить героя');
     }
   }
 
@@ -858,7 +858,7 @@ export class AdminScene extends ListScene {
       this.selectedHero = { ...(this.selectedHero || hero), portraitUrl };
       this.renderAdmin('Портрет загружен');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось загрузить портрет');
+      this.renderAdmin(errorMessage(err, 'Не удалось загрузить портрет');
     }
   }
 
@@ -871,7 +871,7 @@ export class AdminScene extends ListScene {
       this.selectedHero = { ...(this.selectedHero || hero), portraitUrl: '' };
       this.renderAdmin('Портрет удалён');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось удалить портрет');
+      this.renderAdmin(errorMessage(err, 'Не удалось удалить портрет');
     }
   }
 
@@ -883,7 +883,7 @@ export class AdminScene extends ListScene {
       this.selected = null;
       this.renderAdmin('Карта удалена');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось удалить карту');
+      this.renderAdmin(errorMessage(err, 'Не удалось удалить карту');
     }
   }
 
@@ -904,7 +904,7 @@ export class AdminScene extends ListScene {
       }
       this.loadAdmin('Ассеты загружены');
     } catch (err) {
-      this.renderAdmin(err.response?.data?.message || err.message || 'Не удалось загрузить ассеты');
+      this.renderAdmin(errorMessage(err, 'Не удалось загрузить ассеты');
     }
   }
 }

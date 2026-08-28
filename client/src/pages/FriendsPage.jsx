@@ -1,6 +1,7 @@
 import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
+import { errorMessage } from '../components/ErrorDetail';
 
 export class FriendsScene extends ListScene {
   constructor() {
@@ -29,7 +30,7 @@ export class FriendsScene extends ListScene {
         ];
         return this.loadImageUrls(urls).then(() => this.renderFriends(data, message));
       })
-      .catch((err) => this.renderFriends({}, err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderFriends({}, errorMessage(err, 'Ошибка загрузки')));
   }
 
   renderFriends(data = {}, message = '') {
@@ -62,7 +63,7 @@ export class FriendsScene extends ListScene {
         await api.post('/api/friends/requests', { username: values.username.trim() });
         this.loadFriends('Заявка отправлена');
       } catch (err) {
-        this.renderFriends(data, err.response?.data?.message || err.message || 'Не удалось отправить заявку');
+        this.renderFriends(data, errorMessage(err, 'Не удалось отправить заявку'));
       }
     });
     this.pin(formDom, 3100);

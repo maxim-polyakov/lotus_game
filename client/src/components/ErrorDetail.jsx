@@ -38,18 +38,38 @@ export function asArray(value) {
 }
 
 export function errorMessage(err, fallback = 'Ошибка') {
-  const message = err?.response?.data?.message || err?.message || fallback;
-  if (/Batch update returned unexpected row count|ObjectOptimisticLockingFailureException|OptimisticLock/i.test(message)) {
+  const status = err?.response?.status;
+  const raw = err?.response?.data?.message || err?.message || '';
+  const code = err?.code || '';
+
+  if (/Batch update returned unexpected row count|ObjectOptimisticLockingFailureException|OptimisticLock/i.test(raw)) {
     return 'Данные уже изменились. Обновите экран и повторите сохранение.';
   }
-  if (
-    err?.code === 'ECONNABORTED'
-    || err?.code === 'ERR_CANCELED'
-    || /timeout/i.test(String(message))
-    || /ms exceeded/i.test(String(message))
-    || /ms executed/i.test(String(message))
-  ) {
+
+  // Network / timeout — never show axios "timeout of 15000ms exceeded"
+  const noResponse = !err?.response;
+  const isTimeout =
+    code === 'ECONNABORTED'
+    || code === 'ERR_CANCELED'
+    || /timeout/i.test(String(raw))
+    || /ms exceeded/i.test(String(raw))
+    || /ms executed/i.test(String(raw));
+  const isNetwork =
+    code === 'ERR_NETWORK'
+    || code === 'ECONNREFUSED'
+    || code === 'ENOTFOUND'
+    || code === 'ECONNRESET'
+    || (noResponse && !raw);
+
+  if (isTimeout) {
     return 'Сервер не ответил вовремя. Проверьте сеть и попробуйте ещё раз.';
   }
-  return message;
+  if (isNetwork || (noResponse && raw && /network|failed to fetch|load failed|net::/i.test(raw))) {
+    return 'Сервер недоступен. Проверьте подключение к интернету.';
+  }
+  if (status === 502 || status === 503 || status === 504) {
+    return 'Сервер временно недоступен. Попробуйте чуть позже.';
+  }
+
+  return raw || fallback;
 }

@@ -1,7 +1,7 @@
 import api from '../api/client';
 import { palette, session, layoutInfo, GAME_HEIGHT } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
-import { escapeAttr, imageTextureKey, circularAvatarKey } from '../components/ErrorDetail';
+import { escapeAttr, imageTextureKey, circularAvatarKey, errorMessage } from '../components/ErrorDetail';
 import { resolveTextureUrl } from '../components/CardDisplay';
 import './AdminCabinetPage.css';
 
@@ -29,7 +29,7 @@ export class ProfileScene extends ListScene {
           // keep profile without avatar art
         }
       })
-      .catch((err) => this.renderProfile(null, null, err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderProfile(null, null, errorMessage(err, 'Ошибка загрузки')));
   }
 
   forgetAvatarTextures(url) {
@@ -134,7 +134,7 @@ export class ProfileScene extends ListScene {
         session.user = { ...session.user, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl };
         this.renderProfile({ ...me, ...data, avatarUrl: data.avatarUrl ?? me?.avatarUrl }, stats, 'Профиль сохранён');
       } catch (err) {
-        this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось сохранить');
+        this.renderProfile(me, stats, errorMessage(err, 'Не удалось сохранить'));
       }
     });
 
@@ -163,7 +163,7 @@ export class ProfileScene extends ListScene {
       await this.loadImageUrls([data?.avatarUrl]);
       this.renderProfile({ ...me, ...data }, stats, 'Аватар загружен');
     } catch (err) {
-      this.renderProfile(me, stats, err.response?.data?.message || err.message || 'Не удалось загрузить аватар');
+      this.renderProfile(me, stats, errorMessage(err, 'Не удалось загрузить аватар'));
     }
   }
 }

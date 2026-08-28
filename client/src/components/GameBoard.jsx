@@ -12,6 +12,7 @@ import { CardGameObject, playCardSound } from './CardDisplay';
 import { matchSocket } from './WaitingMatch';
 import { formatPostMatchReward, rewardActionButtons } from './PostMatchReward';
 import { playMatchEndSound } from '../utils/sound';
+import { errorMessage } from './ErrorDetail';
 
 export class MatchScene extends BaseScene {
   constructor() {
@@ -59,7 +60,7 @@ export class MatchScene extends BaseScene {
           })
           .catch(() => {});
       })
-      .catch((err) => this.renderError(err.response?.data?.message || err.message || 'Ошибка матча'));
+      .catch((err) => this.renderError(errorMessage(err, 'Ошибка матча')));
   }
 
   cleanup() {
@@ -776,7 +777,7 @@ export class MatchScene extends BaseScene {
         () => api.post(`/api/matches/${this.match.id}/play`, { instanceId, targetPosition, targetInstanceId }),
       );
     } catch (err) {
-      this.addMessage(err.response?.data?.message || err.message || 'Ошибка розыгрыша', '#ffb3b3');
+      this.addMessage(errorMessage(err, 'Ошибка розыгрыша'), '#ffb3b3');
     }
   }
 
@@ -804,7 +805,7 @@ export class MatchScene extends BaseScene {
         () => api.post(`/api/matches/${this.match.id}/attack`, { attackerInstanceId, targetInstanceId }),
       );
     } catch (err) {
-      this.addMessage(err.response?.data?.message || err.message || 'Ошибка атаки', '#ffb3b3');
+      this.addMessage(errorMessage(err, 'Ошибка атаки'), '#ffb3b3');
     }
   }
 
@@ -838,7 +839,7 @@ export class MatchScene extends BaseScene {
         () => api.post(`/api/matches/${this.match.id}/end-turn`),
       );
     } catch (err) {
-      this.addMessage(err.response?.data?.message || err.message || 'Ошибка завершения хода', '#ffb3b3');
+      this.addMessage(errorMessage(err, 'Ошибка завершения хода'), '#ffb3b3');
     }
   }
 

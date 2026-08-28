@@ -336,7 +336,7 @@ export class ShopScene extends ListScene {
           this.lastHero = null;
           this.renderShop('Карта куплена');
         } catch (err) {
-          this.renderShop(err.response?.data?.message || err.message || 'Не удалось купить карту');
+          this.renderShop(errorMessage(err, 'Не удалось купить карту'));
         }
       });
     });
@@ -407,7 +407,7 @@ export class ShopScene extends ListScene {
       }
       this.renderShop(data.card ? `Выпала карта: ${data.card.name}` : 'Карта куплена');
     } catch (err) {
-      this.renderShop(err.response?.data?.message || err.message || 'Не удалось купить карту');
+      this.renderShop(errorMessage(err, 'Не удалось купить карту'));
     }
   }
 
@@ -430,7 +430,7 @@ export class ShopScene extends ListScene {
       }
       this.renderShop(data.hero ? `Выпал герой: ${data.hero.name}` : 'Герой куплен');
     } catch (err) {
-      this.renderShop(err.response?.data?.message || err.message || 'Не удалось купить героя');
+      this.renderShop(errorMessage(err, 'Не удалось купить героя'));
     }
   }
 }

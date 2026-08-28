@@ -4,6 +4,7 @@ import { layoutInfo } from '../game/shared';
 import { BaseScene } from '../components/TutorialModal';
 import { loadCurrentUser, loginUser, consumeAuthUrlError, ensureFriendOnlineScene } from '../components/FriendOnlinePopup';
 import { ensureChatScene } from '../components/ChatWidget';
+import { errorMessage } from '../components/ErrorDetail';
 
 const GOOGLE_ICON = `
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -153,13 +154,11 @@ export class AuthScene extends BaseScene {
       ensureFriendOnlineScene(this);
       this.goto('MenuScene');
     } catch (err) {
-      let msg = err.response?.data?.message || err.message || 'Ошибка';
-      if (!err.response?.data?.message) {
-        if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
-          msg = 'Сервер недоступен. Проверьте подключение к интернету и URL API.';
-        } else if (err.response?.status === 400 && this.mode === 'login') {
-          msg = 'Неверный логин или пароль.';
-        }
+      let msg = errorMessage(err, 'Ошибка');
+      if (err.response?.status === 400 && this.mode === 'login' && err.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (err.response?.status === 400 && this.mode === 'login') {
+        msg = 'Неверный логин или пароль.';
       }
       this.render(msg);
     }

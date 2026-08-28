@@ -1,7 +1,7 @@
 import api from '../api/client';
 import { GAME_WIDTH, GAME_HEIGHT, palette, layoutInfo } from '../game/shared';
 import { ListScene } from '../components/TutorialModal';
-import { asArray } from '../components/ErrorDetail';
+import { asArray, errorMessage } from '../components/ErrorDetail';
 
 export class LeaderboardScene extends ListScene {
   constructor() {
@@ -16,7 +16,7 @@ export class LeaderboardScene extends ListScene {
     this.addMessage('Загрузка рейтинга...', palette.text, 120);
     api.get('/api/leaderboard')
       .then(({ data }) => this.loadImageUrls(asArray(data).map((u) => u.avatarUrl)).then(() => this.renderLeaderboard(asArray(data))))
-      .catch((err) => this.renderLeaderboard([], err.response?.data?.message || err.message || 'Ошибка загрузки'));
+      .catch((err) => this.renderLeaderboard([], errorMessage(err, 'Ошибка загрузки')));
   }
 
   renderLeaderboard(players, error = '') {
