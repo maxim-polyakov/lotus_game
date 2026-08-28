@@ -74,12 +74,21 @@ export class BaseScene extends Phaser.Scene {
       wordWrap: { width: width - 12 },
     }).setOrigin(0.5);
 
+    const lockMs = options.lockMs ?? 350;
     let locked = false;
-    const fire = () => {
-      if (locked) return;
+    let lastWasTouch = false;
+    let lastAt = 0;
+    const fire = (pointer) => {
+      const now = performance.now();
+      const isTouch = !!(pointer?.wasTouch || pointer?.event?.pointerType === 'touch');
+      // iOS often sends a synthetic mouse click after touch — ignore it.
+      if (!isTouch && lastWasTouch && now - lastAt < 500) return;
+      if (locked || now - lastAt < lockMs) return;
       locked = true;
+      lastWasTouch = isTouch;
+      lastAt = now;
       try { onClick?.(); } finally {
-        this.time?.delayedCall?.(120, () => { locked = false; });
+        this.time?.delayedCall?.(lockMs, () => { locked = false; });
       }
     };
 
@@ -88,7 +97,7 @@ export class BaseScene extends Phaser.Scene {
     // pointerup is more reliable on mobile than pointerdown
     rect.on('pointerup', (pointer) => {
       if (pointer?.button != null && pointer.button !== 0) return;
-      fire();
+      fire(pointer);
     });
     container.add([rect, text]);
     return container;

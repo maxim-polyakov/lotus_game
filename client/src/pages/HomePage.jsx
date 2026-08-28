@@ -142,9 +142,7 @@ export class MenuScene extends BaseScene {
       const utilY = GAME_HEIGHT - 210;
       this.addButton(layout.centerX - 170, utilY, 150, 48, 'Правила', () => this.openRules(), { fontSize: 16 });
       this.addButton(layout.centerX, utilY, 150, 48, session.soundEnabled ? 'Звук: вкл' : 'Звук: выкл', () => {
-        toggleSound();
-        playSound('click');
-        this.scene.restart();
+        this.toggleMenuSound();
       }, { fontSize: 15 });
       this.addButton(layout.centerX + 170, utilY, 150, 48, session.theme === 'dark' ? 'Тема: тёмн.' : 'Тема: светл.', () => {
         this.switchTheme();
@@ -157,9 +155,7 @@ export class MenuScene extends BaseScene {
       const utilY = 575;
       this.addButton(layout.centerX - 160, utilY, 140, 40, 'Правила', () => this.openRules(), { fontSize: 15 });
       this.addButton(layout.centerX, utilY, 140, 40, session.soundEnabled ? 'Звук: вкл' : 'Звук: выкл', () => {
-        toggleSound();
-        playSound('click');
-        this.scene.restart();
+        this.toggleMenuSound();
       }, { fontSize: 14 });
       this.addButton(layout.centerX + 160, utilY, 140, 40, session.theme === 'dark' ? 'Тема: тёмн.' : 'Тема: светл.', () => {
         this.switchTheme();
@@ -172,6 +168,7 @@ export class MenuScene extends BaseScene {
   }
 
   switchTheme() {
+    if (!this.consumeMenuAction()) return;
     toggleTheme();
     applyTheme(session.theme);
     try {
@@ -180,6 +177,21 @@ export class MenuScene extends BaseScene {
     } catch { /* ignore */ }
     playSound('click');
     this.scene.restart();
+  }
+
+  toggleMenuSound() {
+    if (!this.consumeMenuAction()) return;
+    toggleSound();
+    playSound('click');
+    this.scene.restart();
+  }
+
+  /** Extra guard so sound/theme/rules don't double-fire on iOS (touch + ghost mouse). */
+  consumeMenuAction() {
+    const now = performance.now();
+    if (now - (this._menuActionAt || 0) < 450) return false;
+    this._menuActionAt = now;
+    return true;
   }
 
   logout() {
@@ -199,6 +211,7 @@ export class MenuScene extends BaseScene {
   }
 
   openRules() {
+    if (!this.consumeMenuAction()) return;
     this.closeRules();
     const layout = layoutInfo();
     const layer = this.add.container(0, 0);
