@@ -177,21 +177,71 @@ export class MatchScene extends BaseScene {
     return mine != null && id != null && Number(id) === mine;
   }
 
-  /** Suppress touch+mouse double-fires that toggle selection off in the same tap. */
+  /**
+   * Suppress iOS touch+synthetic-mouse double fires that toggle selection on then off
+   * within the same tap (gold border flashes for one frame).
+   */
   consumeCardGesture(pointer) {
     const now = performance.now();
     const pointerId = pointer?.id ?? -1;
-    if (pointerId === this._lastGesturePointerId && now - (this._lastGestureAt || 0) < 300) {
+    const isTouch = !!(pointer?.wasTouch || pointer?.event?.pointerType === 'touch');
+    const sinceLast = now - (this._lastGestureAt || 0);
+
+    // Ghost mouse click after a touch (common on iPhone Safari/Chrome).
+    if (!isTouch && this._lastGestureWasTouch && sinceLast < 500) {
       return false;
     }
-    if (now - (this._lastGestureAt || 0) < 45) return false;
+    // Any second selection gesture too soon — ignore (pointer ids often differ on iOS).
+    if (sinceLast < 320) return false;
+    if (pointerId === this._lastGesturePointerId && sinceLast < 450) return false;
+
     this._lastGesturePointerId = pointerId;
     this._lastGestureAt = now;
+    this._lastGestureWasTouch = isTouch;
+    return true;
+  }
+
+  /** Lighter gate for choosing a target after selection (allow quick second tap). */
+  consumeTargetGesture(pointer) {
+    if (!this.canAcceptTargetNow()) return false;
+    const now = performance.now();
+    const isTouch = !!(pointer?.wasTouch || pointer?.event?.pointerType === 'touch');
+    const sinceLast = now - (this._lastGestureAt || 0);
+    if (!isTouch && this._lastGestureWasTouch && sinceLast < 500) return false;
+    if (sinceLast < 80) return false;
+    this._lastGestureAt = now;
+    this._lastGestureWasTouch = isTouch;
     return true;
   }
 
   canAcceptTargetNow() {
     return performance.now() >= (this._blockTargetsUntil || 0);
+  }
+
+  /** Select attacker/spell; ignore bounce-deselect from the same tap. */
+  toggleSelection(kind, id, payload = null) {
+    const now = performance.now();
+    const lockMs = 400;
+    if (kind === 'attacker') {
+      if (this.selectedAttacker === id && now - (this._selectionLockedAt || 0) < lockMs) {
+        return false;
+      }
+      this.selectedAttacker = this.selectedAttacker === id ? null : id;
+      this.selectedSpell = null;
+      if (this.selectedAttacker) this._selectionLockedAt = now;
+      return true;
+    }
+    if (kind === 'spell') {
+      const currentId = this.selectedSpell?.instanceId;
+      if (currentId === id && now - (this._selectionLockedAt || 0) < lockMs) {
+        return false;
+      }
+      this.selectedSpell = currentId === id ? null : payload;
+      this.selectedAttacker = null;
+      if (this.selectedSpell) this._selectionLockedAt = now;
+      return true;
+    }
+    return false;
   }
 
   updateSelectionVisuals() {
@@ -602,8 +652,7 @@ export class MatchScene extends BaseScene {
     hero.add([rect, label, hp, deck]);
     this.heroViews.push({ rect, mine, state });
     rect.setInteractive({ useHandCursor: true }).on('pointerup', (pointer) => {
-      if (!this.canAcceptTargetNow()) return;
-      if (!this.consumeCardGesture(pointer)) return;
+      if (!this.consumeTargetGesture(pointer)) return;
       const p = this.selectedSpell?.card;
       const s = this.targetSide(p);
       const ok = this.allowsHeroTarget(p);
@@ -655,16 +704,14 @@ export class MatchScene extends BaseScene {
     );
     const canBeAttackTarget = !mine && !!this.selectedAttacker && !minion.stealth;
     if (canBeSpellTarget || canBeAttackTarget) {
-      if (!this.canAcceptTargetNow()) return;
-      if (!this.consumeCardGesture(pointer)) return;
+      if (!this.consumeTargetGesture(pointer)) return;
       this.useTarget(minion.instanceId);
       return;
     }
     if (mine && isMyTurn && minion.canAttack && !this.selectedSpell) {
       if (!this.consumeCardGesture(pointer)) return;
-      this.selectedAttacker = this.selectedAttacker === minion.instanceId ? null : minion.instanceId;
-      this.selectedSpell = null;
-      this._blockTargetsUntil = performance.now() + 220;
+      if (!this.toggleSelection('attacker', minion.instanceId)) return;
+      this._blockTargetsUntil = performance.now() + 280;
       this.updateSelectionVisuals();
     }
   }
@@ -706,12 +753,9 @@ export class MatchScene extends BaseScene {
         if (moved > 28) return;
         if (!this.consumeCardGesture(pointer)) return;
         if (this.needsTarget(card)) {
-          this.selectedSpell = this.selectedSpell?.instanceId === slot.instanceId
-            ? null
-            : { ...slot, card };
-          this.selectedAttacker = null;
+          if (!this.toggleSelection('spell', slot.instanceId, { ...slot, card })) return;
           // Prevent the same tap from also resolving a board/hero target under the finger.
-          this._blockTargetsUntil = performance.now() + 220;
+          this._blockTargetsUntil = performance.now() + 280;
           this.updateSelectionVisuals();
           return;
         }
