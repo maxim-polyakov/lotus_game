@@ -20,6 +20,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create environment files
+        env:
+          SERVER_ENV: ${{ secrets.SERVER_ENV }}
+          CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
+        run: |
+          printf '%s\n' "$SERVER_ENV" > server/.env
+          printf '%s\n' "$CLIENT_ENV" > client/.env
+          printf '%s\n' "$CLIENT_ENV" > .env
+
       - name: Copy project to server
         uses: appleboy/scp-action@v1.0.0
         with:
@@ -27,7 +36,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          source: "client,server,docker-compose.yml"
+          source: "client,server,docker-compose.yml,.env"
           target: ${{ secrets.DEPLOY_PATH }}
           overwrite: true
 
