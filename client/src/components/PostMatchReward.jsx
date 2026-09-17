@@ -31,5 +31,3 @@ export function rewardActionButtons(reward) {
   }
   return buttons;
 }
-
-export default { formatPostMatchReward, rewardActionButtons };

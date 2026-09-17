@@ -3,7 +3,7 @@ import SockJS from 'sockjs-client';
 import Phaser from 'phaser';
 import api, { WS_URL } from '../api/client';
 import { getAccessToken } from '../utils/tokenStorage';
-import { GAME_WIDTH, GAME_HEIGHT, palette, session, layoutInfo } from '../game/shared';
+import { GAME_WIDTH, GAME_HEIGHT, session, layoutInfo } from '../game/shared';
 import { escapeAttr } from './ErrorDetail';
 import './ChatWidget.css';
 
