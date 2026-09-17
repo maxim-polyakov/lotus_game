@@ -46,7 +46,7 @@ jobs:
 
       - name: Test server
         working-directory: server
-        run: mvn --batch-mode test
+        run: mvn --batch-mode -DfailIfNoTests=true test
 
   deploy:
     needs: verify
