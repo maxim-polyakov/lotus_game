@@ -134,6 +134,9 @@ export class AuthScene extends BaseScene {
         const { data } = await api.post('/api/auth/verify-email', values);
         setTokens(data.accessToken, data.refreshToken, true);
         await loadCurrentUser();
+        try {
+          await this.loadImageUrls([session.user?.avatarUrl]);
+        } catch { /* ignore */ }
         ensureChatScene(this);
         ensureFriendOnlineScene(this);
         this.goto('MenuScene');
@@ -150,6 +153,9 @@ export class AuthScene extends BaseScene {
         return;
       }
       await loginUser(values.usernameOrEmail, values.password, values.rememberMe === 'yes');
+      try {
+        await this.loadImageUrls([session.user?.avatarUrl]);
+      } catch { /* ignore */ }
       ensureChatScene(this);
       ensureFriendOnlineScene(this);
       this.goto('MenuScene');

@@ -67,8 +67,14 @@ export class BootScene extends BaseScene {
         session.user = null;
         return null;
       })
-      .then(() => {
-        this.loadImageUrls([session.user?.avatarUrl]).catch(() => {});
+      .then(async () => {
+        // Wait for avatar texture so the top-right header shows it immediately
+        // (otherwise it only appears after visiting a scene that reloads images).
+        try {
+          await this.loadImageUrls([session.user?.avatarUrl]);
+        } catch {
+          // keep boot going without avatar art
+        }
         const targetScene = sceneForCurrentRoute();
         if (!session.user && !['AuthScene', 'LeaderboardScene'].includes(targetScene)) {
           finish('AuthScene', { mode: authModeForCurrentRoute(), error: bootAuthError });
