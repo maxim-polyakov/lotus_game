@@ -1,6 +1,6 @@
 import api, { API_BASE } from '../api/client';
 import { setTokens } from '../utils/tokenStorage';
-import { layoutInfo } from '../game/shared';
+import { layoutInfo, session } from '../game/shared';
 import { BaseScene } from '../components/TutorialModal';
 import { loadCurrentUser, loginUser, consumeAuthUrlError, ensureFriendOnlineScene } from '../components/FriendOnlinePopup';
 import { ensureChatScene } from '../components/ChatWidget';
