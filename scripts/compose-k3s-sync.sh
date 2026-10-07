@@ -318,19 +318,30 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   export TMPDIR="${TMPDIR:-/tmp}"
   export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   mkdir -p "$TMPDIR"
-  build_services=()
+  build_log=$(mktemp)
+  trap 'rm -f "$config_json" "$config_yaml" "$build_log"' EXIT
+
+  # Compose (bake) can fail after a successful build with
+  # "open /tmp/.tmp-compose-build-metadataFile-*.json: no such file or directory".
+  # Accept that specific failure only when the service image exists.
+  # build_service SERVICE IMAGE
+  build_service() {
+    local service=$1 image=$2 status=0
+    "${compose[@]}" build "${build_args[@]}" "$service" 2>&1 | tee "$build_log" || status=$?
+    ((status == 0)) && return 0
+    grep -q 'compose-build-metadataFile' "$build_log" || return "$status"
+    if docker image inspect "$image" >/dev/null 2>&1; then
+      log "WARNING: compose metadata-file error after building $service; image $image present, continuing"
+      return 0
+    fi
+    return "$status"
+  }
+
   for row in "${sync_services[@]}"; do
-    IFS=$'\t' read -r service _ _ _ <<<"$row"
-    build_services+=("$service")
+    IFS=$'\t' read -r service image _ _ <<<"$row"
+    log "building service $service"
+    build_service "$service" "$image"
   done
-  if ((${#build_services[@]} <= 1)); then
-    "${compose[@]}" build "${build_args[@]}"
-  else
-    for service in "${build_services[@]}"; do
-      log "building service $service"
-      "${compose[@]}" build "${build_args[@]}" "$service"
-    done
-  fi
 fi
 
 local_ips=" $(hostname -I 2>/dev/null || true) "
