@@ -24,8 +24,8 @@ Environment:
   COMPOSE_K3S_EXTRA_NAMESERVERS   Public DNS for Maildev/SMTP Deployments (default: 8.8.8.8,1.1.1.1)
   COMPOSE_K3S_SKIP_SMTP_DNS       Set to 1 to skip Maildev dnsConfig on the Deployment
   COMPOSE_K3S_STRICT_ROLLOUT      Set to 1 to fail when kubectl rollout status fails
-  COMPOSE_BAKE                    Default false — avoid compose bake metadata-file races on build
-  COMPOSE_K3S_TMPDIR              TMPDIR for compose build (default: PROJECT_DIR/.compose-tmp)
+  COMPOSE_BAKE                    Default 0 — avoid compose bake metadata-file races on build
+  TMPDIR                          Default /tmp for compose build temp files
 EOF
 }
 
@@ -315,38 +315,22 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   log "building Compose project $project_name"
   build_args=()
   [[ "$no_cache" == true ]] && build_args+=(--no-cache)
-  # Snap-confined docker/buildx gets a private /tmp, so the bake metadata file
-  # compose creates there is invisible to buildx. Use a project-local TMPDIR.
-  export TMPDIR="${COMPOSE_K3S_TMPDIR:-$project_dir/.compose-tmp}"
-  export COMPOSE_BAKE="${COMPOSE_BAKE:-false}"
+  export TMPDIR="${TMPDIR:-/tmp}"
+  export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   mkdir -p "$TMPDIR"
-  build_log=$(mktemp)
-  trap 'rm -f "$config_json" "$config_yaml" "$build_log"' EXIT
-
-  # build_service SERVICE IMAGE
-  build_service() {
-    local service=$1 image=$2 status=0 before after
-    before=$(docker image inspect "$image" --format '{{.Id}}' 2>/dev/null || true)
-    "${compose[@]}" build "${build_args[@]}" "$service" 2>&1 | tee "$build_log" || status=$?
-    ((status == 0)) && return 0
-    if grep -q 'compose-build-metadataFile' "$build_log"; then
-      after=$(docker image inspect "$image" --format '{{.Id}}' 2>/dev/null || true)
-      if [[ -n "$after" && "$after" != "$before" ]]; then
-        log "WARNING: compose metadata-file error after building $service; image $image exists, continuing"
-        return 0
-      fi
-      log "compose metadata-file error for $service; retrying without bake"
-      COMPOSE_BAKE=false "${compose[@]}" build "${build_args[@]}" "$service"
-      return
-    fi
-    return "$status"
-  }
-
+  build_services=()
   for row in "${sync_services[@]}"; do
-    IFS=$'\t' read -r service image _ _ <<<"$row"
-    log "building service $service"
-    build_service "$service" "$image"
+    IFS=$'\t' read -r service _ _ _ <<<"$row"
+    build_services+=("$service")
   done
+  if ((${#build_services[@]} <= 1)); then
+    "${compose[@]}" build "${build_args[@]}"
+  else
+    for service in "${build_services[@]}"; do
+      log "building service $service"
+      "${compose[@]}" build "${build_args[@]}" "$service"
+    done
+  fi
 fi
 
 local_ips=" $(hostname -I 2>/dev/null || true) "
