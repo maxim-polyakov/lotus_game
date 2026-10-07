@@ -317,10 +317,7 @@ with open(sys.argv[1], encoding="utf-8") as stream:
 
 project = config["name"]
 separator = sys.argv[2]
-has_builds = any("build" in service for service in config["services"].values())
 for name, service in config["services"].items():
-    if has_builds and "build" not in service:
-        continue
     if "build" not in service and not service.get("image"):
         continue
     explicit_image = "1" if service.get("image") else "0"
@@ -356,25 +353,14 @@ compose_image_exists() {
 compose_build_service() {
   local service=$1
   local source_image=$2
-  local found build_log status
-  build_log=$(mktemp "${TMPDIR:-/tmp}/compose-k3s-build.XXXXXX")
-  set +e
-  "${compose[@]}" build ${build_args[@]+"${build_args[@]}"} "$service" </dev/null 2>&1 | tee "$build_log"
-  status=${PIPESTATUS[0]}
-  set -e
-  if ((status == 0)); then
-    rm -f "$build_log"
+  local found
+  if "${compose[@]}" build "${build_args[@]}" "$service"; then
     return 0
   fi
-  # Compose bake can fail writing its metadata file after the image was
-  # built; only that specific error is treated as success.
-  if grep -q 'compose-build-metadataFile' "$build_log" &&
-    found=$(compose_image_exists "$service" "$source_image"); then
-    rm -f "$build_log"
+  if found=$(compose_image_exists "$service" "$source_image"); then
     log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
     return 0
   fi
-  rm -f "$build_log"
   return 1
 }
 
@@ -392,7 +378,16 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
     build_services+=("$service")
   done
   for row in "${sync_services[@]}"; do
-    IFS=$'\t' read -r service source_image _ _ <<<"$row"
+    IFS=$'\t' read -r service source_image _ explicit_image <<<"$row"
+    if [[ "$explicit_image" == 1 ]]; then
+      if docker image inspect "$source_image" >/dev/null 2>&1; then
+        log "image already present for $service ($source_image)"
+      else
+        log "pulling image for service $service ($source_image)"
+        docker pull "$source_image" || die "docker pull failed for $source_image"
+      fi
+      continue
+    fi
     log "building service $service"
     compose_build_service "$service" "$source_image" || die "compose build failed for $service"
   done
