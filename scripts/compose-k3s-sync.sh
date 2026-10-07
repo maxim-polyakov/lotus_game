@@ -356,14 +356,25 @@ compose_image_exists() {
 compose_build_service() {
   local service=$1
   local source_image=$2
-  local found
-  if "${compose[@]}" build "${build_args[@]}" "$service"; then
+  local found build_log status
+  build_log=$(mktemp "${TMPDIR:-/tmp}/compose-k3s-build.XXXXXX")
+  set +e
+  "${compose[@]}" build ${build_args[@]+"${build_args[@]}"} "$service" </dev/null 2>&1 | tee "$build_log"
+  status=${PIPESTATUS[0]}
+  set -e
+  if ((status == 0)); then
+    rm -f "$build_log"
     return 0
   fi
-  if found=$(compose_image_exists "$service" "$source_image"); then
+  # Compose bake can fail writing its metadata file after the image was
+  # built; only that specific error is treated as success.
+  if grep -q 'compose-build-metadataFile' "$build_log" &&
+    found=$(compose_image_exists "$service" "$source_image"); then
+    rm -f "$build_log"
     log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
     return 0
   fi
+  rm -f "$build_log"
   return 1
 }
 
