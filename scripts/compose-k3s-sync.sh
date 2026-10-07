@@ -110,7 +110,7 @@ fix_maildev_container_command() {
     >/dev/null 2>&1 || true
   local merge_patch
   merge_patch=$("${kube[@]}" get deployment "$deployment" -n "$namespace" -o json | WD="$workdir" python3 -c '
-import json, os, re, shlex
+import json, os, re, shlex, sys
 deploy = json.load(sys.stdin)
 wd = os.environ["WD"]
 out = []
