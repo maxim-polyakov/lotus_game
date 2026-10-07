@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Копируем package.json и package-lock.json
 COPY package*.json ./
-RUN npm ci
+RUN npm ci && npm cache clean --force
 
 # Копируем весь код и собираем production-версию
 COPY . .
@@ -13,10 +13,11 @@ ARG REACT_APP_API_URL=http://localhost:5497
 ARG REACT_APP_WS_URL=http://localhost:5497/ws
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV REACT_APP_WS_URL=$REACT_APP_WS_URL
+ENV GENERATE_SOURCEMAP=false
 RUN npm run build
 
 # Устанавливаем serve для отдачи статики
-RUN npm install -g serve
+RUN npm install -g serve && npm cache clean --force
 
 EXPOSE 3000
 

@@ -29,6 +29,7 @@ Environment:
   TMPDIR                          Default /tmp for compose build temp files
   COMPOSE_K3S_LOCK_WAIT           Seconds to wait for per-project flock (0 = fail immediately)
   COMPOSE_K3S_CLEAR_ORPHAN_LOCK   Set to 1 to fuser -k stale lock holders after wait (default 1)
+  COMPOSE_K3S_MIN_FREE_MB         Free MB on Docker root below which build cache is fully pruned (default 4096)
 EOF
 }
 
@@ -350,6 +351,31 @@ compose_image_exists() {
   return 1
 }
 
+free_mb() {
+  local dir
+  dir=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)
+  [[ -n "$dir" && -d "$dir" ]] || dir=/
+  df -Pm "$dir" 2>/dev/null | awk 'NR==2 {print $4}'
+}
+
+reclaim_disk_space() {
+  local min_free=${COMPOSE_K3S_MIN_FREE_MB:-4096} free
+  log "reclaiming disk space before build (free: $(free_mb || echo '?') MB)"
+  # Old immutable sync tags for this project; the running copies live in k3s containerd.
+  docker image ls --format '{{.Repository}}:{{.Tag}}' 2>/dev/null |
+    grep -E "^compose-sync/${kube_project}-" |
+    xargs -r docker image rm >/dev/null 2>&1 || true
+  docker image prune -f >/dev/null 2>&1 || true
+  docker builder prune -f --filter until=72h >/dev/null 2>&1 || true
+  free=$(free_mb || echo 0)
+  if [[ "$free" =~ ^[0-9]+$ && "$free" -lt "$min_free" ]]; then
+    log "low disk space (${free} MB < ${min_free} MB); pruning all build cache"
+    docker builder prune -af >/dev/null 2>&1 || true
+    docker container prune -f >/dev/null 2>&1 || true
+  fi
+  log "free disk space: $(free_mb || echo '?') MB"
+}
+
 compose_build_service() {
   local service=$1
   local source_image=$2
@@ -372,6 +398,7 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
   mkdir -p "$TMPDIR"
+  reclaim_disk_space
   build_services=()
   for row in "${sync_services[@]}"; do
     IFS=$'\t' read -r service _ _ _ <<<"$row"
