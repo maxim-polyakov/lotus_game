@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: compose-k3s-sync --project-dir DIR [options]
 
-Build Docker Compose services, import immutable copies of locally built images
+Build Docker Compose services (via docker build), import immutable copies of locally built images
 into the k3s containerd on this node, and roll out matching Deployments.
 
 Options:
@@ -14,7 +14,7 @@ Options:
   --env-file FILE         Compose env file, relative to project directory
   --compose-file FILE     Compose file, relative to project directory
   --skip-build            Use images already built by Docker Compose
-  --no-cache              Pass --no-cache to docker compose build
+  --no-cache              Pass --no-cache to docker build
   --dry-run               Print the planned service/deployment mapping only
   --patch-only            Apply hostAliases/dnsConfig patches only (no image rollout)
   --timeout DURATION      kubectl rollout timeout (default: 10m)
@@ -24,7 +24,6 @@ Environment:
   COMPOSE_K3S_EXTRA_NAMESERVERS   Public DNS for Maildev/SMTP Deployments (default: 8.8.8.8,1.1.1.1)
   COMPOSE_K3S_SKIP_SMTP_DNS       Set to 1 to skip Maildev dnsConfig on the Deployment
   COMPOSE_K3S_STRICT_ROLLOUT      Set to 1 to fail when kubectl rollout status fails
-  COMPOSE_BAKE                    Default 0 — avoid compose bake metadata-file races on build
   BUILDX_NO_DEFAULT_ATTESTATIONS  Default 1 — skip provenance attestation (metadata-file flake)
   TMPDIR                          Default /tmp for compose build temp files
 EOF
@@ -312,34 +311,58 @@ if [[ "$dry_run" != true && "$skip_build" != true && "$patch_only" != true ]]; t
   "${compose[@]}" down --remove-orphans
 fi
 
-compose_image_exists() {
+# Build each service with plain `docker build` from the resolved Compose config.
+# `docker compose build` (bake) fails writing its metadata file after a
+# successful build, so it is not used here.
+docker_build_service() {
   local service=$1
   local source_image=$2
-  local candidate
-  for candidate in \
-    "$source_image" \
-    "${project_name}${image_separator}${service}" \
-    "${project_name}-${service}"; do
-    if docker image inspect "$candidate" >/dev/null 2>&1; then
-      printf '%s' "$candidate"
-      return 0
-    fi
-  done
-  return 1
-}
+  local -a docker_args=()
+  mapfile -d '' -t docker_args < <(
+    python3 - "$config_json" "$service" "$source_image" <<'PY'
+import json
+import os
+import sys
 
-compose_build_service() {
-  local service=$1
-  local source_image=$2
-  local found
-  if "${compose[@]}" build "${build_args[@]}" "$service"; then
+with open(sys.argv[1], encoding="utf-8") as stream:
+    config = json.load(stream)
+service, image = sys.argv[2], sys.argv[3]
+build = config["services"][service].get("build")
+if not build:
+    sys.exit(0)
+if isinstance(build, str):
+    build = {"context": build}
+context = build.get("context") or "."
+args = ["--tag", image]
+if build.get("dockerfile_inline"):
+    raise SystemExit(f"dockerfile_inline is not supported ({service})")
+dockerfile = build.get("dockerfile")
+if dockerfile:
+    if not os.path.isabs(dockerfile):
+        dockerfile = os.path.join(context, dockerfile)
+    args += ["--file", dockerfile]
+build_args = build.get("args") or {}
+if isinstance(build_args, list):
+    build_args = dict(item.split("=", 1) if "=" in item else (item, None) for item in build_args)
+for key, value in build_args.items():
+    args += ["--build-arg", key if value is None else f"{key}={value}"]
+if build.get("target"):
+    args += ["--target", build["target"]]
+if build.get("network"):
+    args += ["--network", build["network"]]
+if build.get("pull"):
+    args.append("--pull")
+for key, value in (build.get("labels") or {}).items():
+    args += ["--label", f"{key}={value}"]
+args.append(context)
+sys.stdout.write("\0".join(args) + "\0")
+PY
+  ) || return 1
+  if ((${#docker_args[@]} == 0)); then
+    log "skipping build for $service: no build section"
     return 0
   fi
-  if found=$(compose_image_exists "$service" "$source_image"); then
-    log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
-    return 0
-  fi
-  return 1
+  docker build "${build_args[@]}" "${docker_args[@]}" </dev/null
 }
 
 if [[ "$skip_build" != true && "$dry_run" != true ]]; then
@@ -347,18 +370,12 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   build_args=()
   [[ "$no_cache" == true ]] && build_args+=(--no-cache)
   export TMPDIR="${TMPDIR:-/tmp}"
-  export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
   mkdir -p "$TMPDIR"
-  build_services=()
-  for row in "${sync_services[@]}"; do
-    IFS=$'\t' read -r service _ _ _ <<<"$row"
-    build_services+=("$service")
-  done
   for row in "${sync_services[@]}"; do
     IFS=$'\t' read -r service source_image _ _ <<<"$row"
-    log "building service $service"
-    compose_build_service "$service" "$source_image" || die "compose build failed for $service"
+    log "building service $service -> $source_image"
+    docker_build_service "$service" "$source_image" || die "docker build failed for $service"
   done
 fi
 
