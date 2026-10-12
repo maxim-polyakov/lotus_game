@@ -2,9 +2,14 @@
   "short_name": "Lotus",
   "name": "Lotus Game",
   "icons": [
-    {"src": "favicon.ico", "type": "image/x-icon", "sizes": "48x48", "purpose": "any"},
+    {"src": "favicon.ico", "type": "image/x-icon", "sizes": "16x16 32x32 48x48 64x64 128x128 256x256", "purpose": "any"},
+    {"src": "favicon-48x48.png", "type": "image/png", "sizes": "48x48", "purpose": "any"},
+    {"src": "favicon-120.png", "type": "image/png", "sizes": "120x120", "purpose": "any"},
+    {"src": "apple-touch-icon.png", "type": "image/png", "sizes": "180x180", "purpose": "any"},
+    {"src": "favicon-192x192.png", "type": "image/png", "sizes": "192x192", "purpose": "any"},
     {"src": "favicon-195.png", "type": "image/png", "sizes": "195x195", "purpose": "any"},
-    {"src": "favicon-228.png", "type": "image/png", "sizes": "228x228", "purpose": "any"}
+    {"src": "favicon-228.png", "type": "image/png", "sizes": "228x228", "purpose": "any"},
+    {"src": "favicon.png", "type": "image/png", "sizes": "256x256", "purpose": "any"}
   ],
   "start_url": ".",
   "display": "standalone",
