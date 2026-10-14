@@ -144,6 +144,7 @@ print(
     log "Maildev/SMTP Deployment dnsConfig set for $namespace/$deployment"
     fix_maildev_container_command "$namespace" "$deployment" "$source_image" "$service"
   fi
+  apply_project_storage "$namespace" "$deployment"
   log "schema patches applied for $namespace/$deployment"
 }
 
@@ -299,6 +300,7 @@ fi
 
 [[ -n "$project_dir" ]] || die "--project-dir is required"
 project_dir=$(cd "$project_dir" && pwd)
+source "$project_dir/scripts/k3s-storage.sh"
 
 for command in docker k3s python3 flock; do
   command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
